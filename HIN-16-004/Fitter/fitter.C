@@ -82,19 +82,19 @@ void fitter(
   inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/") + (usePeriPD ? "DataFitsMassPeri_nominal/" :  "DataFitsMassCent_nominal/");
   //inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/") + (usePeriPD ? "DataFitsMassPeri_CBG/" :  "DataFitsMassCent_CBG/");
   inputFitDir["CTAUERR"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/") + (usePeriPD ? "DataFitsPeri_ctauErr_nominal/" :  "DataFitsCent_ctauErr_nominal/");// string("/afs/cern.ch/user/a/anstahll/work/public/RAAFITS/NOMINAL/") + (usePeriPD ? "DataFitsPeri/" :  "DataFitsCent/");
-  inputFitDir["CTAUTRUE"] = string("");//string("/afs/cern.ch/user/v/vabdulla/public/PbPb2015/DataFits/");
-  inputFitDir["CTAURECO"] = string("");
+  inputFitDir["CTAUTRUE"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauTrue/" :  "MCFitsCent_nonPrompt_ctauTrue/");
+  inputFitDir["CTAURECO"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/") + (usePeriPD ? "MCFitsPeri_prompt_ctauReco/" :  "MCFitsCent_prompt_ctauReco/");
   //inputFitDir["CTAURES"]  = string("/home/llr/cms/abdullah/RAA/DimuonCADIs/HIN-16-004/Fitter/Output/") + (usePeriPD ? "DataFitsPeri/" :  "DataFitsCent/");
-  inputFitDir["CTAURES"]  = string("");//string("/afs/cern.ch/user/v/vabdulla/public/PbPb2015/") + (usePeriPD ? "DataFitsPeri_NP/" :  "DataFitsCent_NP/");
+  inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/") + (usePeriPD ? "MCFitsPeri_prompt_ctauRes/" :  "MCFitsCent_prompt_ctauRes/");//string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/") + (usePeriPD ? "MCFitsPeri_prompt_ctauRes/" :  "MCFitsCent_prompt_ctauRes/");
   inputFitDir["CTAUSB"]   = string("");//string("/home/llr/cms/stahl/RAA_Analysis/NORMAL/DimuonCADIs/HIN-16-004/Fitter/Output/") + workDirName + "/";
   
   map<string, string> inputInitialFilesDir;
   inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsMassPeri_nominal/" :  "DataFitsMassCent_nominal/");
   //inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsMassPeri_CBG/" :  "DataFitsMassCent_CBG/");
-  inputInitialFilesDir["CTAUTRUE"] = "";
-  inputInitialFilesDir["CTAURECO"] = "";
-  inputInitialFilesDir["CTAURES"]  = "";//string("/afs/cern.ch/user/v/vabdulla/public/PbPb2015/Input/") + (usePeriPD ? "DataFitsPeri/" :  "DataFitsCent/");
-  inputInitialFilesDir["CTAUSB"]   = "";
+  inputInitialFilesDir["CTAUTRUE"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauTrue/" :  "MCFitsCent_nonPrompt_ctauTrue/");
+  inputInitialFilesDir["CTAURECO"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauReco/" :  "MCFitsCent_nonPrompt_ctauReco/");
+  inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "MCFitsPeri_prompt_ctauRes/" :  "MCFitsCent_prompt_ctauRes/");
+  inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsPeri_ctauBkg/" :  "DataFitsCent_ctauBkg/");
   inputInitialFilesDir["CTAU"]     = "";
   inputInitialFilesDir["FILES"]    = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsMassPeri_nominal/" :  "DataFitsMassCent_nominal/");//string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsPeri/" :  "DataFitsCent/");
   //inputInitialFilesDir["FILES"]    = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsMassPeri_CBG/" :  "DataFitsMassCent_CBG/");
@@ -245,7 +245,7 @@ void fitter(
     {"MASS", 
      {
        {"BKG",   ((fitMass  && incBkg) || (fitCtau || doCtauErrPDF || (fitRes && fitData)))}, 
-       {"JPSI",  ((fitMass && incJpsi) || (fitCtau || doCtauErrPDF || (fitRes && fitData))) && incJpsi}, 
+       {"JPSI",  (((fitMass && incJpsi) || (fitCtau || doCtauErrPDF || (fitRes && fitData))) && incJpsi) || (fitCtau && incBkg && !incJpsi && !incPsi2S)}, 
        {"PSI2S", ((fitMass && incPsi2S) || (fitCtau || doCtauErrPDF || (fitRes && fitData))) && incPsi2S}
      }
     },

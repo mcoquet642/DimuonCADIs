@@ -35,10 +35,9 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
     fixCtauParPsi2StoJpsi(parIni, isPbPb);
   }
 
-  // C r e a t e   m o d e l 
-
+  // C r e a t e   m o d e l
   bool fitMass = false;
-  if ( ws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP"))) ) { fitMass = true; } 
+  if ( ws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP"))) && incBkg && (incJpsi || incPsi2S)) { fitMass = true; }
 
   string pdfName     = "pdfCTAU";
   if (fitMass) { pdfName = "pdfCTAUMASS"; }
@@ -369,7 +368,7 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
                         ));
       }
     }
-    if ( !ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) ){ ws.factory( parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))].c_str() ); } 
+    if ( !ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) ){ ws.factory( parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
     ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_Bkg_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
                     Form("%s_Bkg_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
                     Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))
