@@ -24,7 +24,7 @@
 
 
 using namespace std;
-void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char* partName="JPsi", const char* collName="PP", const char* rapName="006", const char* partType = "prompt", Int_t polOrder = 2, Int_t nRand=100);
+void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char* partName="JPsi", const char* collName="PP", const char* rapName="006", const char* partType = "prompt", Int_t polOrder = -1, Int_t nRand=5);
 
 void customiseLegend(TLegend& legend)
 {
@@ -104,13 +104,56 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     return;
   }
 
-  
   TGraphErrors* histoMC = static_cast<TGraphErrors*>(fMC->FindObjectAny(hName.Data()));
   if (!histoMC)
   {
     cout << "MC histo " << hName.Data() << " not found in file " << fileMC << endl;
     return;
   }
+  
+  // Retrieve histos for 0-2.4 for normalisation
+  TString sDataFile(fileData);
+  sDataFile.Remove(sDataFile.First("/")+1,sDataFile.Sizeof());
+  TFile* fNormData = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap0024_cent0100.root" : "cPbPb_pt_rap0024_cent0100.root"),"READ");
+  sDataFile.ReplaceAll("data","mc");
+  TFile* fNormMC = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap0024_cent0100.root" : "cPbPb_pt_rap0024_cent0100.root"),"READ");
+  if (!fNormData || !fNormMC)
+  {
+    cout << "[ERROR]: One of the two input normalisation files was not found" << endl;
+    return;
+  }
+  
+  TGraphErrors* histoNormData = static_cast<TGraphErrors*>(fNormData->FindObjectAny(hName.Data()));
+  if (!histoData)
+  {
+    cout << "Normalisation data histo " << hName.Data() << " not found in file " << fNormData->GetName() << endl;
+    return;
+  }
+  
+  TGraphErrors* histoNormMC = static_cast<TGraphErrors*>(fNormMC->FindObjectAny(hName.Data()));
+  if (!histoMC)
+  {
+    cout << "Normalisation MC histo " << hName.Data() << " not found in file " << fNormMC->GetName() << endl;
+    return;
+  }
+  
+  // Calculate normalisation factors for data and MC
+  double normMC(0.), normData(0.);
+  for (int i = 0 ; i < histoNormData->GetN() ; i++)
+  {
+    double x, y;
+    double xMC, yMC;
+    histoNormData->GetPoint(i,x,y);
+    normData += y;
+    histoNormMC->GetPoint(i,xMC,yMC);
+    normMC += yMC;
+  }
+  
+//  cout << "Total NJpsi in DATA = " << normData << endl;
+//  cout << "Total NJpsi in MC = " << normMC << endl;
+  
+  normData = 1./normData;
+  normMC = 1./normMC;
   
   // Create output objects
   TObjArray* aFunctions = new TObjArray();
@@ -146,12 +189,12 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   }
 
   // Normalise the initial DATA and MC distributions
-  Double_t norm = 1./histoDataClone->Integral();
+//  Double_t norm = 1./histoDataClone->Integral();
 //  histoDataClone->Scale(norm); // Normalise histo to 1
   for (int i = 0; i<nPoints ; i++) // Normalise histo to 1
   {
-    histoDataClone->SetBinContent(i+1,histoDataClone->GetBinContent(i+1)*norm);
-    histoDataClone->SetBinError(i+1,histoDataClone->GetBinError(i+1)*norm);
+    histoDataClone->SetBinContent(i+1,histoDataClone->GetBinContent(i+1)*normData);
+    histoDataClone->SetBinError(i+1,histoDataClone->GetBinError(i+1)*normData);
   }
   histoDataClone->SetLineColor(1);
   histoDataClone->SetMarkerColor(1);
@@ -186,12 +229,12 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     histoMCClone->SetBinError(i+1,exyLowMC[i]);
   }
 
-  norm = 1./histoMCClone->Integral();
+//  norm = 1./histoMCClone->Integral();
 //  histoMCClone->Scale(norm); // Normalise histo to 1
   for (int i = 0; i<nPointsMC ; i++) // Normalise histo to 1
   {
-    histoMCClone->SetBinContent(i+1,histoMCClone->GetBinContent(i+1)*norm);
-    histoMCClone->SetBinError(i+1,histoMCClone->GetBinError(i+1)*norm);
+    histoMCClone->SetBinContent(i+1,histoMCClone->GetBinContent(i+1)*normMC);
+    histoMCClone->SetBinError(i+1,histoMCClone->GetBinError(i+1)*normMC);
   }
   histoMCClone->SetLineColor(4);
   histoMCClone->SetMarkerColor(4);
@@ -230,12 +273,12 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
       
     }
     
-    norm = 1./histoDataClone->Integral();
-    for (Int_t i=1; i<=nBins ; i++) // Normalise histo to 1
-    {
-      histoMCClone->SetBinContent(i,histoMCClone->GetBinContent(i)*norm);
-      histoMCClone->SetBinError(i,histoMCClone->GetBinError(i)*norm);
-    }
+//    norm = 1./histoDataClone->Integral();
+//    for (Int_t i=1; i<=nBins ; i++) // Normalise histo to 1
+//    {
+//      histoMCClone->SetBinContent(i,histoMCClone->GetBinContent(i)*normMC);
+//      histoMCClone->SetBinError(i,histoMCClone->GetBinError(i)*normMC);
+//    }
 //    histoDataClone->Scale(norm); // Normalise randomised histo to 1
     aDataHistos->Add(histoDataClone2);
   }
@@ -266,8 +309,9 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     if (polOrder==1) fWeight= new TF1(fName.Data(),Pol1,6.5,50.,2);
     else if (polOrder==2) fWeight= new TF1(fName.Data(),Pol2,6.5,50.,3);
     else if (polOrder==3) fWeight= new TF1(fName.Data(),Pol3,6.5,50.,4);
+    else if (polOrder==-1) fWeight= new TF1(fName.Data(),Exp,6.5,50.,2);
     fWeight->SetLineColor(nh==0 ? 1 : 2);
-    histoDataClone2->Fit(fWeight,"IN");
+    histoDataClone2->Fit(fWeight,"N");
     
     aFunctions->Add(fWeight);
     aRatios->Add(histoDataClone2);

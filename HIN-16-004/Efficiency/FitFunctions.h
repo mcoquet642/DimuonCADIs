@@ -117,8 +117,6 @@ Double_t CB3Pol2(Double_t *x, Double_t *par)
   return (CrystalBall(x,par1) + CrystalBall(x, parM) + CrystalBall(x, parN) + Pol2(x, &par[7]));
 }
 
-
-
 // Exponential
 
 Double_t Exp(Double_t *x, Double_t *par)
@@ -130,8 +128,8 @@ Double_t Exp(Double_t *x, Double_t *par)
 Double_t ExpPol2(Double_t *x, Double_t *par)
 {
   //Double_t exp = par[0] * TMath::Exp(par[1]*x[0]);
-  Double_t exp = TMath::Exp(par[0] + par[1]*x[0]);
-  //Double_t exp = TMath::Exp(par[0] + par[1]*x[0] + par[2]*x[0]*x[0]);
+ // Double_t exp = TMath::Exp(par[0] + par[1]*x[0]);
+ Double_t exp = TMath::Exp(par[0] + par[1]*x[0] + par[2]*x[0]*x[0]);
   return exp;
   //return Exp(x,par) + Pol2(x,&par[3]);
 }
