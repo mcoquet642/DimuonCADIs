@@ -35,9 +35,9 @@ using namespace std;
 const char* poiname       = "N_Jpsi";
 #endif
 bool  fiterrors     = true;  // statistical errors are from the fit
-bool  doprompt      = true;  // prompt Jpsi
-bool  dononprompt   = false;  // nonprompt Jpsi
-string nameTag_base = "_mc";    // can put here e.g. "_data", "_mc", ...
+bool  doprompt      = false;  // prompt Jpsi
+bool  dononprompt   = true;  // nonprompt Jpsi
+string nameTag_base = "_data";    // can put here e.g. "_data", "_mc", ...
 
 //////////////////
 // DECLARATIONS //
@@ -62,6 +62,8 @@ public:
   double dbfracpp;
   double bfracaa;
   double dbfracaa;
+  double correlaa;
+  double correlpp;
 };
 
 
@@ -113,7 +115,7 @@ void plotAll(string workDirName) {
   nameTag = nameTag_base;
   
   plotPt(workDirName,0);
-  plotPt(workDirName,1);
+//  plotPt(workDirName,1);
   plotPt(workDirName,2);
   if (isData) plotRap(workDirName);
 };
@@ -151,7 +153,7 @@ void plot(vector<anabin> thecats, string xaxis, string outputDir) {
   vector<double> x, ex, y, ey;
   float ptmin, ptmax, ymin, ymax, centmin, centmax;
   float val, err=0;
-  float bfrac, bfrac_err;
+  float bfrac, bfrac_err, correl=0.;
   int ival=-999;
   char collSystem[5];
   tr->SetBranchAddress("ptmin",&ptmin);
@@ -161,10 +163,15 @@ void plot(vector<anabin> thecats, string xaxis, string outputDir) {
   tr->SetBranchAddress("centmin",&centmin);
   tr->SetBranchAddress("centmax",&centmax);
   tr->SetBranchAddress(Form("%s_val",poiname),&val);
-  tr->SetBranchAddress(Form("%s_err",poiname),&err);
+  if (isData) tr->SetBranchAddress(Form("%s_errL",poiname),&err);
+  else tr->SetBranchAddress(Form("%s_err",poiname),&err);
   tr->SetBranchAddress("collSystem",collSystem);
-  tr->SetBranchAddress("b_Jpsi_val",&bfrac);
-  tr->SetBranchAddress("b_Jpsi_err",&bfrac_err);
+  if (isData)
+  {
+    tr->SetBranchAddress("b_Jpsi_val",&bfrac);
+    tr->SetBranchAddress("b_Jpsi_errL",&bfrac_err);
+    tr->SetBranchAddress("correl_N_Jpsi_vs_b_Jpsi_val",&correl);
+  }
   
   int ntr = tr->GetEntries();
   for (int i=0; i<ntr; i++) {
@@ -178,11 +185,13 @@ void plot(vector<anabin> thecats, string xaxis, string outputDir) {
       theVars_inputs[thebin].dnpp_stat = err;
       theVars_inputs[thebin].bfracpp = bfrac;
       theVars_inputs[thebin].dbfracpp = bfrac_err;
+      theVars_inputs[thebin].correlpp = correl;
     } else {
       theVars_inputs[thebin].naa = val;
       theVars_inputs[thebin].dnaa_stat = err;
       theVars_inputs[thebin].bfracaa = bfrac;
       theVars_inputs[thebin].dbfracaa = bfrac_err;
+      theVars_inputs[thebin].correlaa = correl;
     }
   }
   
@@ -227,14 +236,24 @@ void plot(vector<anabin> thecats, string xaxis, string outputDir) {
       if (doprompt) {
         naa = s.naa*(1.-s.bfracaa);
         npp = spp.npp*(1.-spp.bfracpp);
-        dnaa = naa*sqrt(pow(s.dnaa_stat/s.naa,2) + pow(s.dbfracaa/s.bfracaa,2));
-        dnpp = npp*sqrt(pow(spp.dnpp_stat/spp.npp,2) + pow(spp.dbfracpp/spp.bfracpp,2));
+        
+        dnaa = naa*sqrt(pow(s.dnaa_stat/s.naa,2)
+                        - 2.*s.correlaa*s.dnaa_stat*s.dbfracaa/(s.naa*s.bfracaa)
+                        + pow(s.dbfracaa/s.bfracaa,2));
+        dnpp = npp*sqrt(pow(spp.dnpp_stat/spp.npp,2)
+                        - 2.*spp.correlpp*spp.dnpp_stat*spp.dbfracpp/(spp.npp*spp.bfracpp)
+                        + pow(spp.dbfracpp/spp.bfracpp,2));
       }
       if (dononprompt) {
         naa = s.naa*s.bfracaa;
         npp = spp.npp*spp.bfracpp;
-        dnaa = naa*sqrt(pow(s.dnaa_stat/s.naa,2) + pow(s.dbfracaa/s.bfracaa,2));
-        dnpp = npp*sqrt(pow(spp.dnpp_stat/spp.npp,2) + pow(spp.dbfracpp/spp.bfracpp,2));
+        
+        dnaa = naa*sqrt(pow(s.dnaa_stat/s.naa,2)
+                        + 2.*s.correlaa*s.dnaa_stat*s.dbfracaa/(s.naa*s.bfracaa)
+                        + pow(s.dbfracaa/s.bfracaa,2));
+        dnpp = npp*sqrt(pow(spp.dnpp_stat/spp.npp,2)
+                        + 2.*spp.correlpp*spp.dnpp_stat*spp.dbfracpp/(spp.npp*spp.bfracpp)
+                        + pow(spp.dbfracpp/spp.bfracpp,2));
       }
     }
     theVarsBinnedPbPb[thebin].push_back(naa);
@@ -294,10 +313,10 @@ void plot(vector<anabin> thecats, string xaxis, string outputDir) {
       eylPP = fabs(theVarsBinnedPP_stat[*it][i]);
       eyhPP = eylPP;
       
-      theGraphsPbPb[*it]->SetPoint(i,x,yPbPb/(exl+exh));
+      theGraphsPbPb[*it]->SetPoint(i,x,yPbPb);
       theGraphsPbPb[*it]->SetPointError(i,exl,exh,eylPbPb,eyhPbPb);
       
-      theGraphsPP[*it]->SetPoint(i,x,yPP/(exl+exh));
+      theGraphsPP[*it]->SetPoint(i,x,yPP);
       theGraphsPP[*it]->SetPointError(i,exl,exh,eylPP,eyhPP);
 
     }
