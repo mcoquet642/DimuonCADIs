@@ -22,8 +22,7 @@ class oniaEff_pTShapeVary : public oniaEff {
     oniaEff_pTShapeVary(TTree *tree=0);
     virtual ~oniaEff_pTShapeVary();
     virtual const char* GetHistName(TH1F *h, const char *token);
-    virtual void LoopVary(const char *fname, bool ispbpb, const int tnptype);
-    vector<TObjArray*> ReadFileWeight(bool ispbpb);
+    virtual void LoopVary(const char *fname, bool ispbpb, bool isprompt, const int tnptype);
 
 };
 
@@ -47,34 +46,7 @@ const char * oniaEff_pTShapeVary::GetHistName(TH1F* h, const char *_token) {
   return histnamebase.c_str();
 }
 
-vector<TObjArray*> oniaEff_pTShapeVary::ReadFileWeight(bool ispbpb) {
-   string wfilePbPb[] = {"weights_JPsi_PbPb_006_prompt.root","weights_JPsi_PbPb_0612_prompt.root","weights_JPsi_PbPb_1218_prompt.root","weights_JPsi_PbPb_1824_prompt.root"};
-   string wfilePP[] = {"weights_JPsi_PP_006_prompt.root","weights_JPsi_PP_0612_prompt.root","weights_JPsi_PP_1218_prompt.root","weights_JPsi_PP_1824_prompt.root"};
-   const int nidxf = sizeof(wfilePbPb)/sizeof(string);
-   
-   TFile *fweight[nidxf];
-   vector<TObjArray*> objarr;
-   
-   for (int idxf=0; idxf<nidxf; idxf++) {
-     if (ispbpb)
-       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePbPb[idxf].c_str()));
-     else
-       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePP[idxf].c_str()));
-     
-     TObjArray *objtmp = (TObjArray*)fweight[idxf]->Get("wFunctions");
-     TObjArray *obj = (TObjArray*)objtmp->Clone(Form("%s_copy",objtmp->GetName()));
-     objarr.push_back(obj);
-   }
-
-   for (int idxf=0; idxf<nidxf; idxf++) {
-     fweight[idxf]->Close();
-   }
-
-   return objarr;
-}  
-
-
-void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnptype)
+void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, bool isprompt, const int tnptype)
 {
 //   In a ROOT session, you can do:
 //      root> .L oniaEff.C
@@ -110,7 +82,7 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
    TH1::SetDefaultSumw2();
    
    // Load pt weighting curves from external files
-   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb);
+   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb, isprompt);
    
    // define the histos : Tobjext array for weighting function
    // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region

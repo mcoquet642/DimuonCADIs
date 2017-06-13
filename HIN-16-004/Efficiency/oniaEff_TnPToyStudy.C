@@ -22,8 +22,8 @@ class oniaEff_TnPToyStudy : public oniaEff {
     oniaEff_TnPToyStudy(TTree *tree=0);
     virtual ~oniaEff_TnPToyStudy();
     virtual const char* GetHistName(TH1F *h, const char *token);
-    virtual void LoopVary(const char *fname, bool ispbpb, const int tnptype);
-    vector<TObjArray*> ReadFileWeight(bool ispbpb);
+    virtual void LoopVary(const char *fname, bool ispbpb, bool isprompt, const int tnptype);
+//    vector<TObjArray*> ReadFileWeight(bool ispbpb, bool isprompt);
 
 };
 
@@ -47,33 +47,7 @@ const char * oniaEff_TnPToyStudy::GetHistName(TH1F* h, const char *_token) {
   return histnamebase.c_str();
 }
 
-vector<TObjArray*> oniaEff_TnPToyStudy::ReadFileWeight(bool ispbpb) {
-   string wfilePbPb[] = {"weights_JPsi_PbPb_006_prompt.root","weights_JPsi_PbPb_0612_prompt.root","weights_JPsi_PbPb_1218_prompt.root","weights_JPsi_PbPb_1824_prompt.root"};
-   string wfilePP[] = {"weights_JPsi_PP_006_prompt.root","weights_JPsi_PP_0612_prompt.root","weights_JPsi_PP_1218_prompt.root","weights_JPsi_PP_1824_prompt.root"};
-   const int nidxf = sizeof(wfilePbPb)/sizeof(string);
-   
-   TFile *fweight[nidxf];
-   vector<TObjArray*> objarr;
-   
-   for (int idxf=0; idxf<nidxf; idxf++) {
-     if (ispbpb)
-       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePbPb[idxf].c_str()));
-     else
-       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePP[idxf].c_str()));
-     
-     TObjArray *objtmp = (TObjArray*)fweight[idxf]->Get("wFunctions");
-     TObjArray *obj = (TObjArray*)objtmp->Clone(Form("%s_copy",objtmp->GetName()));
-     objarr.push_back(obj);
-   }
-
-   for (int idxf=0; idxf<nidxf; idxf++) {
-     fweight[idxf]->Close();
-   }
-
-   return objarr;
-}  
-
-void oniaEff_TnPToyStudy::LoopVary(const char* fname, bool ispbpb, const int tnptype)
+void oniaEff_TnPToyStudy::LoopVary(const char* fname, bool ispbpb, bool isprompt, const int tnptype)
 {
 //   In a ROOT session, you can do:
 //      root> .L oniaEff.C
@@ -104,7 +78,7 @@ void oniaEff_TnPToyStudy::LoopVary(const char* fname, bool ispbpb, const int tnp
    if (fChain == 0) return;
 
    // Load pt weighting curves from external files
-   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb);
+   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb, isprompt);
    
    TFile *f = new TFile(fname, "RECREATE");
    f->cd();

@@ -59,19 +59,26 @@ const double massup = 0.40;
 using namespace HI;
 using namespace std;
 
-vector<TObjArray*> oniaEff::ReadFileWeight(bool ispbpb) {
-   string wfilePbPb[] = {"weights_JPsi_PbPb_006_prompt.root","weights_JPsi_PbPb_0612_prompt.root","weights_JPsi_PbPb_1218_prompt.root","weights_JPsi_PbPb_1824_prompt.root"};
-   string wfilePP[] = {"weights_JPsi_PP_006_prompt.root","weights_JPsi_PP_0612_prompt.root","weights_JPsi_PP_1218_prompt.root","weights_JPsi_PP_1824_prompt.root"};
-   const int nidxf = sizeof(wfilePbPb)/sizeof(string);
+vector<TObjArray*> oniaEff::ReadFileWeight(bool ispbpb, bool isprompt) {
+   string wfilePbPb_prompt[] = {"weights_JPsi_PbPb_006_prompt.root","weights_JPsi_PbPb_0612_prompt.root","weights_JPsi_PbPb_1218_prompt.root","weights_JPsi_PbPb_1824_prompt.root"};
+   string wfilePP_prompt[] = {"weights_JPsi_PP_006_prompt.root","weights_JPsi_PP_0612_prompt.root","weights_JPsi_PP_1218_prompt.root","weights_JPsi_PP_1824_prompt.root"};
+   string wfilePbPb_nonprompt[] = {"weights_JPsi_PbPb_006_nonprompt.root","weights_JPsi_PbPb_0612_nonprompt.root","weights_JPsi_PbPb_1218_nonprompt.root","weights_JPsi_PbPb_1824_nonprompt.root"};
+   string wfilePP_nonprompt[] = {"weights_JPsi_PP_006_nonprompt.root","weights_JPsi_PP_0612_nonprompt.root","weights_JPsi_PP_1218_nonprompt.root","weights_JPsi_PP_1824_nonprompt.root"};
+
+   const int nidxf = sizeof(wfilePbPb_prompt)/sizeof(string);
    
    TFile *fweight[nidxf];
    vector<TObjArray*> objarr;
    
    for (int idxf=0; idxf<nidxf; idxf++) {
-     if (ispbpb)
-       fweight[idxf] = new TFile(Form("weightFunctDataMC_noRlast_pol2/%s",wfilePbPb[idxf].c_str()));
+     if (ispbpb && isprompt)
+       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePbPb_prompt[idxf].c_str()));
+     if (ispbpb && !isprompt)
+       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePbPb_nonprompt[idxf].c_str()));
+     if (!ispbpb && isprompt)
+       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePP_prompt[idxf].c_str()));
      else
-       fweight[idxf] = new TFile(Form("weightFunctDataMC_noRlast_pol2/%s",wfilePP[idxf].c_str()));
+       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePP_nonprompt[idxf].c_str()));
      
      TObjArray *objtmp = (TObjArray*)fweight[idxf]->Get("wFunctions");
      TObjArray *obj = (TObjArray*)objtmp->Clone(Form("%s_copy",objtmp->GetName()));
@@ -85,7 +92,7 @@ vector<TObjArray*> oniaEff::ReadFileWeight(bool ispbpb) {
    return objarr;
 }  
 
-void oniaEff::Loop(const char* fname, bool ispbpb, const int tnptype, const bool isacc)
+void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnptype, const bool isacc)
 {
 //   In a ROOT session, you can do:
 //      root> .L oniaEff.C
@@ -116,7 +123,7 @@ void oniaEff::Loop(const char* fname, bool ispbpb, const int tnptype, const bool
    if (fChain == 0) return;
 
    // Load pt weighting curves from external files
-   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb);
+   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb, isprompt);
    
    TFile *f = new TFile(fname, "RECREATE");
    f->cd();
