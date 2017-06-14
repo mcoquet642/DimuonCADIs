@@ -82,7 +82,7 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, bool isprompt
    TH1::SetDefaultSumw2();
    
    // Load pt weighting curves from external files
-   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb, isprompt);
+   vector<TObjArray *> wHistograms = ReadFileWeight(ispbpb, isprompt);
    
    // define the histos : Tobjext array for weighting function
    // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
@@ -229,12 +229,13 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, bool isprompt
           double weight = ispbpb ? fChain->GetWeight()*findNcoll(Centrality) : 1.;
           
           if (tnptype == trg_ptWeighting) {
-            TF1 *curve;
-            if (genrap>=0 && genrap<0.6)        curve = (TF1*) wFunctions[0]->At(a);
-            else if (genrap>=0.6 && genrap<1.2) curve = (TF1*) wFunctions[1]->At(a);
-            else if (genrap>=1.2 && genrap<1.8) curve = (TF1*) wFunctions[2]->At(a);
-            else if (genrap>=1.8 && genrap<2.4) curve = (TF1*) wFunctions[3]->At(a);
-            double ptweight = curve->Eval(genpt);
+            TH1D *curve;
+            if (genrap>=0 && genrap<0.6)        curve = (TH1D*) wHistograms[0]->At(a);
+            else if (genrap>=0.6 && genrap<1.2) curve = (TH1D*) wHistograms[1]->At(a);
+            else if (genrap>=1.2 && genrap<1.8) curve = (TH1D*) wHistograms[2]->At(a);
+            else if (genrap>=1.8 && genrap<2.4) curve = (TH1D*) wHistograms[3]->At(a);
+            int ptbin = curve->FindBin(genpt);
+            double ptweight = curve->GetBinContent(genpt);
           
             weight = weight*ptweight;
           }
@@ -390,12 +391,13 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, bool isprompt
             tnp_weight = tnp_weight_trg_pp(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, 0);
           }
           
-          TF1 *curve;
-          if (recorap>=0 && recorap<0.6)        curve = (TF1*) wFunctions[0]->At(a);
-          else if (recorap>=0.6 && recorap<1.2) curve = (TF1*) wFunctions[1]->At(a);
-          else if (recorap>=1.2 && recorap<1.8) curve = (TF1*) wFunctions[2]->At(a);
-          else if (recorap>=1.8 && recorap<2.4) curve = (TF1*) wFunctions[3]->At(a);
-          ptweight = curve->Eval(recopt);
+          TH1D *curve;
+          if (recorap>=0 && recorap<0.6)        curve = (TH1D*) wHistograms[0]->At(a);
+          else if (recorap>=0.6 && recorap<1.2) curve = (TH1D*) wHistograms[1]->At(a);
+          else if (recorap>=1.2 && recorap<1.8) curve = (TH1D*) wHistograms[2]->At(a);
+          else if (recorap>=1.8 && recorap<2.4) curve = (TH1D*) wHistograms[3]->At(a);
+          int ptbin = curve->FindBin(recopt);
+          ptweight = curve->GetBinContent(ptbin);
         }
         
         if (tnptype != noTnPSFs) {

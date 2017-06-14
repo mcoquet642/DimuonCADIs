@@ -80,7 +80,7 @@ vector<TObjArray*> oniaEff::ReadFileWeight(bool ispbpb, bool isprompt) {
      else
        fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePP_nonprompt[idxf].c_str()));
      
-     TObjArray *objtmp = (TObjArray*)fweight[idxf]->Get("wFunctions");
+     TObjArray *objtmp = (TObjArray*)fweight[idxf]->Get("DataOverMC");
      TObjArray *obj = (TObjArray*)objtmp->Clone(Form("%s_copy",objtmp->GetName()));
      objarr.push_back(obj);
    }
@@ -123,7 +123,7 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
    if (fChain == 0) return;
 
    // Load pt weighting curves from external files
-   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb, isprompt);
+   vector<TObjArray *> wHistograms = ReadFileWeight(ispbpb, isprompt);
    
    TFile *f = new TFile(fname, "RECREATE");
    f->cd();
@@ -221,12 +221,13 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
       double weight = (ispbpb && !isacc) ? fChain->GetWeight()*findNcoll(Centrality) : 1.;
       
       // Apply Data/MC pT ratio as a weight
-      TF1 *curve;
-      if (genrap>=0 && genrap<0.6)        curve = (TF1*) wFunctions[0]->At(0);
-      else if (genrap>=0.6 && genrap<1.2) curve = (TF1*) wFunctions[1]->At(0);
-      else if (genrap>=1.2 && genrap<1.8) curve = (TF1*) wFunctions[2]->At(0);
-      else if (genrap>=1.8 && genrap<2.4) curve = (TF1*) wFunctions[3]->At(0);
-      double ptweight = curve->Eval(genpt);
+      TH1D *curve;
+      if (genrap>=0 && genrap<0.6)        curve = (TH1D*) wHistograms[0]->At(0);
+      else if (genrap>=0.6 && genrap<1.2) curve = (TH1D*) wHistograms[1]->At(0);
+      else if (genrap>=1.2 && genrap<1.8) curve = (TH1D*) wHistograms[2]->At(0);
+      else if (genrap>=1.8 && genrap<2.4) curve = (TH1D*) wHistograms[3]->At(0);
+      int ptbin = curve->FindBin(genpt);
+      double ptweight = curve->GetBinContent(ptbin);
     
       weight = weight*ptweight;
       

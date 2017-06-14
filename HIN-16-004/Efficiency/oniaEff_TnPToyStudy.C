@@ -78,7 +78,7 @@ void oniaEff_TnPToyStudy::LoopVary(const char* fname, bool ispbpb, bool isprompt
    if (fChain == 0) return;
 
    // Load pt weighting curves from external files
-   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb, isprompt);
+   vector<TObjArray *> wHistograms = ReadFileWeight(ispbpb, isprompt);
    
    TFile *f = new TFile(fname, "RECREATE");
    f->cd();
@@ -226,12 +226,13 @@ void oniaEff_TnPToyStudy::LoopVary(const char* fname, bool ispbpb, bool isprompt
       
       if(isgenok) {
         // Apply Data/MC pT ratio as a weight
-        TF1 *curve;
-        if (genrap>=0 && genrap<0.6)        curve = (TF1*) wFunctions[0]->At(0);
-        else if (genrap>=0.6 && genrap<1.2) curve = (TF1*) wFunctions[1]->At(0);
-        else if (genrap>=1.2 && genrap<1.8) curve = (TF1*) wFunctions[2]->At(0);
-        else if (genrap>=1.8 && genrap<2.4) curve = (TF1*) wFunctions[3]->At(0);
-        double ptweight = curve->Eval(genpt);
+        TH1D *curve;
+        if (genrap>=0 && genrap<0.6)        curve = (TH1D*) wHistograms[0]->At(0);
+        else if (genrap>=0.6 && genrap<1.2) curve = (TH1D*) wHistograms[1]->At(0);
+        else if (genrap>=1.2 && genrap<1.8) curve = (TH1D*) wHistograms[2]->At(0);
+        else if (genrap>=1.8 && genrap<2.4) curve = (TH1D*) wHistograms[3]->At(0);
+        int ptbin = curve->FindBin(genpt);
+        double ptweight = curve->GetBinContent(ptbin);
       
         for (int a=0; a<100; a++) {
           
