@@ -296,8 +296,8 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     {
       double dataY = histoDataClone2->GetBinContent(i);
       histoDataClone2->SetBinContent(i,dataY/histoMCClone->GetBinContent(i));
-      histoDataClone2->SetBinError(i,errorY);
       double errorY = histoDataClone2->GetBinContent(i)*TMath::Sqrt(TMath::Power(histoDataClone2->GetBinError(i)/dataY,2.));
+      histoDataClone2->SetBinError(i,errorY);
       if (dataY-errorY<=0) {
         cout << "dataY:errorY " << dataY << " " << errorY << endl;
         errorY = dataY;
