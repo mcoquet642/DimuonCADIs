@@ -300,8 +300,8 @@ public :
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual void     Loop(const char* fname, bool ispbpb=false, int tnptype=0, const bool isacc=false);
-   vector<TObjArray*> ReadFileWeight(bool ispbpb);
+   virtual void     Loop(const char* fname, bool ispbpb, bool isprompt, int tnptype=0, const bool isacc=false);
+   vector<TObjArray*> ReadFileWeight(bool ispbpb, bool isprompt);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    Bool_t isTriggerMatch (Int_t iRecoQQ, Int_t TriggerBit);

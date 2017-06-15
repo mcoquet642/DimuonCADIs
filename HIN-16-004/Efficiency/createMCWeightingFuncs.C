@@ -24,7 +24,7 @@
 
 
 using namespace std;
-void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char* partName="JPsi", const char* collName="PP", const char* rapName="006", const char* partType = "prompt", Int_t polOrder = -1, Int_t nRand=5);
+void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char* partName="JPsi", const char* collName="PP", const char* rapName="006", const char* partType = "prompt", Int_t polOrder = 3, Int_t nRand=100);
 
 void customiseLegend(TLegend& legend)
 {
@@ -296,22 +296,53 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     {
       double dataY = histoDataClone2->GetBinContent(i);
       histoDataClone2->SetBinContent(i,dataY/histoMCClone->GetBinContent(i));
-      histoDataClone2->SetBinError(i,histoDataClone2->GetBinContent(i)*TMath::Sqrt(TMath::Power(histoDataClone2->GetBinError(i)/dataY,2.)));
+      double errorY = histoDataClone2->GetBinContent(i)*TMath::Sqrt(TMath::Power(histoDataClone2->GetBinError(i)/dataY,2.));
+      histoDataClone2->SetBinError(i,errorY);
+      if (dataY-errorY<=0) {
+        cout << "dataY:errorY " << dataY << " " << errorY << endl;
+        errorY = dataY;
+      }
+      histoDataClone2->SetBinError(i,errorY);
     }
 //    histoDataClone2->Divide(histoMCClone);
     histoDataClone2->SetLineColor(nh==0 ? 1 : 2);
     histoDataClone2->SetMarkerColor(nh==0 ? 1 : 2);
     histoDataClone2->GetXaxis()->SetTitle("p_{T}");
     histoDataClone2->GetYaxis()->SetTitle("dN/dp_{T}(DATA)/dN/dp_{T}(MC)");
+    histoDataClone2->GetYaxis()->SetRangeUser(0.4, 1.5);
     
     TString fName(nh==0 ? "wFunction_nominal" : Form("wFunction_n%d",nh-1));
     TF1* fWeight(0x0);
     if (polOrder==1) fWeight= new TF1(fName.Data(),Pol1,6.5,50.,2);
     else if (polOrder==2) fWeight= new TF1(fName.Data(),Pol2,6.5,50.,3);
-    else if (polOrder==3) fWeight= new TF1(fName.Data(),Pol3,6.5,50.,4);
-    else if (polOrder==-1) fWeight= new TF1(fName.Data(),Exp,6.5,50.,2);
-    fWeight->SetLineColor(nh==0 ? 1 : 2);
-    histoDataClone2->Fit(fWeight,"N");
+    else if (polOrder==3) {
+      double xmin = (xAxis[0]<=6.5 ? 6.5 : 3);
+      fWeight= new TF1(fName.Data(),"TMath::Erf(x/[0]+[1])+[2]",xmin,50.);
+
+      if (!strcmp(partType,"prompt")) fWeight->SetParameters(-3.5, 4.0, 2.0);
+      else fWeight->SetParameters(22, 0.3, 0.2);
+
+      if (!strcmp(collName,"PbPb") && !strcmp(rapName,"1824")) {
+        if (!strcmp(partType,"prompt")) histoDataClone2->GetYaxis()->SetRangeUser(0.4, 2);
+        else histoDataClone2->GetYaxis()->SetRangeUser(0.4, 2.5);
+        fWeight->SetParameters(-15, 0.1, 2.0);
+      }
+    }
+    fWeight->SetLineColor(nh==0 ? kBlack : kBlue );
+    int status = 0, fitcount = 0;
+    do {
+      status = histoDataClone2->Fit(fWeight, "S");
+      Double_t *pars = static_cast<Double_t*>(fWeight->GetParameters());
+      pars[0] = pars[0]+1.1*(fitcount%2==0 ? 1 : -1);
+      pars[1] = pars[1]+1.3*(fitcount%2==0 ? 1 : -1);
+      pars[2] = pars[2]+1.1*(fitcount%2==0 ? 1 : -1);
+      fWeight->SetParameters(pars);
+      fitcount++;
+    } while (status!=0 && fitcount<5);
+
+    if (status!=0) {
+      cout << "FIT FAILED: " << fName << endl;
+    }
     
     aFunctions->Add(fWeight);
     aRatios->Add(histoDataClone2);
@@ -320,7 +351,7 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   }
   
   // Create canvases with the randomised data and weight functions
-  TCanvas* cData = new TCanvas();
+  TCanvas* cData = new TCanvas("canv","canv",600,600);
   TLegend* lData = new TLegend(0.6002865,0.6919831,0.7679083,0.8565401);
   customiseLegend(*lData);
   nextHisto.Reset();
@@ -341,7 +372,7 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   histoDataClone->DrawClone("same");
   histoMCClone->DrawClone("same"); // Draw also the MC distribution
   
-  TCanvas* cFuncs = new TCanvas();
+  TCanvas* cFuncs = new TCanvas("canvf","canvf",600,600);
   TLegend* lFuncs = new TLegend(0.6002865,0.6919831,0.7679083,0.8565401);
   customiseLegend(*lFuncs);
   TIter nextFunc(aFunctions);
@@ -367,7 +398,7 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   fDummy = static_cast<TF1*>(nextFunc());
   fDummy->DrawClone("same");
   
-  TCanvas* cRatios = new TCanvas();
+  TCanvas* cRatios = new TCanvas("canvr","canvr",600,600);
   TLegend* lRatios = new TLegend(0.6002865,0.6919831,0.7679083,0.8565401);
   customiseLegend(*lRatios);
   TIter nextRatio(aRatios);
