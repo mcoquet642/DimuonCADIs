@@ -14,60 +14,11 @@
 #include <iostream>
 #include <fstream>
 
-// define bins (Jpsi Raa binning)
-const double bins_cent_rap0024[] = {0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 100};
-const int nbins_cent_rap0024 = sizeof(bins_cent_rap0024)/sizeof(double) -1;
-const double bins_cent_rap1824_pt3065[] = {0, 10, 20, 30, 40, 50, 100}; //Low pT forward
-const int nbins_cent_rap1824_pt3065 = sizeof(bins_cent_rap1824_pt3065)/sizeof(double) -1; //Low pT forward
-const double bins_cent_rap0006[] = {0, 10, 20, 30, 40, 50, 100};
-const int nbins_cent_rap0006 = sizeof(bins_cent_rap0006)/sizeof(double) -1;
-const double bins_cent_rap0612[] = {0, 10, 20, 30, 40, 50, 100};
-const int nbins_cent_rap0612 = sizeof(bins_cent_rap0612)/sizeof(double) -1;
-const double bins_cent_rap1218[] = {0, 10, 20, 30, 40, 50, 100};
-const int nbins_cent_rap1218 = sizeof(bins_cent_rap1218)/sizeof(double) -1;
-const double bins_cent_rap1824[] = {0, 10, 20, 30, 40, 50, 100};
-const int nbins_cent_rap1824 = sizeof(bins_cent_rap1824)/sizeof(double) -1;
-const double bins_pt_rap0024[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 30, 50};
-const int nbins_pt_rap0024 = sizeof(bins_pt_rap0024)/sizeof(double) -1;
-const double bins_pt_rap0006[] = {6.5, 8.5, 9.5, 11, 15, 50};
-const int nbins_pt_rap0006 = sizeof(bins_pt_rap0006)/sizeof(double) -1;
-const double bins_pt_rap0612[] = {6.5, 8.5, 9.5, 11, 15, 50};
-const int nbins_pt_rap0612 = sizeof(bins_pt_rap0612)/sizeof(double) -1;
-const double bins_pt_rap1218[] = {6.5, 7.5, 8.5, 9.5, 11, 15, 50};
-const int nbins_pt_rap1218 = sizeof(bins_pt_rap1218)/sizeof(double) -1;
-const double bins_pt_rap1824[] = {3, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 11, 15, 50};
-const int nbins_pt_rap1824 = sizeof(bins_pt_rap1824)/sizeof(double) -1;
-const double bins_pt_cent010[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 50};
-const int nbins_pt_cent010 = sizeof(bins_pt_cent010)/sizeof(double) -1;
-const double bins_pt_cent1030[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 50};
-const int nbins_pt_cent1030 = sizeof(bins_pt_cent1030)/sizeof(double) -1;
-const double bins_pt_cent30100[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 50};
-const int nbins_pt_cent30100 = sizeof(bins_pt_cent30100)/sizeof(double) -1;
-const double bins_rap[] = {0, 0.4, 0.8, 1.2, 1.6, 2, 2.4};
-const int nbins_rap = sizeof(bins_rap)/sizeof(double) -1;
-
 // Bin boundaries for efficiency histograms
 const double bins_4rap[] = {0, 0.6, 1.2, 1.8, 2.4};
 const int nbins_4rap = sizeof(bins_4rap)/sizeof(double) -1;
 const double bins_3cent[] = {0, 10, 30, 100};
 const int nbins_3cent = sizeof(bins_3cent)/sizeof(double) -1;
-
-// define bins (Double ratio binning)
-const int nbins_centmid = 6;
-const float bins_centmid[nbins_centmid+1] = {0, 10, 20, 30, 40, 50, 100};
-const int nbins_centfwd = 3;
-const float bins_centfwd[nbins_centfwd+1] = {0, 20, 40, 100};
-const int nbins_ptmid = 5;
-const float bins_ptmid[nbins_ptmid+1] = {6.5, 9, 12, 15, 20, 30};
-const int nbins_ptfwd = 3;
-const float bins_ptfwd[nbins_ptfwd+1] = {3, 6.5, 12, 30};
-
-// other settings
-const double maxdr = 0.03;
-const double massjpsi = 3.096;
-const double masspsip = 3.686;
-const double massdown = 0.60;
-const double massup = 0.40;
 
 using namespace HI;
 using namespace std;
@@ -989,8 +940,16 @@ void writeCSVs() {
   string dir = "syst";
   string subdir = "eff";
 
+  /////// HOW TO RUN: root -l -b -q writeCSVs.cpp+
+  /////// All syst & stat uncertainties after this script run should be added in quadrature
+  /////// REFERENCE: https://twiki.cern.ch/twiki/pub/CMS/HIMuonTagProbe/README.pdf
+  /////// https://github.com/echapon/MuonAnalysis-TagAndProbe/blob/76X_HI/macros/tnp_weight.h
+
+  // relative uncertainty: RMS of 100 variations
   string statdirs[] = {"trg_ptWeighting","trg_toy","trg__muid_toy","trg__sta_toy"};
+  // relative uncertainty: (syst - nominal)/nominal
   string systdirs[] = {"trg_binned"};
+  // relative uncertainty: (syst - nominal)/nominal, but take max between +/- sets
   string systdirsMax[] = {
   "trg_minus1sigma","trg_plus1sigma",
   "trg_trk_plus1sigma","trg_trk_minus1sigma",
@@ -1010,8 +969,8 @@ void writeCSVs() {
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
   
   for (int i=0; i<nstatdir; i++) {
-    bool ispbpb=false;
     bool takemax=false;
+    bool ispbpb=false;
     
     vector<string> latex;
     latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),statdirs_name[i].c_str()));
@@ -1063,8 +1022,8 @@ void writeCSVs() {
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
 
   for (int i=0; i<nsystdir; i++) {
-    bool ispbpb=false;
     bool takemax=false;
+    bool ispbpb=false;
 
     vector<string> latex;
     latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),systdirs[i].c_str()));
@@ -1113,15 +1072,14 @@ void writeCSVs() {
     pbpb_np.writeSyst(&latex);
   }
  
-
   // treat systematical efficiencies (maximum among 2 sets will be taken)
   dir = "syst";
   gSystem->mkdir(dir.c_str(),kTRUE);
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
 
   for (int i=0; i<nsystdirMax; i=i+2) {
-    bool ispbpb=false;
     bool takemax=true;
+    bool ispbpb=false;
 
     vector<string> latex;
     latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),systdirsMax_name[i/2].c_str()));
