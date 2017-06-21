@@ -49,6 +49,16 @@ const int nbins_4rap = sizeof(bins_4rap)/sizeof(double) -1;
 const double bins_3cent[] = {0, 10, 30, 100};
 const int nbins_3cent = sizeof(bins_3cent)/sizeof(double) -1;
 
+// define bins (Double ratio binning)
+const int nbins_centmid = 6;
+const float bins_centmid[nbins_centmid+1] = {0, 10, 20, 30, 40, 50, 100};
+const int nbins_centfwd = 3;
+const float bins_centfwd[nbins_centfwd+1] = {0, 20, 40, 100};
+const int nbins_ptmid = 5;
+const float bins_ptmid[nbins_ptmid+1] = {6.5, 9, 12, 15, 20, 30};
+const int nbins_ptfwd = 3;
+const float bins_ptfwd[nbins_ptfwd+1] = {3, 6.5, 12, 30};
+
 // other settings
 const double maxdr = 0.03;
 const double massjpsi = 3.096;
@@ -130,6 +140,17 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
 
    TH1::SetDefaultSumw2();
    // define the histos
+   // HIN-16-004 binning
+   TH1F *hnum_centmid = new TH1F("hnum_cent_rap0016","hnum_cent_rap0016",nbins_centmid,bins_centmid);
+   TH1F *hnum_centfwd = new TH1F("hnum_cent_rap1624","hnum_cent_rap1624",nbins_centfwd,bins_centfwd);
+   TH1F *hnum_ptmid = new TH1F("hnum_pt_rap0016","hnum_pt_rap0016",nbins_ptmid,bins_ptmid);
+   TH1F *hnum_ptfwd = new TH1F("hnum_pt_rap1624","hnum_pt_rap1624",nbins_ptfwd,bins_ptfwd);
+   TH1F *hden_centmid = new TH1F("hden_cent_rap0016","hden_cent_rap0016",nbins_centmid,bins_centmid);
+   TH1F *hden_centfwd = new TH1F("hden_cent_rap1624","hden_cent_rap1624",nbins_centfwd,bins_centfwd);
+   TH1F *hden_ptmid = new TH1F("hden_pt_rap0016","hden_pt_rap0016",nbins_ptmid,bins_ptmid);
+   TH1F *hden_ptfwd = new TH1F("hden_pt_rap1624","hden_pt_rap1624",nbins_ptfwd,bins_ptfwd);
+   
+   // HIN-16-025 binning
    // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
    TH1F *hnum_cent_rap[nbins_4rap+2];
    TH1F *hden_cent_rap[nbins_4rap+2];
@@ -234,7 +255,8 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
       hcentfine->Fill(Centrality,weight);
       hden2d->Fill(genrap,genpt,weight);
       
-      if(isgenok) {
+      if (isgenok) {
+        // HIN-16-025 binning
         // Eff vs rap integrated
         if (genrap>=0 && genrap<2.4 && genpt>=6.5 && genpt<50)
           hden_rap->Fill(genrap,weight);
@@ -254,21 +276,33 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
         }
         
         // Eff vs pt in 4 |y| regions
-        if (genrap>=bins_4rap[0] && genrap<bins_4rap[nbins_4rap] && genpt>=6.5 && genpt<50)
+        if (genrap>=bins_4rap[0] && genrap<bins_4rap[nbins_4rap] && genpt>=6.5 && genpt<50) {
           hden_pt_rap[0]->Fill(genpt,weight); //[0] is for 0024
+        }
         
         for (int i=0; i<nbins_4rap; i++) {
-          if ( genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] &&
-             ( (genrap<1.8 && genpt>=6.5) || (genrap>=1.8 && genpt>=3) ) &&
-             genpt<50 )
+          if ( genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] && genpt<50 &&
+               ((genrap<1.8 && genpt>=6.5) || (genrap>1.8 && genpt>=3))
+             ) {
             hden_pt_rap[i+1]->Fill(genpt,weight); //[0] is for 0024
+          }
         }
         
         // Eff vs pt in 3 cent regions
         for (int i=0; i<nbins_3cent; i++) {
-          if (Centrality/2.0>=bins_3cent[i] && Centrality/2.0<bins_3cent[i+1] && genpt>=6.5 && genpt<50) {
+          if (Centrality/2.0>=bins_3cent[i] && Centrality/2.0<bins_3cent[i+1] && genrap<2.4 &&
+              genpt<50 && genpt>=6.5) {
             hden_pt_cent[i]->Fill(genpt,weight);
           }
+        }
+
+        // HIN-16-004 binning
+        if (genrap < 1.6 && genpt>=6.5 && genpt<30) {
+          hden_centmid->Fill(Centrality/2.0,weight);
+          hden_ptmid->Fill(genpt,weight);
+        } else if (genrap >= 1.6 && genrap < 2.4 && genpt>=3 && genpt<30) {
+          hden_centfwd->Fill(Centrality/2.0,weight);
+          hden_ptfwd->Fill(genpt,weight);
         }
       } // end of if(isgenok)
 
@@ -295,18 +329,30 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
             hnum_pt_rap[0]->Fill(genpt,weight); //[0] is for 0024
           
           for (int i=0; i<nbins_4rap; i++) {
-            if ( genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] &&
-               ( (genrap<1.8 && genpt>=6.5) || (genrap>=1.8 && genpt>=3) ) &&
-               genpt<50 )
+            if ( genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] && genpt<50 &&
+                 ((genrap<1.8 && genpt>=6.5) || (genrap>1.8 && genpt>=3))
+               ) {
               hnum_pt_rap[i+1]->Fill(genpt,weight); //[0] is for 0024
+            }
           }
           
           // Eff vs pt in 3 cent regions
           for (int i=0; i<nbins_3cent; i++) {
-            if (Centrality/2.0>=bins_3cent[i] && Centrality/2.0<bins_3cent[i+1] && genpt>=6.5 && genpt<50)
+            if (Centrality/2.0>=bins_3cent[i] && Centrality/2.0<bins_3cent[i+1] && genrap<2.4 &&
+                genpt<50 && genpt>=6.5) {
               hnum_pt_cent[i]->Fill(genpt,weight);
+            }
           }
           
+          // HIN-16-004 binning
+          if (genrap < 1.6 && genpt>=6.5 && genpt<30) {
+            hnum_centmid->Fill(Centrality/2.0,weight);
+            hnum_ptmid->Fill(genpt,weight);
+          } else if (genrap >= 1.6 && genrap < 2.4 && genpt>=3 && genpt<30) {
+            hnum_centfwd->Fill(Centrality/2.0,weight);
+            hnum_ptfwd->Fill(genpt,weight);
+          }
+
           hnum2d->Fill(genrap,genpt,weight);
         }
 
@@ -322,29 +368,28 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
         // loop on the reconstructed dimuons to find the one matched to the gen one
         double mindr=999.;
         int ibestqq=-1;
-        double tnp_weight = 1.0;
         for (int i=0; i<Reco_QQ_size; i++) {
           // acceptance
           if (!areMuonsInAcceptance2015(i)) continue;
-           // sign
-           if (Reco_QQ_sign[i]!=0) continue;
-           // quality cuts
-           if (!passQualityCuts2015(i)) continue;
-           // trigger matching
-           if (!isTriggerMatch(i,0)) continue; // HLT_HIL1DoubleMu0_v1
-           // mass cut
-           double mass = ((TLorentzVector*) Reco_QQ_4mom->At(i))->M();
-           double mass0 = massjpsi;
-           if (mass<(mass0-massdown) || mass>(mass0+massup)) continue;
+          // sign
+          if (Reco_QQ_sign[i]!=0) continue;
+          // quality cuts
+          if (!passQualityCuts2015(i)) continue;
+          // trigger matching
+          if (!isTriggerMatch(i,0)) continue; // HLT_HIL1DoubleMu0_v1
+          // mass cut
+          double mass = ((TLorentzVector*) Reco_QQ_4mom->At(i))->M();
+          double mass0 = massjpsi;
+          if (mass<(mass0-massdown) || mass>(mass0+massup)) continue;
            
-           // gen-reco matching
-           TLorentzVector *tlvrecpl = (TLorentzVector*) Reco_QQ_mupl_4mom->At(i);
-           TLorentzVector *tlvrecmi = (TLorentzVector*) Reco_QQ_mumi_4mom->At(i);
-           double dr = max(tlvrecpl->DeltaR(*tlvgenpl),tlvrecmi->DeltaR(*tlvgenmi));
-           if (dr<mindr) {
-             mindr = dr;
-             ibestqq = i;
-           }
+          // gen-reco matching
+          TLorentzVector *tlvrecpl = (TLorentzVector*) Reco_QQ_mupl_4mom->At(i);
+          TLorentzVector *tlvrecmi = (TLorentzVector*) Reco_QQ_mumi_4mom->At(i);
+          double dr = max(tlvrecpl->DeltaR(*tlvgenpl),tlvrecmi->DeltaR(*tlvgenmi));
+          if (dr<mindr) {
+            mindr = dr;
+            ibestqq = i;
+          }
 
         } // Reco_QQ loop
         
@@ -367,47 +412,106 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
         double recMuMipt = tlvrecmi->Pt();
         double recMuMiEta = tlvrecmi->Eta();
        
+        double tnp_weight = 1.0;
         if (ispbpb) { 
           if (tnptype == trg) { // nominal
-            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pbpb(recMuMipt, recMuMiEta, 0);
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
           } else if (tnptype == trg_binned) {
-            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt, recMuPlEta, -10) * tnp_weight_trg_pbpb(recMuMipt, recMuMiEta, -10);
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,-10) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,-10) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
           } else if (tnptype == trg_plus1sigma) {
-            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt, recMuPlEta, -1) * tnp_weight_trg_pbpb(recMuMipt, recMuMiEta, -1);
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,-1) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,-1) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
           } else if (tnptype == trg_minus1sigma) {
-            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt, recMuPlEta, -2) * tnp_weight_trg_pbpb(recMuMipt, recMuMiEta, -2);
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,-2) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,-2) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
           } else if (tnptype == trg__muid__sta) {
-            tnp_weight = tnp_weight_sta_pp(recMuPlpt, recMuPlEta) * tnp_weight_sta_pp(recMuMipt, recMuMiEta) *
-                         tnp_weight_trg_pbpb(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pbpb(recMuMipt, recMuMiEta, 0) *
-                         tnp_weight_muid_pbpb(recMuPlpt, recMuPlEta) * tnp_weight_muid_pbpb(recMuMipt, recMuMiEta);
+            tnp_weight = tnp_weight_sta_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_sta_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_muid_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_muid_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
           } else if (tnptype == trg__muid) {
-            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pbpb(recMuMipt, recMuMiEta, 0) *
-                         tnp_weight_muid_pbpb(recMuPlpt, recMuPlEta) * tnp_weight_muid_pbpb(recMuMipt, recMuMiEta);
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_muid_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_muid_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
+          } else if (tnptype == trg__muid_plus1sigma) {
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_muid_pbpb(recMuPlpt,recMuPlEta,-1) * tnp_weight_muid_pbpb(recMuMipt,recMuMiEta,-1) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
+          } else if (tnptype == trg__muid_minus1sigma) {
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_muid_pbpb(recMuPlpt,recMuPlEta,-2) * tnp_weight_muid_pbpb(recMuMipt,recMuMiEta,-2) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
           } else if (tnptype == trg__sta) {
-            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pbpb(recMuMipt, recMuMiEta, 0) *
-                         tnp_weight_sta_pp(recMuPlpt, recMuPlEta) * tnp_weight_sta_pp(recMuMipt, recMuMiEta);
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_sta_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_sta_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
+          } else if (tnptype == trg__sta_plus1sigma) {
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_sta_pp(recMuPlpt,recMuPlEta,-1) * tnp_weight_sta_pp(recMuMipt,recMuMiEta,-1) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
+          } else if (tnptype == trg__sta_minus1sigma) {
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_sta_pp(recMuPlpt,recMuPlEta,-2) * tnp_weight_sta_pp(recMuMipt,recMuMiEta,-2) *
+                         tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
+          } else if (tnptype == trg_trk_plus1sigma) {
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pbpb(-1) * tnp_weight_trk_pbpb(-1);
+          } else if (tnptype == trg_trk_minus1sigma) {
+            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pbpb(-2) * tnp_weight_trk_pbpb(-2);
           }
         } else { //pp
           if (tnptype == trg) { // nominal
-            tnp_weight = tnp_weight_trg_pp(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, 0);
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
           } else if (tnptype == trg_binned) {
-            tnp_weight = tnp_weight_trg_pp(recMuPlpt, recMuPlEta, -10) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, -10);
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,-10) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,-10) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
           } else if (tnptype == trg_plus1sigma) {
-            tnp_weight = tnp_weight_trg_pp(recMuPlpt, recMuPlEta, -1) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, -1);
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,-1) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,-1) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
           } else if (tnptype == trg_minus1sigma) {
-            tnp_weight = tnp_weight_trg_pp(recMuPlpt, recMuPlEta, -2) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, -2);
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,-2) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,-2) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
           } else if (tnptype == trg__muid__sta) {
-            tnp_weight = tnp_weight_sta_pp(recMuPlpt, recMuPlEta) * tnp_weight_sta_pp(recMuMipt, recMuMiEta) *
-                         tnp_weight_trg_pp(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, 0) *
-                         tnp_weight_muid_pp(recMuPlpt, recMuPlEta) * tnp_weight_muid_pp(recMuMipt, recMuMiEta);
+            tnp_weight = tnp_weight_sta_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_sta_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_muid_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_muid_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
           } else if (tnptype == trg__muid) {
-            tnp_weight = tnp_weight_trg_pp(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, 0) *
-                         tnp_weight_muid_pp(recMuPlpt, recMuPlEta) * tnp_weight_muid_pp(recMuMipt, recMuMiEta);
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_muid_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_muid_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
+          } else if (tnptype == trg__muid_plus1sigma) {
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_muid_pp(recMuPlpt,recMuPlEta,-1) * tnp_weight_muid_pp(recMuMipt,recMuMiEta,-1) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
+          } else if (tnptype == trg__muid_minus1sigma) {
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_muid_pp(recMuPlpt,recMuPlEta,-2) * tnp_weight_muid_pp(recMuMipt,recMuMiEta,-2) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
           } else if (tnptype == trg__sta) {
-            tnp_weight = tnp_weight_trg_pp(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, 0) *
-                         tnp_weight_sta_pp(recMuPlpt, recMuPlEta) * tnp_weight_sta_pp(recMuMipt, recMuMiEta);
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_sta_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_sta_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
+          } else if (tnptype == trg__sta_plus1sigma) {
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_sta_pp(recMuPlpt,recMuPlEta,-1) * tnp_weight_sta_pp(recMuMipt,recMuMiEta,-1) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
+          } else if (tnptype == trg__sta_minus1sigma) {
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_sta_pp(recMuPlpt,recMuPlEta,-2) * tnp_weight_sta_pp(recMuMipt,recMuMiEta,-2) *
+                         tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
+          } else if (tnptype == trg_trk_plus1sigma) {
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pp(-1) * tnp_weight_trk_pp(-1);
+          } else if (tnptype == trg_trk_minus1sigma) {
+            tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                         tnp_weight_trk_pp(-2) * tnp_weight_trk_pp(-2);
+          }
         }
-      }
 
         
         if (tnptype != noTnPSFs) {
@@ -437,18 +541,30 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
           hnum_pt_rap[0]->Fill(genpt,weight); //[0] is for 0024
         
         for (int i=0; i<nbins_4rap; i++) {
-          if ( recorap>=bins_4rap[i] && recorap<bins_4rap[i+1] &&
-             ( (recorap<1.8 && recopt>=6.5) || (recorap>=1.8 && recopt>=3) ) &&
-             recopt<50 )
+          if ( recorap>=bins_4rap[i] && recorap<bins_4rap[i+1] && recopt<50 &&
+               ((recorap<1.8 && recopt>=6.5) || (recorap>1.8 && recopt>=3))
+             ) {
             hnum_pt_rap[i+1]->Fill(genpt,weight); //[0] is for 0024
+          }
         }
         
         // Eff vs pt in 3 cent regions
         for (int i=0; i<nbins_3cent; i++) {
-          if (Centrality/2.0>=bins_3cent[i] && Centrality/2.0<bins_3cent[i+1] && recopt>=6.5 && recopt<50)
+          if (Centrality/2.0>=bins_3cent[i] && Centrality/2.0<bins_3cent[i+1] && recorap<2.4 &&
+              recopt<50 && recopt>=6.5) {
             hnum_pt_cent[i]->Fill(genpt,weight);
+          }
         }
         
+        // HIN-16-004 binning
+        if (recorap < 1.6 && recopt>=6.5 && recopt<30) {
+          hnum_centmid->Fill(Centrality/2.0,weight);
+          hnum_ptmid->Fill(genpt,weight);
+        } else if (recorap >= 1.6 && recorap < 2.4 && recopt>=3 && recopt<30) {
+          hnum_centfwd->Fill(Centrality/2.0,weight);
+          hnum_ptfwd->Fill(genpt,weight);
+        }
+
         hnum2d->Fill(recorap,recopt,weight);
       } // end of isacc condition - fill up numerators   
    } // event loop
