@@ -14,6 +14,14 @@
 #include <iostream>
 #include <fstream>
 
+
+/////// HOW TO RUN: root -l -b -q writeCSVs.cpp+
+/////// All syst & stat uncertainties after this script run should be added in quadrature
+/////// MAIN function is defined at the bottom of the macro
+/////// REFERENCE: https://twiki.cern.ch/twiki/pub/CMS/HIMuonTagProbe/README.pdf
+/////// https://github.com/echapon/MuonAnalysis-TagAndProbe/blob/76X_HI/macros/tnp_weight.h
+
+
 // Bin boundaries for efficiency histograms
 const double bins_4rap[] = {0, 0.6, 1.2, 1.8, 2.4};
 const int nbins_4rap = sizeof(bins_4rap)/sizeof(double) -1;
@@ -939,11 +947,6 @@ void writeCSVs() {
 
   string dir = "syst";
   string subdir = "eff";
-
-  /////// HOW TO RUN: root -l -b -q writeCSVs.cpp+
-  /////// All syst & stat uncertainties after this script run should be added in quadrature
-  /////// REFERENCE: https://twiki.cern.ch/twiki/pub/CMS/HIMuonTagProbe/README.pdf
-  /////// https://github.com/echapon/MuonAnalysis-TagAndProbe/blob/76X_HI/macros/tnp_weight.h
 
   // relative uncertainty: RMS of 100 variations
   string statdirs[] = {"trg_ptWeighting","trg_toy","trg__muid_toy","trg__sta_toy"};
