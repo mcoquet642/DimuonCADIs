@@ -205,7 +205,8 @@ enum class CtauModel
     TripleDecay=5,
     DoubleSingleSidedDecay=6,
     SingleSidedDecay=7,
-    Delta=8
+    Delta=8,
+    QuadrupleDecay=9
 };
 map< string , CtauModel > CtauModelDictionary = {
   {"InvalidModel",             CtauModel::InvalidModel},
@@ -214,6 +215,7 @@ map< string , CtauModel > CtauModelDictionary = {
   {"DoubleGaussianResolution", CtauModel::DoubleGaussianResolution},
   {"SingleGaussianResolution", CtauModel::SingleGaussianResolution},
   {"TripleDecay",              CtauModel::TripleDecay},
+  {"QuadrupleDecay",           CtauModel::QuadrupleDecay},
   {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
   {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
   {"Delta",                    CtauModel::Delta}
