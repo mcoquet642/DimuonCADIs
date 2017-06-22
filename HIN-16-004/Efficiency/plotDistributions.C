@@ -35,8 +35,8 @@ using namespace std;
 const char* poiname       = "N_Jpsi";
 #endif
 bool  fiterrors     = true;  // statistical errors are from the fit
-bool  doprompt      = false;  // prompt Jpsi
-bool  dononprompt   = true;  // nonprompt Jpsi
+bool  doprompt      = true;  // prompt Jpsi
+bool  dononprompt   = false;  // nonprompt Jpsi
 string nameTag_base = "_data";    // can put here e.g. "_data", "_mc", ...
 
 //////////////////
@@ -117,7 +117,7 @@ void plotAll(string workDirName) {
   plotPt(workDirName,0);
 //  plotPt(workDirName,1);
   plotPt(workDirName,2);
-  if (isData) plotRap(workDirName);
+//  if (isData) plotRap(workDirName);
 };
 
 /////////////////////
@@ -162,15 +162,27 @@ void plot(vector<anabin> thecats, string xaxis, string outputDir) {
   tr->SetBranchAddress("ymax",&ymax);
   tr->SetBranchAddress("centmin",&centmin);
   tr->SetBranchAddress("centmax",&centmax);
-  tr->SetBranchAddress(Form("%s_val",poiname),&val);
-  if (isData) tr->SetBranchAddress(Form("%s_errL",poiname),&err);
-  else tr->SetBranchAddress(Form("%s_err",poiname),&err);
   tr->SetBranchAddress("collSystem",collSystem);
   if (isData)
   {
+    if (TString(poiname).Contains("N_Jpsi"))
+    {
+      tr->SetBranchAddress("N_Jpsi_parLoad_mass",&val);
+      tr->SetBranchAddress("N_Jpsi_parLoad_mass_err",&err);
+    }
+    else
+    {
+      tr->SetBranchAddress(Form("%s_val",poiname),&val);
+      tr->SetBranchAddress(Form("%s_errL",poiname),&err);
+    }
     tr->SetBranchAddress("b_Jpsi_val",&bfrac);
     tr->SetBranchAddress("b_Jpsi_errL",&bfrac_err);
     tr->SetBranchAddress("correl_N_Jpsi_vs_b_Jpsi_val",&correl);
+  }
+  else
+  {
+    tr->SetBranchAddress(Form("%s_val",poiname),&val);
+    tr->SetBranchAddress(Form("%s_err",poiname),&err);
   }
   
   int ntr = tr->GetEntries();

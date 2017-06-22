@@ -114,12 +114,21 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   // Retrieve histos for 0-2.4 for normalisation
   TString sDataFile(fileData);
   sDataFile.Remove(sDataFile.First("/")+1,sDataFile.Sizeof());
+  cout << "Reading data files from directory " << sDataFile.Data() << endl;
   TFile* fNormData = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap0024_cent0100.root" : "cPbPb_pt_rap0024_cent0100.root"),"READ");
+  TFile* fNormDataLowPt = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap1824_cent0100.root" : "cPbPb_pt_rap1824_cent0100.root"),"READ");
   sDataFile.ReplaceAll("data","mc");
+  cout << "Reading MC files from directory " << sDataFile.Data() << endl;
   TFile* fNormMC = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap0024_cent0100.root" : "cPbPb_pt_rap0024_cent0100.root"),"READ");
+  TFile* fNormMCLowPt = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap1824_cent0100.root" : "cPbPb_pt_rap1824_cent0100.root"),"READ");
   if (!fNormData || !fNormMC)
   {
     cout << "[ERROR]: One of the two input normalisation files was not found" << endl;
+    return;
+  }
+  if (!fNormDataLowPt || !fNormMCLowPt)
+  {
+    cout << "[ERROR]: One of the two input normalisation files for low pt was not found" << endl;
     return;
   }
   
@@ -129,11 +138,23 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     cout << "Normalisation data histo " << hName.Data() << " not found in file " << fNormData->GetName() << endl;
     return;
   }
+  TGraphErrors* histoNormDataLowPt = static_cast<TGraphErrors*>(fNormDataLowPt->FindObjectAny(hName.Data()));
+  if (!histoData)
+  {
+    cout << "Normalisation data histo " << hName.Data() << " not found in file " << fNormDataLowPt->GetName() << endl;
+    return;
+  }
   
   TGraphErrors* histoNormMC = static_cast<TGraphErrors*>(fNormMC->FindObjectAny(hName.Data()));
   if (!histoMC)
   {
     cout << "Normalisation MC histo " << hName.Data() << " not found in file " << fNormMC->GetName() << endl;
+    return;
+  }
+  TGraphErrors* histoNormMCLowPt = static_cast<TGraphErrors*>(fNormMCLowPt->FindObjectAny(hName.Data()));
+  if (!histoMC)
+  {
+    cout << "Normalisation MC histo " << hName.Data() << " not found in file " << fNormMCLowPt->GetName() << endl;
     return;
   }
   
@@ -147,6 +168,20 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     normData += y;
     histoNormMC->GetPoint(i,xMC,yMC);
     normMC += yMC;
+  }
+  
+  for (int i = 0 ; i < histoNormDataLowPt->GetN() ; i++) // Add also Njpsi at low pt to normalisations
+  {
+    double x, y;
+    double xMC, yMC;
+    histoNormDataLowPt->GetPoint(i,x,y);
+    if (x<6.5)
+    {
+      normData += y;
+      histoNormMCLowPt->GetPoint(i,xMC,yMC);
+      normMC += yMC;
+    }
+    else break;
   }
   
 //  cout << "Total NJpsi in DATA = " << normData << endl;
