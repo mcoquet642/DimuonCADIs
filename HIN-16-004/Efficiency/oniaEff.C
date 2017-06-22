@@ -80,16 +80,20 @@ vector<TObjArray*> oniaEff::ReadFileWeight(bool ispbpb, bool isprompt) {
    TFile *fweight[nidxf];
    vector<TObjArray*> objarr;
    
+   cout << "ReadFileWeight: " << ispbpb << " " << isprompt << endl;
    for (int idxf=0; idxf<nidxf; idxf++) {
      if (ispbpb && isprompt)
        fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePbPb_prompt[idxf].c_str()));
-     if (ispbpb && !isprompt)
+     else if (ispbpb && !isprompt)
        fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePbPb_nonprompt[idxf].c_str()));
-     if (!ispbpb && isprompt)
+     else if (!ispbpb && isprompt)
        fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePP_prompt[idxf].c_str()));
-     else
+     else if (!ispbpb && !isprompt)
        fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePP_nonprompt[idxf].c_str()));
+     else
+       cout <<"Cannot load files " << endl;
      
+     cout << "weighting file : " << fweight[idxf]->GetName() << endl;
      TObjArray *objtmp = (TObjArray*)fweight[idxf]->Get("DataOverMC");
      TObjArray *obj = (TObjArray*)objtmp->Clone(Form("%s_copy",objtmp->GetName()));
      objarr.push_back(obj);
@@ -132,6 +136,7 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
 //by  b_branchname->GetEntry(ientry); //read only this branch
    if (fChain == 0) return;
 
+   cout << "LOOP: " << ispbpb << " " << isprompt << " " << isacc << endl;
    // Load pt weighting curves from external files
    vector<TObjArray *> wHistograms = ReadFileWeight(ispbpb, isprompt);
    
@@ -258,16 +263,19 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
       if (isgenok) {
         // HIN-16-025 binning
         // Eff vs rap integrated
-        if (genrap>=0 && genrap<2.4 && genpt>=6.5 && genpt<50)
+        if (genrap>=0 && genrap<2.4 && genpt>=6.5 && genpt<50) {
           hden_rap->Fill(genrap,weight);
+        }
 
         // Eff vs cent in 4 |y| regions (6.5-50 GeV/c)
-        if (genrap>=bins_4rap[0] && genrap<bins_4rap[nbins_4rap] && genpt>=6.5 && genpt<50)
+        if (genrap>=bins_4rap[0] && genrap<bins_4rap[nbins_4rap] && genpt>=6.5 && genpt<50) {
           hden_cent_rap[0]->Fill(Centrality/2.0,weight); //[0] is for 0-100
+        }
         
         for (int i=0; i<nbins_4rap; i++) {
-          if (genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] && genpt>=6.5 && genpt<50)
+          if (genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] && genpt>=6.5 && genpt<50) {
             hden_cent_rap[i+1]->Fill(Centrality/2.0,weight); //[0] is for 0-100
+          }
         }
         
         // Eff vs cent at 1.8-2.4, 3-6.5
@@ -309,24 +317,29 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
       ///// start gen after single muon selection - acceptance numerator 
       if (isacc) {
         if (isGlobalMuonInAccept2015(tlvgenpl) && isGlobalMuonInAccept2015(tlvgenmi)) {
-          if (genrap>=0 && genrap<2.4 && genpt>=6.5 && genpt<50)
+          if (genrap>=0 && genrap<2.4 && genpt>=6.5 && genpt<50) {
             hnum_rap->Fill(genrap,weight);
+          }
 
           // Eff vs cent in 4 |y| regions (6.5-50 GeV/c)
-          if (genrap>=bins_4rap[0] && genrap<bins_4rap[nbins_4rap] && genpt>=6.5 && genpt<50)
+          if (genrap>=bins_4rap[0] && genrap<bins_4rap[nbins_4rap] && genpt>=6.5 && genpt<50) {
             hnum_cent_rap[0]->Fill(Centrality/2.0,weight); //[0] is for 0-100
+          }
           
           for (int i=0; i<nbins_4rap; i++) {
-            if (genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] && genpt>=6.5 && genpt<50)
+            if (genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] && genpt>=6.5 && genpt<50) {
               hnum_cent_rap[i+1]->Fill(Centrality/2.0,weight); //[0] is for 0-100
+            }
           }
           // Eff vs cent at 1.8-2.4, 3-6.5
-          if (genrap>=1.8 && genrap<2.4 && genpt>=3 && genpt<6.5)
+          if (genrap>=1.8 && genrap<2.4 && genpt>=3 && genpt<6.5) {
               hnum_cent_rap[nbins_4rap+1]->Fill(Centrality/2.0,weight); //last histogram is for low pT
+          }
           
           // Eff vs pt in 4 |y| regions
-          if (genrap>=bins_4rap[0] && genrap<bins_4rap[nbins_4rap] && genpt>=6.5 && genpt<50)
+          if (genrap>=bins_4rap[0] && genrap<bins_4rap[nbins_4rap] && genpt>=6.5 && genpt<50) {
             hnum_pt_rap[0]->Fill(genpt,weight); //[0] is for 0024
+          }
           
           for (int i=0; i<nbins_4rap; i++) {
             if ( genrap>=bins_4rap[i] && genrap<bins_4rap[i+1] && genpt<50 &&
