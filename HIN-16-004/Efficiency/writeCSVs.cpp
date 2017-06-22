@@ -14,14 +14,6 @@
 #include <iostream>
 #include <fstream>
 
-
-/////// HOW TO RUN: root -l -b -q writeCSVs.cpp+
-/////// All syst & stat uncertainties after this script run should be added in quadrature
-/////// MAIN function is defined at the bottom of the macro
-/////// REFERENCE: https://twiki.cern.ch/twiki/pub/CMS/HIMuonTagProbe/README.pdf
-/////// https://github.com/echapon/MuonAnalysis-TagAndProbe/blob/76X_HI/macros/tnp_weight.h
-
-
 // Bin boundaries for efficiency histograms
 const double bins_4rap[] = {0, 0.6, 1.2, 1.8, 2.4};
 const int nbins_4rap = sizeof(bins_4rap)/sizeof(double) -1;
@@ -737,7 +729,7 @@ void getEffSyst::writeSyst(vector<string> *outname) {
       double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
       foSyst << "0, 2.4, " ;
       foSyst << lowEdge << ", " << lowEdge+binWidth << ", ";
-      if (ispbpb) foSyst << bins_3cent[i-1] << ", " << bins_3cent[i] << ", " << relSyst << endl;
+      if (ispbpb) foSyst << bins_3cent[i] << ", " << bins_3cent[i+1] << ", " << relSyst << endl;
       else foSyst << "0, 200, " << relSyst << endl;
     }
   } // end of 1 line
@@ -868,7 +860,7 @@ void getEffSyst::writeStat(vector<string> *outname) {
       double relStat = TMath::Abs(effStatY/effY);
       foStat << "0, 2.4, " ;
       foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
-      if (ispbpb) foStat << bins_3cent[i-1] << ", " << bins_3cent[i] << ", " << relStat << endl;
+      if (ispbpb) foStat << bins_3cent[i] << ", " << bins_3cent[i+1] << ", " << relStat << endl;
       else foStat << "0, 200, " << relStat << endl;
     }
   } // end of 1 line
@@ -948,11 +940,8 @@ void writeCSVs() {
   string dir = "syst";
   string subdir = "eff";
 
-  // relative uncertainty: RMS of 100 variations
   string statdirs[] = {"trg_ptWeighting","trg_toy","trg__muid_toy","trg__sta_toy"};
-  // relative uncertainty: (syst - nominal)/nominal
   string systdirs[] = {"trg_binned"};
-  // relative uncertainty: (syst - nominal)/nominal, but take max between +/- sets
   string systdirsMax[] = {
   "trg_minus1sigma","trg_plus1sigma",
   "trg_trk_plus1sigma","trg_trk_minus1sigma",
@@ -972,8 +961,8 @@ void writeCSVs() {
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
   
   for (int i=0; i<nstatdir; i++) {
-    bool takemax=false;
     bool ispbpb=false;
+    bool takemax=false;
     
     vector<string> latex;
     latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),statdirs_name[i].c_str()));
@@ -1025,8 +1014,8 @@ void writeCSVs() {
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
 
   for (int i=0; i<nsystdir; i++) {
-    bool takemax=false;
     bool ispbpb=false;
+    bool takemax=false;
 
     vector<string> latex;
     latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),systdirs[i].c_str()));
@@ -1075,14 +1064,15 @@ void writeCSVs() {
     pbpb_np.writeSyst(&latex);
   }
  
+
   // treat systematical efficiencies (maximum among 2 sets will be taken)
   dir = "syst";
   gSystem->mkdir(dir.c_str(),kTRUE);
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
 
   for (int i=0; i<nsystdirMax; i=i+2) {
-    bool takemax=true;
     bool ispbpb=false;
+    bool takemax=true;
 
     vector<string> latex;
     latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),systdirsMax_name[i/2].c_str()));
