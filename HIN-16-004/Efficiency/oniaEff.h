@@ -29,11 +29,19 @@ public :
      trg__muid__sta = 2,
      trg__muid = 3,
      trg__sta = 4,
-     trg_toy = 5, // 100 toyMC variations, stat. only
-     trg_ptWeighting = 6, // 100 pt weighting variations
+     trg_ptWeighting = 5, // 100 pt weighting variations
+     trg_toy = 6, // 100 toyMC variations, stat. only
+     trg__muid_toy = 7, // 100 toyMC variations, stat. only
+     trg__sta_toy = 8, // 100 toyMC variations, stat. only
      trg_binned = 10,
      trg_plus1sigma = 11,
-     trg_minus1sigma = 12
+     trg_minus1sigma = 12,
+     trg_trk_plus1sigma = 13,
+     trg_trk_minus1sigma = 14,
+     trg__muid_plus1sigma = 15,
+     trg__muid_minus1sigma = 16,
+     trg__sta_plus1sigma = 17,
+     trg__sta_minus1sigma = 18
    };
 
 // Fixed size dimensions of array or collections stored in the TTree if any.

@@ -11,7 +11,9 @@
 
 using namespace std;
 
-void makeEffs_pbpb_np(bool ispbpb=true, bool isprompt=false, bool isacc=false) {
+void makeEffs_pbpb_np(int opt=1, bool isacc=false){
+   bool ispbpb=true;
+   bool isprompt=false;
    TChain *tch_npjpsi_pbpb = new TChain("hionia/myTree");
    if (isacc) {
      tch_npjpsi_pbpb->Add("root://xrootd.unl.edu//store/group/phys_heavyions/dileptons/MC2015/pp502TeV/TTrees/OniaTree_BJpsiMM_5p02TeV_TuneCUETP8M1_nofilter_pp502Fall15-MCRUN2_71_V1-v1_GENONLY.root");
@@ -24,17 +26,46 @@ void makeEffs_pbpb_np(bool ispbpb=true, bool isprompt=false, bool isacc=false) {
      tch_npjpsi_pbpb->Add("root://xrootd.unl.edu//store/group/phys_heavyions/dileptons/MC2015/PbPb502TeV/TTrees/OniaTree_Pythia8_BJpsiMM_ptJpsi_30_Inf_Hydjet_MB_HINPbPbWinter16DR-75X_mcRun2_HeavyIon_v13-v1.root");
    }
    // make the efficiency histos
-   string dir = "files/eff"; // output files will be stored under this directory
+   string dir = "files/"; // output files will be stored under this directory
+   if (!isacc) {
+     dir = dir+"eff/";
+     if (opt==0) dir = dir+"noSF";
+     else if (opt==1) dir = dir+"nominal";
+     else if (opt==2) dir = dir+"trg__muid__sta";
+     else if (opt==3) dir = dir+"trg__muid";
+     else if (opt==4) dir = dir+"trg__sta";
+     else if (opt==5) dir = dir+"trg_ptWeighting";
+     else if (opt==6) dir = dir+"trg_toy";
+     else if (opt==7) dir = dir+"trg__muid_toy";
+     else if (opt==8) dir = dir+"trg__sta_toy";
+     else if (opt==10) dir = dir+"trg_binned";
+     else if (opt==11) dir = dir+"trg_plus1sigma";
+     else if (opt==12) dir = dir+"trg_minus1sigma";
+     else if (opt==13) dir = dir+"trg_trk_plus1sigma";
+     else if (opt==14) dir = dir+"trg_trk_minus1sigma";
+     else if (opt==15) dir = dir+"trg__muid_plus1sigma";
+     else if (opt==16) dir = dir+"trg__muid_minus1sigma";
+     else if (opt==17) dir = dir+"trg__sta_plus1sigma";
+     else if (opt==18) dir = dir+"trg__sta_minus1sigma";
+   } else {
+     if (opt==1) dir = dir+"acc/nominal";
+     else {
+       cout << "cannot do acc with this option, exit" << endl;
+       return;
+     }
+   }
    gSystem->mkdir(Form("./%s",dir.c_str()), kTRUE);
 
    cout << "Efficiencies for pbpb non-prompt Jpsi" << endl;
-   oniaEff obj_npjpsi_pbpb(tch_npjpsi_pbpb);
-   obj_npjpsi_pbpb.Loop(Form("%s/histos_npjpsi_pbpb.root",dir.c_str()),ispbpb,isprompt,obj_npjpsi_pbpb.trg,isacc);
-
-//   oniaEff_pTShapeVary obj_npjpsi_pbpb(tch_npjpsi_pbpb);
-//   obj_npjpsi_pbpb.LoopVary(Form("%s/histos_npjpsi_pbpb.root",dir.c_str()),ispbpb,isprompt,obj_npjpsi_pbpb.trg_ptWeighting);
-
-//   oniaEff_TnPToyStudy obj_npjpsi_pbpb(tch_npjpsi_pbpb);
-//   obj_npjpsi_pbpb.LoopVary(Form("%s/histos_npjpsi_pbpb.root",dir.c_str()),ispbpb,isprompt,obj_npjpsi_pbpb.tnpTypes::trg_toy);
+   if (opt==5) {
+     oniaEff_pTShapeVary obj_npjpsi_pbpb(tch_npjpsi_pbpb);
+     obj_npjpsi_pbpb.LoopVary(Form("%s/histos_npjpsi_pbpb.root",dir.c_str()),ispbpb,isprompt,obj_npjpsi_pbpb.trg_ptWeighting);
+   } else if (opt>=6 && opt<=8) {
+     oniaEff_TnPToyStudy obj_npjpsi_pbpb(tch_npjpsi_pbpb);
+     obj_npjpsi_pbpb.LoopVary(Form("%s/histos_npjpsi_pbpb.root",dir.c_str()),ispbpb,isprompt,obj_npjpsi_pbpb.trg_toy);
+   } else {
+     oniaEff obj_npjpsi_pbpb(tch_npjpsi_pbpb);
+     obj_npjpsi_pbpb.Loop(Form("%s/histos_npjpsi_pbpb.root",dir.c_str()),ispbpb,isprompt,opt,isacc);
+   }
 
 }
