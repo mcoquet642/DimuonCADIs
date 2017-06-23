@@ -30,7 +30,7 @@ vector<TString> fileList_syst(const char* token, const char* prependPath) {
 };
 
 
-map<anabin, syst> readSyst(const char* systfile) {
+map<anabin, syst> readSyst(const char* systfile, bool setSystZero) {
    map<anabin, syst> ans;
 
    ifstream file(systfile);
@@ -62,7 +62,7 @@ map<anabin, syst> readSyst(const char* systfile) {
          cnt++;
       }
       anabin thebin(rapmin, rapmax, ptmin, ptmax, centmin, centmax);
-      syst thesyst; thesyst.value = value; thesyst.name = systname;
+      syst thesyst; thesyst.value = (setSystZero ? 0. : value); thesyst.name = systname;
       ans[thebin] = thesyst;
    }
 
@@ -93,7 +93,7 @@ map<anabin, syst> combineSyst(vector< map<anabin, syst> > theSysts, string name)
    return ans;
 };
 
-map<anabin, syst> readSyst_all(const char* collSystem, const char* poiname, const char* nameTag, const char* prependPath, bool doPrintTex, const char* texName) {
+map<anabin, syst> readSyst_all(const char* collSystem, const char* poiname, const char* nameTag, bool readEffSyst, const char* prependPath, bool doPrintTex, const char* texName) {
    // poiname = NJpsi or BJpsi
    TString spoiname(poiname);
    TString sprependPath(prependPath);
@@ -115,14 +115,54 @@ map<anabin, syst> readSyst_all(const char* collSystem, const char* poiname, cons
    filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PP_ctauRes.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
    filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PP_ctauBkg.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
   
-//   filelist.push_back("Systematics/csv/syst_PbPb_fulltnp.csv"); // temporary!! to be updated
-//   filelist.push_back("Systematics/csv/syst_PP_fulltnp.csv"); // temporary!! to be updated
-//   filelist.push_back("Systematics/csv/syst_PbPb_rewMC.csv");
-//   filelist.push_back("Systematics/csv/syst_PP_rewMC.csv");
-//   filelist.push_back("Systematics/csv/syst_PbPb_muidtnp.csv");
-//   filelist.push_back("Systematics/csv/syst_PP_muidtnp.csv");
-//   filelist.push_back("Systematics/csv/syst_PbPb_statnp.csv");
-//   filelist.push_back("Systematics/csv/syst_PP_statnp.csv");
+   if (readEffSyst)
+   {
+//     filelist.push_back("Systematics/csv/syst_PbPb_fulltnp.csv"); // temporary!! to be updated
+//     filelist.push_back("Systematics/csv/syst_PP_fulltnp.csv"); // temporary!! to be updated
+//     filelist.push_back("Systematics/csv/syst_PbPb_rewMC.csv");
+//     filelist.push_back("Systematics/csv/syst_PP_rewMC.csv");
+//     filelist.push_back("Systematics/csv/syst_PbPb_muidtnp.csv");
+//     filelist.push_back("Systematics/csv/syst_PP_muidtnp.csv");
+//     filelist.push_back("Systematics/csv/syst_PbPb_statnp.csv");
+//     filelist.push_back("Systematics/csv/syst_PP_statnp.csv");
+     
+//     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_noSF.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_trg_binned.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_trg_minus1sigma.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_trg_plus1sigma.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_trg_muid.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_trg__sta.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/stat_PbPb_%s.csv",sprependPath.Data(),spoiname.Data()));
+     
+     filelist.push_back(Form("%sSystematics/csv/stat_PbPb_%s_muid_stat.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_PbPb_%s_sta_stat.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_PbPb_%s_trg_stat.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_PbPb_%s_ptWeighting.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_muid_syst.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_sta_syst.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_trg_syst.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_trg_binned.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PbPb_%s_trk_syst.csv",sprependPath.Data(),spoiname.Data()));
+     
+     
+//     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_noSF.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_trg_binned.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_trg_minus1sigma.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_trg_plus1sigma.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_trg__muid.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_trg__sta.csv",sprependPath.Data(),spoiname.Data()));
+//     filelist.push_back(Form("%sSystematics/csv/stat_PP_%s.csv",sprependPath.Data(),spoiname.Data()));
+     
+     filelist.push_back(Form("%sSystematics/csv/stat_PP_%s_muid_stat.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_PP_%s_sta_stat.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_PP_%s_trg_stat.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_PP_%s_ptWeighting.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_muid_syst.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_sta_syst.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_trg_syst.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_trg_binned.csv",sprependPath.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/syst_PP_%s_trk_syst.csv",sprependPath.Data(),spoiname.Data()));
+   }
   
    vector< map<anabin, syst> > systmap_all;
 
