@@ -483,7 +483,7 @@ bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bo
       }
       ((RooFitResult*)myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))->fitTo(*myws.data(dsNameCut.c_str()), Extended(kTRUE), Range("MassWindow"), NumCPU(32), PrintLevel(-1), Save()))->Print("v");
       for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) { dN_New[obj]    = myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))->getVal(); } }
-      bool update = true; for (auto obj : objs) {  if (dN_Old.count(obj)>0 && (dN_New.at(obj) > dN_Old.at(obj))) { update = false; } }
+      bool update = true; for (auto obj : objs) {  if (dN_Old.count(obj)>0 && ((dN_New.at(obj) - dN_Old.at(obj))>dNErr_Old.at(obj))) { update = false; } }
       if (update) {
         for (auto obj : objs) {
           if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) cout << "[INFO] Change in " << Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP"))
@@ -901,16 +901,15 @@ bool isPdfAlreadyFound(RooWorkspace& myws, string FileName, vector<string> pdfNa
     string pdfName = pdfNames.at(i);
     string dataName = pdfName;
     dataName.replace(dataName.find("pdf"), string("pdf").length(), "dh");
-    if ( !(ws->pdf(pdfName.c_str())) || !(ws->data(dataName.c_str())) ) {
+    if ( !(ws->pdf(pdfName.c_str())) ) {
       cout << "[INFO] " << pdfName << " was not found in: " << FileName << endl; found = false;
     }
     if (loadCtauErrPdf && found) {
       myws.import(*(ws->pdf(pdfName.c_str())));
-      myws.import(*(ws->data(dataName.c_str())));
       if (myws.pdf(pdfName.c_str()))   { cout << "[INFO] Pdf " << pdfName << " succesfully imported!" << endl;       }
-      else {  cout << "[ERROR] Pdf " << pdfName << " import failed!" << endl; found = false; }
+      else { cout << "[ERROR] Pdf " << pdfName << " import failed!" << endl; found = false; }
+      if (ws->data(dataName.c_str())) { myws.import(*(ws->data(dataName.c_str()))); }
       if (myws.data(dataName.c_str())) { cout << "[INFO] DataHist " << dataName << " succesfully imported!" << endl; }
-      else {  cout << "[ERROR] DataHist " << dataName << " import failed!" << endl; found = false; }
     }
   }
   

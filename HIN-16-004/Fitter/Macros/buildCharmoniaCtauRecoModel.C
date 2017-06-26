@@ -5,7 +5,7 @@
 
 bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, bool incPsi2S, double binWidth);
 void setCtauRecoDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries);
-bool ctauHistToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, vector<double> range);
+bool ctauHistToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, string dsName, vector<double> range, bool useDataSet=true);
 TH1* rebinctauhist(TH1 *hist, double xmin=1e99, double xmax=-1e99);
 
 
@@ -64,47 +64,58 @@ bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, str
   int nBins = min(int( round((ctauRecoMax - ctauRecoMin)/binWidth) ), 1000);
 
   TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_%s_%s", hType.c_str(), incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP")), *ws.var("ctau"), Binning(nBins, ctauRecoMin, ctauRecoMax));
-  if ( !ctauHistToPdf(ws, hTot, Form("%s_%s_%s", pdfType.c_str(), incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
+  RooDataHist* dataHist = new RooDataHist("tmp", "", *ws.var("ctau"), hTot); delete dataHist; // KEEP THIS LINE, IT IS A FIX FOR ROOKEYS
+  if ( !ctauHistToPdf(ws, hTot, Form("%s_%s_%s", pdfType.c_str(), incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP")), dsName, rangeErr)) { return false; }
   hTot->Delete();
   
   return true;
 };
 
 
-bool ctauHistToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, vector<double> range)
+bool ctauHistToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, string dsName, vector<double> range, bool useDataSet)
 {
   if (ws.pdf(pdfName.c_str())) {
     cout << Form("[INFO] The %s Template has already been created!", pdfName.c_str()) << endl;
     return true;
   }
-  // Cleaning the input histogram
-  // 1) Remove the Under and Overflow bins
-  hist->ClearUnderflowAndOverflow();
-  // 2) Set negative bin content to zero
-  for (int i=0; i<=hist->GetNbinsX(); i++) { if (hist->GetBinContent(i)<0) { hist->SetBinContent(i, 0.00000000000001); } }
-  // 2) Reduce the range of histogram and rebin it
-  TH1* hClean = rebinctauhist(hist, range[0], range[1]);
   
   cout << Form("[INFO] Implementing %s Template", pdfName.c_str()) << endl;
   
-  string dataName = pdfName;
-  dataName.replace(dataName.find("pdf"), string("pdf").length(), "dh");
-  RooDataHist* dataHist = new RooDataHist(dataName.c_str(), "", *ws.var("ctau"), hClean);
-  if (dataHist==NULL) { cout << "[ERROR] DataHist used to create " << pdfName << " failed!" << endl; return false; }
-  if (dataHist->sumEntries()==0) { cout << "[ERROR] DataHist used to create " << pdfName << " is empty!" << endl; return false; }
-  if (fabs(dataHist->sumEntries()-hClean->GetSumOfWeights())>0.001) { cout << "[ERROR] DataHist used to create " << pdfName << "  " << " is invalid!  " << endl; return false; }
-  ws.import(*dataHist);
-  
-  bool isPbPb=false;
-  if (pdfName.find("PbPb")!=std::string::npos) isPbPb=true;
-  RooHistPdf* pdf = new RooHistPdf(pdfName.c_str(), pdfName.c_str(), *ws.var("ctau"), *((RooDataHist*)ws.data(dataName.c_str())));
-  //RooKeysPdf* pdf = new RooKeysPdf(pdfName.c_str(), pdfName.c_str(), *ws.var("ctau"), *((RooDataSet*)ws.data(dataName.c_str())),RooKeysPdf::NoMirror, 0.4);
-  if (pdf==NULL) { cout << "[ERROR] RooKeysPDF " << pdfName << " is NULL!" << endl; return false; }
-  pdf->setNormRange("CtauRecoWindow");
-  ws.import(*pdf);
-  
-  delete pdf;
-  delete dataHist;
+  if (useDataSet) {
+    cout << Form("[INFO] Implementing %s Template using RooKeysPdf", pdfName.c_str()) << endl;
+    if (ws.data(dsName.c_str())==NULL) { cout << "[ERROR] DataSet " << dsName << " for Bkg Template was not found!" << endl; return false; }
+    RooKeysPdf* pdf = new RooKeysPdf(pdfName.c_str(), pdfName.c_str(), *ws.var("ctau"), *((RooDataSet*)ws.data(dsName.c_str())), RooKeysPdf::MirrorAsymBoth);
+    if (pdf==NULL) { cout << "[ERROR] RooKeysPdf " << pdfName << " is NULL!" << endl; return false; }
+    pdf->setNormRange("CtauRecoWindow");
+    ws.import(*pdf);
+    delete pdf;
+  }
+  else {
+    // Cleaning the input histogram
+    // 1) Remove the Under and Overflow bins
+    hist->ClearUnderflowAndOverflow();
+    // 2) Set negative bin content to zero
+    for (int i=0; i<=hist->GetNbinsX(); i++) { if (hist->GetBinContent(i)<0) { hist->SetBinContent(i, 0.0000000001); } }
+    // 3) Reduce the range of histogram and rebin it
+    TH1* hClean = rebinctauBkghist(ws, hist, range[0], range[1]);
+    // 4) Create the RooDataHist for the Template
+    cout << Form("[INFO] Implementing %s Template using RooDataHist", pdfName.c_str()) << endl;
+    string dataName = pdfName;
+    dataName.replace(dataName.find("pdf"), string("pdf").length(), "dh");
+    RooDataHist* dataHist = new RooDataHist(dataName.c_str(), "", *ws.var("ctau"), hClean);
+    if (dataHist==NULL) { cout << "[ERROR] DataHist used to create " << pdfName << " failed!" << endl; return false; }
+    if (dataHist->sumEntries()==0) { cout << "[ERROR] DataHist used to create " << pdfName << " is empty!" << endl; return false; }
+    if (fabs(dataHist->sumEntries()-hClean->GetSumOfWeights())>0.001) { cout << "[ERROR] DataHist used to create " << pdfName << "  " << " is invalid!  " << endl; return false; }
+    ws.import(*dataHist);
+    // 4) Make the Template
+    RooHistPdf* pdf = new RooHistPdf(pdfName.c_str(), pdfName.c_str(), *ws.var("ctau"), *((RooDataHist*)ws.data(dataName.c_str())));
+    if (pdf==NULL) { cout << "[ERROR] RooHistPdf " << pdfName << " is NULL!" << endl; return false; }
+    //RooKeysPdf* pdf = new RooKeysPdf(pdfName.c_str(), pdfName.c_str(), *ws.var("ctau"), *((RooDataSet*)ws.data(dataName.c_str())),RooKeysPdf::NoMirror, 0.4)
+    pdf->setNormRange("CtauRecoWindow");
+    ws.import(*pdf);
+    delete pdf;
+    delete dataHist;
+  }
   
   return true;
 };

@@ -175,19 +175,18 @@ bool isCtauRecoPdfAlreadyFound(RooWorkspace& myws, string FileName, string pdfNa
   bool found = true;
   string dataName = pdfName;
   dataName.replace(dataName.find("pdf"), string("pdf").length(), "dh");
-  if ( !(ws->pdf(pdfName.c_str())) || !(ws->data(dataName.c_str())) ) {
+  if ( !(ws->pdf(pdfName.c_str())) ) {
     cout << "[INFO] " << pdfName << " was not found in: " << FileName << endl; found = false;
   }
   if (loadCtauRecoPdf && found) {
     if (newPdfName!="") {
       myws.import(*(ws->pdf(pdfName.c_str())), RooFit::RenameVariable(pdfName.c_str(),newPdfName.c_str()));
-      myws.import(*(ws->data(dataName.c_str())));
+      if (ws->data(dataName.c_str())) myws.import(*(ws->data(dataName.c_str())));
       pdfName = newPdfName;
     }
     if (myws.pdf(pdfName.c_str()))   { cout << "[INFO] Pdf " << pdfName << " succesfully imported!" << endl;       }
     else {  cout << "[ERROR] Pdf " << pdfName << " import failed!" << endl; found = false; }
     if (myws.data(dataName.c_str())) { cout << "[INFO] DataHist " << dataName << " succesfully imported!" << endl; }
-    else {  cout << "[ERROR] DataHist " << dataName << " import failed!" << endl; found = false; }
   }
 
   delete ws;
