@@ -23,7 +23,6 @@ class oniaEff_TnPToyStudy : public oniaEff {
     virtual ~oniaEff_TnPToyStudy();
     virtual const char* GetHistName(TH1F *h, const char *token);
     virtual void LoopVary(const char *fname, bool ispbpb, bool isprompt, const int tnptype);
-//    vector<TObjArray*> ReadFileWeight(bool ispbpb, bool isprompt);
 
 };
 
