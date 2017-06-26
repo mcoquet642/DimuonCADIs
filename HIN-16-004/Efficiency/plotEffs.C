@@ -565,8 +565,8 @@ void plotMultipleSamples(vector<TGraphAsymmErrors*> heff, vector<string> *histna
     ratio[i-1]->GetYaxis()->SetLabelSize(0.10);
     string title = heff[0]->GetXaxis()->GetTitle();
     ratio[i-1]->GetXaxis()->SetTitle(title.c_str());
-    ratio[i-1]->GetYaxis()->SetTitle("Ratio (pp/PbPb)");
-    ratio[i-1]->GetYaxis()->SetRangeUser(0.1,1.2);
+    ratio[i-1]->GetYaxis()->SetTitle("Ratio(SF/no SF)");
+    ratio[i-1]->GetYaxis()->SetRangeUser(0.9,1.5);
   }
 
   TCanvas *can = new TCanvas("can","can",600,700);
@@ -719,7 +719,7 @@ void callMultiples(vector<string> *inputfile, bool ispbpb, string *outname, vect
     cout << rap << " " << pt << " " << cent << endl;
     plotMultipleSamples(heff_cent_rap, histname, outname, xVar, xaxis, rap, pt, cent, ispbpb);
     
-//    heff_cent_rap.clear();
+    heff_cent_rap.clear();
     delete[] xaxis;
   }
   // Eff vs pT in 4+1 |y| regions
@@ -748,7 +748,7 @@ void callMultiples(vector<string> *inputfile, bool ispbpb, string *outname, vect
     cout << rap << " " << pt << " " << cent << endl;
     plotMultipleSamples(heff_pt_rap, histname, outname, xVar, xaxis, rap, pt, cent, ispbpb);
 
-//    heff_pt_rap.clear();
+    heff_pt_rap.clear();
     delete[] xaxis;
   }
   // Eff vs pT in 3 centrality regions
@@ -777,7 +777,7 @@ void callMultiples(vector<string> *inputfile, bool ispbpb, string *outname, vect
     cout << rap << " " << pt << " " << cent << endl;
     plotMultipleSamples(heff_pt_cent, histname, outname, xVar, xaxis, rap, pt, cent, ispbpb);
 
-//    heff_pt_cent.clear();
+    heff_pt_cent.clear();
     delete[] xaxis;
   }
   // Eff vs rap integrated
@@ -804,7 +804,7 @@ void callMultiples(vector<string> *inputfile, bool ispbpb, string *outname, vect
   cout << rap << " " << pt << " " << cent << endl;
   plotMultipleSamples(heff_rap, histname, outname, xVar, xaxis, rap, pt, cent, ispbpb);
 
-//  heff_rap.clear();
+  heff_rap.clear();
   delete[] xaxis;
   for (unsigned int i=0; i<isize; i++) {
     delete fsource[i];
@@ -989,7 +989,7 @@ void drawMultiples() {
   bool ispbpb;
   
   for (size_t i=0; i<sourcedir.size(); i++) {
-    inputfile.push_back(Form("files/%s/histos_jpsi_pp.root",sourcedir[i].c_str()));
+    inputfile.push_back(Form("files/eff/%s/histos_jpsi_pp.root",sourcedir[i].c_str()));
     outname = dir + "/" + subdir + "/jpsi_pp";
     ispbpb = false;
   }
@@ -997,7 +997,7 @@ void drawMultiples() {
   inputfile.clear();
 
   for (size_t i=0; i<sourcedir.size(); i++) {
-    inputfile.push_back(Form("files/%s/histos_npjpsi_pp.root",sourcedir[i].c_str()));
+    inputfile.push_back(Form("files/eff/%s/histos_npjpsi_pp.root",sourcedir[i].c_str()));
     outname = dir + "/" + subdir + "/npjpsi_pp";
     ispbpb = false;
   }
@@ -1005,7 +1005,7 @@ void drawMultiples() {
   inputfile.clear();
 
   for (size_t i=0; i<sourcedir.size(); i++) {
-    inputfile.push_back(Form("files/%s/histos_jpsi_pbpb.root",sourcedir[i].c_str()));
+    inputfile.push_back(Form("files/eff/%s/histos_jpsi_pbpb.root",sourcedir[i].c_str()));
     outname = dir + "/" + subdir + "/jpsi_pbpb";
     ispbpb = true;
   }
@@ -1013,7 +1013,7 @@ void drawMultiples() {
   inputfile.clear();
 
   for (size_t i=0; i<sourcedir.size(); i++) {
-    inputfile.push_back(Form("files/%s/histos_npjpsi_pbpb.root",sourcedir[i].c_str()));
+    inputfile.push_back(Form("files/eff/%s/histos_npjpsi_pbpb.root",sourcedir[i].c_str()));
     outname = dir + "/" + subdir + "/npjpsi_pbpb";
     ispbpb = true;
   }
