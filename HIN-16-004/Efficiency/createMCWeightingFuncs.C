@@ -24,7 +24,7 @@
 
 
 using namespace std;
-void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char* partName="JPsi", const char* collName="PP", const char* rapName="006", const char* partType = "prompt", Int_t polOrder = 2, Int_t nRand=100);
+void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char* partName="JPsi", const char* collName="PP", const char* rapName="006", const char* partType = "prompt", Int_t polOrder = 3, Int_t nRand=100);
 
 void customiseLegend(TLegend& legend)
 {
@@ -104,13 +104,91 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     return;
   }
 
-  
   TGraphErrors* histoMC = static_cast<TGraphErrors*>(fMC->FindObjectAny(hName.Data()));
   if (!histoMC)
   {
     cout << "MC histo " << hName.Data() << " not found in file " << fileMC << endl;
     return;
   }
+  
+  // Retrieve histos for 0-2.4 for normalisation
+  TString sDataFile(fileData);
+  sDataFile.Remove(sDataFile.First("/")+1,sDataFile.Sizeof());
+  cout << "Reading data files from directory " << sDataFile.Data() << endl;
+  TFile* fNormData = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap0024_cent0100.root" : "cPbPb_pt_rap0024_cent0100.root"),"READ");
+  TFile* fNormDataLowPt = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap1824_cent0100.root" : "cPbPb_pt_rap1824_cent0100.root"),"READ");
+  sDataFile.ReplaceAll("data","mc");
+  cout << "Reading MC files from directory " << sDataFile.Data() << endl;
+  TFile* fNormMC = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap0024_cent0100.root" : "cPbPb_pt_rap0024_cent0100.root"),"READ");
+  TFile* fNormMCLowPt = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap1824_cent0100.root" : "cPbPb_pt_rap1824_cent0100.root"),"READ");
+  if (!fNormData || !fNormMC)
+  {
+    cout << "[ERROR]: One of the two input normalisation files was not found" << endl;
+    return;
+  }
+  if (!fNormDataLowPt || !fNormMCLowPt)
+  {
+    cout << "[ERROR]: One of the two input normalisation files for low pt was not found" << endl;
+    return;
+  }
+  
+  TGraphErrors* histoNormData = static_cast<TGraphErrors*>(fNormData->FindObjectAny(hName.Data()));
+  if (!histoData)
+  {
+    cout << "Normalisation data histo " << hName.Data() << " not found in file " << fNormData->GetName() << endl;
+    return;
+  }
+  TGraphErrors* histoNormDataLowPt = static_cast<TGraphErrors*>(fNormDataLowPt->FindObjectAny(hName.Data()));
+  if (!histoData)
+  {
+    cout << "Normalisation data histo " << hName.Data() << " not found in file " << fNormDataLowPt->GetName() << endl;
+    return;
+  }
+  
+  TGraphErrors* histoNormMC = static_cast<TGraphErrors*>(fNormMC->FindObjectAny(hName.Data()));
+  if (!histoMC)
+  {
+    cout << "Normalisation MC histo " << hName.Data() << " not found in file " << fNormMC->GetName() << endl;
+    return;
+  }
+  TGraphErrors* histoNormMCLowPt = static_cast<TGraphErrors*>(fNormMCLowPt->FindObjectAny(hName.Data()));
+  if (!histoMC)
+  {
+    cout << "Normalisation MC histo " << hName.Data() << " not found in file " << fNormMCLowPt->GetName() << endl;
+    return;
+  }
+  
+  // Calculate normalisation factors for data and MC
+  double normMC(0.), normData(0.);
+  for (int i = 0 ; i < histoNormData->GetN() ; i++)
+  {
+    double x, y;
+    double xMC, yMC;
+    histoNormData->GetPoint(i,x,y);
+    normData += y;
+    histoNormMC->GetPoint(i,xMC,yMC);
+    normMC += yMC;
+  }
+  
+  for (int i = 0 ; i < histoNormDataLowPt->GetN() ; i++) // Add also Njpsi at low pt to normalisations
+  {
+    double x, y;
+    double xMC, yMC;
+    histoNormDataLowPt->GetPoint(i,x,y);
+    if (x<6.5)
+    {
+      normData += y;
+      histoNormMCLowPt->GetPoint(i,xMC,yMC);
+      normMC += yMC;
+    }
+    else break;
+  }
+  
+//  cout << "Total NJpsi in DATA = " << normData << endl;
+//  cout << "Total NJpsi in MC = " << normMC << endl;
+  
+  normData = 1./normData;
+  normMC = 1./normMC;
   
   // Create output objects
   TObjArray* aFunctions = new TObjArray();
@@ -146,12 +224,12 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   }
 
   // Normalise the initial DATA and MC distributions
-  Double_t norm = 1./histoDataClone->Integral();
+//  Double_t norm = 1./histoDataClone->Integral();
 //  histoDataClone->Scale(norm); // Normalise histo to 1
   for (int i = 0; i<nPoints ; i++) // Normalise histo to 1
   {
-    histoDataClone->SetBinContent(i+1,histoDataClone->GetBinContent(i+1)*norm);
-    histoDataClone->SetBinError(i+1,histoDataClone->GetBinError(i+1)*norm);
+    histoDataClone->SetBinContent(i+1,histoDataClone->GetBinContent(i+1)*normData);
+    histoDataClone->SetBinError(i+1,histoDataClone->GetBinError(i+1)*normData);
   }
   histoDataClone->SetLineColor(1);
   histoDataClone->SetMarkerColor(1);
@@ -186,12 +264,12 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     histoMCClone->SetBinError(i+1,exyLowMC[i]);
   }
 
-  norm = 1./histoMCClone->Integral();
+//  norm = 1./histoMCClone->Integral();
 //  histoMCClone->Scale(norm); // Normalise histo to 1
   for (int i = 0; i<nPointsMC ; i++) // Normalise histo to 1
   {
-    histoMCClone->SetBinContent(i+1,histoMCClone->GetBinContent(i+1)*norm);
-    histoMCClone->SetBinError(i+1,histoMCClone->GetBinError(i+1)*norm);
+    histoMCClone->SetBinContent(i+1,histoMCClone->GetBinContent(i+1)*normMC);
+    histoMCClone->SetBinError(i+1,histoMCClone->GetBinError(i+1)*normMC);
   }
   histoMCClone->SetLineColor(4);
   histoMCClone->SetMarkerColor(4);
@@ -230,12 +308,12 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
       
     }
     
-    norm = 1./histoDataClone->Integral();
-    for (Int_t i=1; i<=nBins ; i++) // Normalise histo to 1
-    {
-      histoMCClone->SetBinContent(i,histoMCClone->GetBinContent(i)*norm);
-      histoMCClone->SetBinError(i,histoMCClone->GetBinError(i)*norm);
-    }
+//    norm = 1./histoDataClone->Integral();
+//    for (Int_t i=1; i<=nBins ; i++) // Normalise histo to 1
+//    {
+//      histoMCClone->SetBinContent(i,histoMCClone->GetBinContent(i)*normMC);
+//      histoMCClone->SetBinError(i,histoMCClone->GetBinError(i)*normMC);
+//    }
 //    histoDataClone->Scale(norm); // Normalise randomised histo to 1
     aDataHistos->Add(histoDataClone2);
   }
@@ -253,21 +331,53 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     {
       double dataY = histoDataClone2->GetBinContent(i);
       histoDataClone2->SetBinContent(i,dataY/histoMCClone->GetBinContent(i));
-      histoDataClone2->SetBinError(i,histoDataClone2->GetBinContent(i)*TMath::Sqrt(TMath::Power(histoDataClone2->GetBinError(i)/dataY,2.)));
+      double errorY = histoDataClone2->GetBinContent(i)*TMath::Sqrt(TMath::Power(histoDataClone2->GetBinError(i)/dataY,2.));
+      histoDataClone2->SetBinError(i,errorY);
+      if (dataY-errorY<=0) {
+        cout << "dataY:errorY " << dataY << " " << errorY << endl;
+        errorY = dataY;
+      }
+      histoDataClone2->SetBinError(i,errorY);
     }
 //    histoDataClone2->Divide(histoMCClone);
     histoDataClone2->SetLineColor(nh==0 ? 1 : 2);
     histoDataClone2->SetMarkerColor(nh==0 ? 1 : 2);
     histoDataClone2->GetXaxis()->SetTitle("p_{T}");
     histoDataClone2->GetYaxis()->SetTitle("dN/dp_{T}(DATA)/dN/dp_{T}(MC)");
+    histoDataClone2->GetYaxis()->SetRangeUser(0.4, 1.5);
     
     TString fName(nh==0 ? "wFunction_nominal" : Form("wFunction_n%d",nh-1));
     TF1* fWeight(0x0);
     if (polOrder==1) fWeight= new TF1(fName.Data(),Pol1,6.5,50.,2);
     else if (polOrder==2) fWeight= new TF1(fName.Data(),Pol2,6.5,50.,3);
-    else if (polOrder==3) fWeight= new TF1(fName.Data(),Pol3,6.5,50.,4);
-    fWeight->SetLineColor(nh==0 ? 1 : 2);
-    histoDataClone2->Fit(fWeight,"IN");
+    else if (polOrder==3) {
+      double xmin = (xAxis[0]<=6.5 ? 6.5 : 3);
+      fWeight= new TF1(fName.Data(),"TMath::Erf(x/[0]+[1])+[2]",xmin,50.);
+
+      if (!strcmp(partType,"prompt")) fWeight->SetParameters(-3.5, 4.0, 2.0);
+      else fWeight->SetParameters(22, 0.3, 0.2);
+
+      if (!strcmp(collName,"PbPb") && !strcmp(rapName,"1824")) {
+        if (!strcmp(partType,"prompt")) histoDataClone2->GetYaxis()->SetRangeUser(0.4, 2);
+        else histoDataClone2->GetYaxis()->SetRangeUser(0.4, 2.5);
+        fWeight->SetParameters(-15, 0.1, 2.0);
+      }
+    }
+    fWeight->SetLineColor(nh==0 ? kBlack : kBlue );
+    int status = 0, fitcount = 0;
+    do {
+      status = histoDataClone2->Fit(fWeight, "S");
+      Double_t *pars = static_cast<Double_t*>(fWeight->GetParameters());
+      pars[0] = pars[0]+1.1*(fitcount%2==0 ? 1 : -1);
+      pars[1] = pars[1]+1.3*(fitcount%2==0 ? 1 : -1);
+      pars[2] = pars[2]+1.1*(fitcount%2==0 ? 1 : -1);
+      fWeight->SetParameters(pars);
+      fitcount++;
+    } while (status!=0 && fitcount<5);
+
+    if (status!=0) {
+      cout << "FIT FAILED: " << fName << endl;
+    }
     
     aFunctions->Add(fWeight);
     aRatios->Add(histoDataClone2);
@@ -276,7 +386,7 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   }
   
   // Create canvases with the randomised data and weight functions
-  TCanvas* cData = new TCanvas();
+  TCanvas* cData = new TCanvas("canv","canv",600,600);
   TLegend* lData = new TLegend(0.6002865,0.6919831,0.7679083,0.8565401);
   customiseLegend(*lData);
   nextHisto.Reset();
@@ -297,7 +407,7 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   histoDataClone->DrawClone("same");
   histoMCClone->DrawClone("same"); // Draw also the MC distribution
   
-  TCanvas* cFuncs = new TCanvas();
+  TCanvas* cFuncs = new TCanvas("canvf","canvf",600,600);
   TLegend* lFuncs = new TLegend(0.6002865,0.6919831,0.7679083,0.8565401);
   customiseLegend(*lFuncs);
   TIter nextFunc(aFunctions);
@@ -323,7 +433,7 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   fDummy = static_cast<TF1*>(nextFunc());
   fDummy->DrawClone("same");
   
-  TCanvas* cRatios = new TCanvas();
+  TCanvas* cRatios = new TCanvas("canvr","canvr",600,600);
   TLegend* lRatios = new TLegend(0.6002865,0.6919831,0.7679083,0.8565401);
   customiseLegend(*lRatios);
   TIter nextRatio(aRatios);

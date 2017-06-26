@@ -28,9 +28,9 @@
 
 // NB: luminosities in mub-1
 const double lumipp = 28.0e6;
-const double lumipbpb_ABCD = 351;
+const double lumipbpb_ABCD = 351*1.049;
 const double lumipbpb_peri = 464;
-const double NMB = 2.366003e9;
+const double NMB = 2.366003e9*1.049;
 
 using namespace std;
 
@@ -385,7 +385,7 @@ double poiErrFromBin(const char* workDirName, const char* theCollSystem, const c
    tr->SetBranchAddress("ymax",&ymax);
    tr->SetBranchAddress("centmin",&centmin);
    tr->SetBranchAddress("centmax",&centmax);
-   tr->SetBranchAddress(Form("%s_err",thepoiname),&err);
+   tr->SetBranchAddress(Form("%s_errL",thepoiname),&err); //Only take low error (for most of pois, except Taa, Npart or Ncoll the error is symmetric)
    tr->SetBranchAddress("collSystem",collSystem);
 
    int ntr = tr->GetEntries();

@@ -92,9 +92,6 @@ TProfile* drawingEff_TnPToyStudy::simpleEff(TObjArray *anum, TObjArray *aden, bo
     delete hden;
     delete hratio;
   }
-  for (int i=0; i<=tprof->GetNbinsX()+1; i++) {
-    cout << "\t" << tprof->GetBinContent(i) << " " << tprof->GetBinError(i) << endl;
-  }
 
   return tprof;
 }
@@ -133,6 +130,9 @@ void drawingEff_TnPToyStudy::checkUnderFlow(TH1 *hnum, TH1 *hden){
       hden->SetBinContent(j,0);
       hnum->SetBinError(j,0);
       hden->SetBinError(j,0);
+    }
+    else if (num0>den0) {
+      cout << "checkUnderFlow: " << hnum->GetBinContent(j) << "/" << hden->GetBinContent(j) << endl;
     }
   }
 
@@ -477,11 +477,9 @@ void drawingEff_TnPToyStudy::loadHisto(vector<string> *outname) {
 ////////////////////////////////////////////////////////////////
 ////// Draw eff plots in different kinematic regions
 ////////////////////////////////////////////////////////////////
-void plotEff_TnPToyStudy() {
+void plotEff_TnPToyStudy(string subdir="eff/trg_toy") {
 
   string dir = "figs";
-  string subdir = "trg_toy";
-//  string subdir = "trg_pTShapeVary";
 
   gSystem->mkdir(dir.c_str(),kTRUE);
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);

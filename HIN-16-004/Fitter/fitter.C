@@ -74,7 +74,7 @@ void fitter(
   binWidth["CTAUTRUE"] = 0.025;
   binWidth["CTAURECO"] = 0.100;
   binWidth["CTAURES"]  = 0.25;
-  binWidth["CTAUSB"]   = 0.100;
+  binWidth["CTAUSB"]   = 0.0150;
 
   if (workDirName.find("Peri")!=std::string::npos) { usePeriPD = true; }
 
@@ -91,13 +91,13 @@ void fitter(
   inputFitDir["CTAUTRUE"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauTrueFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauTrue/" :  "MCFitsCent_nonPrompt_ctauTrue/");
   inputFitDir["CTAURECO"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauRecoFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauReco/" :  "MCFitsCent_nonPrompt_ctauReco/");
   
-  //inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauResFits/") + (usePeriPD ? "DataFitsPeri_ctauRes_nominalErr/" :  "DataFitsCent_ctauRes_nominalErr/");
+  inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauResFits/") + (usePeriPD ? "DataFitsPeri_ctauRes_nominalErr/" :  "DataFitsCent_ctauRes_nominalErr/");
   //inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauResFits/") + (usePeriPD ? "MCFitsPeri_prompt_ctauRes/" :  "MCFitsCent_prompt_ctauRes/");
-  inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauResFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauRes/" :  "MCFitsCent_nonPrompt_ctauRes/");  
+  //inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauResFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauRes/" :  "MCFitsCent_nonPrompt_ctauRes/");  
   
-  //inputFitDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_dataCTauRes/" : "DataFitsCent_ctauBkg_dataCTauRes/");
+  inputFitDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_dataCTauRes/" : "DataFitsCent_ctauBkg_dataCTauRes/");
   //inputFitDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_promptCTauRes/" : "DataFitsCent_ctauBkg_promptCTauRes/");
-  inputFitDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_nonPromptCTauRes/" : "DataFitsCent_ctauBkg_nonPromptCTauRes/");  
+  //inputFitDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_nonPromptCTauRes/" : "DataFitsCent_ctauBkg_nonPromptCTauRes/");  
 
   map<string, string> inputInitialFilesDir;
   inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_nominal/" :  "DataFitsMassCent_2CB_polBkg_nominal/");
@@ -114,14 +114,14 @@ void fitter(
   inputInitialFilesDir["CTAURECO"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauRecoFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauReco/" :  "MCFitsCent_nonPrompt_ctauReco/");
   //inputInitialFilesDir["CTAURECO"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauRecoFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauReco_minvRange/" :  "MCFitsCent_nonPrompt_ctauReco_minvRange/");  
 
-  //inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "DataFitsPeri_ctauRes_nominalErr/" :  "DataFitsCent_ctauRes_nominalErr/");
+  inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "DataFitsPeri_ctauRes_nominalErr/" :  "DataFitsCent_ctauRes_nominalErr/");
   //inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "MCFitsPeri_prompt_ctauRes/" :  "MCFitsCent_prompt_ctauRes/");
-  inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauRes/" :  "MCFitsCent_nonPrompt_ctauRes/");  
+  //inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauRes/" :  "MCFitsCent_nonPrompt_ctauRes/");  
   //inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "DataFitsPeri_ctauRes_nominalErr_minvRange/" :  "DataFitsCent_ctauRes_nominalErr_minvRange/");  
 
-  //inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_dataCTauRes/" :  "DataFitsCent_ctauBkg_dataCTauRes/");
+  inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_dataCTauRes/" :  "DataFitsCent_ctauBkg_dataCTauRes/");
   //inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_promptCTauRes/" : "DataFitsCent_ctauBkg_promptCTauRes/");
-  inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_nonPromptCTauRes/" : "DataFitsCent_ctauBkg_nonPromptCTauRes/");
+  //inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_nonPromptCTauRes/" : "DataFitsCent_ctauBkg_nonPromptCTauRes/");
   //inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_dataCTauRes_minvRange/" :  "DataFitsCent_ctauBkg_dataCTauRes_minvRange/");  
 
   inputInitialFilesDir["CTAU"]     = string("");//string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsPeri_2D_nominal/" :  "DataFitsCent_2D_nominal/");

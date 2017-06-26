@@ -22,8 +22,7 @@ class oniaEff_pTShapeVary : public oniaEff {
     oniaEff_pTShapeVary(TTree *tree=0);
     virtual ~oniaEff_pTShapeVary();
     virtual const char* GetHistName(TH1F *h, const char *token);
-    virtual void LoopVary(const char *fname, bool ispbpb, const int tnptype);
-    vector<TObjArray*> ReadFileWeight(bool ispbpb);
+    virtual void LoopVary(const char *fname, bool ispbpb, bool isprompt, const int tnptype);
 
 };
 
@@ -47,34 +46,7 @@ const char * oniaEff_pTShapeVary::GetHistName(TH1F* h, const char *_token) {
   return histnamebase.c_str();
 }
 
-vector<TObjArray*> oniaEff_pTShapeVary::ReadFileWeight(bool ispbpb) {
-   string wfilePbPb[] = {"weights_JPsi_PbPb_006_prompt.root","weights_JPsi_PbPb_0612_prompt.root","weights_JPsi_PbPb_1218_prompt.root","weights_JPsi_PbPb_1824_prompt.root"};
-   string wfilePP[] = {"weights_JPsi_PP_006_prompt.root","weights_JPsi_PP_0612_prompt.root","weights_JPsi_PP_1218_prompt.root","weights_JPsi_PP_1824_prompt.root"};
-   const int nidxf = sizeof(wfilePbPb)/sizeof(string);
-   
-   TFile *fweight[nidxf];
-   vector<TObjArray*> objarr;
-   
-   for (int idxf=0; idxf<nidxf; idxf++) {
-     if (ispbpb)
-       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePbPb[idxf].c_str()));
-     else
-       fweight[idxf] = new TFile(Form("weightFunctDataMC/%s",wfilePP[idxf].c_str()));
-     
-     TObjArray *objtmp = (TObjArray*)fweight[idxf]->Get("wFunctions");
-     TObjArray *obj = (TObjArray*)objtmp->Clone(Form("%s_copy",objtmp->GetName()));
-     objarr.push_back(obj);
-   }
-
-   for (int idxf=0; idxf<nidxf; idxf++) {
-     fweight[idxf]->Close();
-   }
-
-   return objarr;
-}  
-
-
-void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnptype)
+void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, bool isprompt, const int tnptype)
 {
 //   In a ROOT session, you can do:
 //      root> .L oniaEff.C
@@ -110,9 +82,28 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
    TH1::SetDefaultSumw2();
    
    // Load pt weighting curves from external files
-   vector<TObjArray *> wFunctions = ReadFileWeight(ispbpb);
+   vector<TObjArray *> wHistograms = ReadFileWeight(ispbpb, isprompt);
    
    // define the histos : Tobjext array for weighting function
+   // HIN-16-004 binning
+   TObjArray *onum_centmid = new TObjArray();
+   TObjArray *oden_centmid = new TObjArray();
+   TObjArray *onum_ptmid = new TObjArray();
+   TObjArray *oden_ptmid = new TObjArray();
+   TObjArray *onum_centfwd = new TObjArray();
+   TObjArray *oden_centfwd = new TObjArray();
+   TObjArray *onum_ptfwd = new TObjArray();
+   TObjArray *oden_ptfwd = new TObjArray();
+   onum_centmid->SetOwner(kTRUE);
+   oden_centmid->SetOwner(kTRUE);
+   onum_ptmid->SetOwner(kTRUE);
+   oden_ptmid->SetOwner(kTRUE);
+   onum_centfwd->SetOwner(kTRUE);
+   oden_centfwd->SetOwner(kTRUE);
+   onum_ptfwd->SetOwner(kTRUE);
+   oden_ptfwd->SetOwner(kTRUE);
+
+   // HIN-16-025 binning
    // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
    TObjArray *onum_cent_rap[nbins_4rap+2];
    TObjArray *oden_cent_rap[nbins_4rap+2];
@@ -150,6 +141,15 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
    oden_rap->SetOwner();
 
    // Create 100 histograms with TObjArray for each TH1F
+   TH1F *fnum_centmid;
+   TH1F *fden_centmid;
+   TH1F *fnum_ptmid;
+   TH1F *fden_ptmid;
+   TH1F *fnum_centfwd;
+   TH1F *fden_centfwd;
+   TH1F *fnum_ptfwd;
+   TH1F *fden_ptfwd;
+   
    TH1F *fnum_cent_rap[nbins_4rap+2];
    TH1F *fden_cent_rap[nbins_4rap+2];
    TH1F *fnum_pt_rap[nbins_4rap+1];
@@ -160,6 +160,15 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
    TH1F *fden_rap;
 
    for (int i=0; i<100; i++) {
+     fnum_centmid = new TH1F(Form("hnum_cent_rap0016_%d",i),"hnum_cent_rap0016",nbins_centmid,bins_centmid);
+     fnum_centfwd = new TH1F(Form("hnum_cent_rap1624_%d",i),"hnum_cent_rap1624",nbins_centfwd,bins_centfwd);
+     fnum_ptmid = new TH1F(Form("hnum_pt_rap0016_%d",i),"hnum_pt_rap0016",nbins_ptmid,bins_ptmid);
+     fnum_ptfwd = new TH1F(Form("hnum_pt_rap1624_%d",i),"hnum_pt_rap1624",nbins_ptfwd,bins_ptfwd);
+     fden_centmid = new TH1F(Form("hden_cent_rap0016_%d",i),"hden_cent_rap0016",nbins_centmid,bins_centmid);
+     fden_centfwd = new TH1F(Form("hden_cent_rap1624_%d",i),"hden_cent_rap1624",nbins_centfwd,bins_centfwd);
+     fden_ptmid = new TH1F(Form("hden_pt_rap0016_%d",i),"hden_pt_rap0016",nbins_ptmid,bins_ptmid);
+     fden_ptfwd = new TH1F(Form("hden_pt_rap1624_%d",i),"hden_pt_rap1624",nbins_ptfwd,bins_ptfwd);
+     
      fnum_cent_rap[0] = new TH1F(Form("hnum_cent_rap0024_%d",i),";Centrality;Efficiency",nbins_cent_rap0024,bins_cent_rap0024);
      fden_cent_rap[0] = new TH1F(Form("hden_cent_rap0024_%d",i),";Centrality;Efficiency",nbins_cent_rap0024,bins_cent_rap0024);
      fnum_cent_rap[1] = new TH1F(Form("hnum_cent_rap0006_%d",i),";Centrality;Efficiency",nbins_cent_rap0006,bins_cent_rap0006);
@@ -207,6 +216,15 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
        onum_pt_cent[j]->Add(fnum_pt_cent[j]);
        oden_pt_cent[j]->Add(fden_pt_cent[j]);
      }
+
+     onum_centmid->Add(fnum_centmid);
+     onum_centfwd->Add(fnum_centfwd);
+     onum_ptmid->Add(fnum_ptmid);
+     onum_ptfwd->Add(fnum_ptfwd);
+     oden_centmid->Add(fden_centmid);
+     oden_centfwd->Add(fden_centfwd);
+     oden_ptmid->Add(fden_ptmid);
+     oden_ptfwd->Add(fden_ptfwd);
    }
 
 
@@ -256,16 +274,17 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
 
           double weight = ispbpb ? fChain->GetWeight()*findNcoll(Centrality) : 1.;
           
-          if (tnptype == trg_ptWeighting) {
-            TF1 *curve;
-            if (genrap>=0 && genrap<0.6)        curve = (TF1*) wFunctions[0]->At(a);
-            else if (genrap>=0.6 && genrap<1.2) curve = (TF1*) wFunctions[1]->At(a);
-            else if (genrap>=1.2 && genrap<1.8) curve = (TF1*) wFunctions[2]->At(a);
-            else if (genrap>=1.8 && genrap<2.4) curve = (TF1*) wFunctions[3]->At(a);
-            double ptweight = curve->Eval(genpt);
-          
-            weight = weight*ptweight;
-          }
+          TH1D *curve;
+          if (genrap>=0 && genrap<0.6)        curve = (TH1D*) wHistograms[0]->At(a);
+          else if (genrap>=0.6 && genrap<1.2) curve = (TH1D*) wHistograms[1]->At(a);
+          else if (genrap>=1.2 && genrap<1.8) curve = (TH1D*) wHistograms[2]->At(a);
+          else if (genrap>=1.8 && genrap<2.4) curve = (TH1D*) wHistograms[3]->At(a);
+          int ptbin = curve->FindBin(genpt);
+          double ptweight = curve->GetBinContent(ptbin);
+        
+          //cout << genrap << " | " << genpt << " | " << ptbin << " | " << curve << " gen weight: " << weight;
+          weight = weight*ptweight;
+          //cout << " " << ptweight << " " << weight << endl;
 
           // temporary histograms to be added to TObjArray 
           TH1F *den_cent_rap[nbins_4rap+2];
@@ -287,6 +306,11 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
             hname = Form("%s_%d",GetHistName(fden_pt_cent[j], "_"),a);
             den_pt_cent[j] = (TH1F*)oden_pt_cent[j]->FindObject(hname.c_str());
           }
+
+          TH1F *den_centmid = (TH1F*)oden_centmid->FindObject(Form("%s_%d",GetHistName(fden_centmid, "_"),a));
+          TH1F *den_centfwd = (TH1F*)oden_centfwd->FindObject(Form("%s_%d",GetHistName(fden_centfwd, "_"),a));
+          TH1F *den_ptmid = (TH1F*)oden_ptmid->FindObject(Form("%s_%d",GetHistName(fden_ptmid, "_"),a));
+          TH1F *den_ptfwd = (TH1F*)oden_ptfwd->FindObject(Form("%s_%d",GetHistName(fden_ptfwd, "_"),a));
 
           // Eff vs rap integrated
           if (genrap>=0 && genrap<2.4 && genpt>=6.5 && genpt<50)
@@ -323,6 +347,16 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
               den_pt_cent[i]->Fill(genpt,weight);
             }
           }
+
+          // HIN-16-004 binning
+          if (genrap < 1.6 && genpt>=6.5 && genpt<30) {
+            den_centmid->Fill(Centrality/2.0,weight);
+            den_ptmid->Fill(genpt,weight);
+          } else if (genrap >= 1.6 && genrap < 2.4 && genpt>=3 && genpt<30) {
+            den_centfwd->Fill(Centrality/2.0,weight);
+            den_ptfwd->Fill(genpt,weight);
+          }
+
         } // end of 100 histograms loop
       } // end of if(isgenok)
 
@@ -407,33 +441,37 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
           num_pt_cent[j] = (TH1F*)onum_pt_cent[j]->FindObject(hname.c_str());
         }
 
+        TH1F *num_centmid = (TH1F*)onum_centmid->FindObject(Form("%s_%d",GetHistName(fnum_centmid, "_"),a));
+        TH1F *num_centfwd = (TH1F*)onum_centfwd->FindObject(Form("%s_%d",GetHistName(fnum_centfwd, "_"),a));
+        TH1F *num_ptmid = (TH1F*)onum_ptmid->FindObject(Form("%s_%d",GetHistName(fnum_ptmid, "_"),a));
+        TH1F *num_ptfwd = (TH1F*)onum_ptfwd->FindObject(Form("%s_%d",GetHistName(fnum_ptfwd, "_"),a));
+
         double tnp_weight = 1.0;
-        double ptweight = 1.0;
-        if (tnptype == trg_ptWeighting) {
-          if (ispbpb) { 
-            // nominal scale factor on single muons
-            tnp_weight = tnp_weight_trg_pbpb(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pbpb(recMuMipt, recMuMiEta, 0);
-          } else { //pp
-            // nominal scale factor on single muons
-            tnp_weight = tnp_weight_trg_pp(recMuPlpt, recMuPlEta, 0) * tnp_weight_trg_pp(recMuMipt, recMuMiEta, 0);
-          }
-          
-          TF1 *curve;
-          if (recorap>=0 && recorap<0.6)        curve = (TF1*) wFunctions[0]->At(a);
-          else if (recorap>=0.6 && recorap<1.2) curve = (TF1*) wFunctions[1]->At(a);
-          else if (recorap>=1.2 && recorap<1.8) curve = (TF1*) wFunctions[2]->At(a);
-          else if (recorap>=1.8 && recorap<2.4) curve = (TF1*) wFunctions[3]->At(a);
-          ptweight = curve->Eval(recopt);
+        if (ispbpb) { 
+          // nominal scale factor on single muons
+          tnp_weight = tnp_weight_trg_pbpb(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pbpb(recMuMipt,recMuMiEta,0) *
+                       tnp_weight_trk_pbpb(0) * tnp_weight_trk_pbpb(0);
+        } else { //pp
+          // nominal scale factor on single muons
+          tnp_weight = tnp_weight_trg_pp(recMuPlpt,recMuPlEta,0) * tnp_weight_trg_pp(recMuMipt,recMuMiEta,0) *
+                       tnp_weight_trk_pp(0) * tnp_weight_trk_pp(0);
         }
+        
+        TH1D *curve;
+        if (recorap>=0 && recorap<0.6)        curve = (TH1D*) wHistograms[0]->At(a);
+        else if (recorap>=0.6 && recorap<1.2) curve = (TH1D*) wHistograms[1]->At(a);
+        else if (recorap>=1.2 && recorap<1.8) curve = (TH1D*) wHistograms[2]->At(a);
+        else if (recorap>=1.8 && recorap<2.4) curve = (TH1D*) wHistograms[3]->At(a);
+        int ptbin = curve->FindBin(genpt);
+        double ptweight = curve->GetBinContent(ptbin);
+        //cout << recorap << " | " << recopt << " | " << ptbin << " | " << curve << " reco weight: " << weight;
+        weight = weight*ptweight ;
+        //cout << " " << ptweight << " " << weight;
         
         if (tnptype != noTnPSFs) {
           // tnp scale factors applied only when it's requested
           weight = weight*tnp_weight;
-        }
-        if (tnptype == trg_ptWeighting) {
-          weight = weight*ptweight ;
-//          cout << "\t\t" << recorap << "  " << recopt << endl;
-//          cout << "\t\t" << weight << "  " << tnp_weight << "  " << ptweight << endl;
+          //cout << " " << tnp_weight << " " << weight << endl;
         }
         
         // fill the numerators
@@ -468,6 +506,15 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
         for (int i=0; i<nbins_3cent; i++) {
           if (Centrality/2.0>=bins_3cent[i] && Centrality/2.0<bins_3cent[i+1] && recopt>=6.5 && recopt<50)
             num_pt_cent[i]->Fill(genpt,weight);
+        }
+
+        // HIN-16-004 binning
+        if (recorap < 1.6 && recopt>=6.5 && recopt<30) {
+          num_centmid->Fill(Centrality/2.0,weight);
+          num_ptmid->Fill(genpt,weight);
+        } else if (recorap >= 1.6 && recorap < 2.4 && recopt>=3 && recopt<30) {
+          num_centfwd->Fill(Centrality/2.0,weight);
+          num_ptfwd->Fill(genpt,weight);
         }
 
      } // end of 100 histograms loop
@@ -507,7 +554,16 @@ void oniaEff_pTShapeVary::LoopVary(const char* fname, bool ispbpb, const int tnp
    onum_rap->Write("hnum_rap",TObject::kSingleKey);
    oden_rap->Write("hden_rap",TObject::kSingleKey);
 
-//   f->Write();
+   onum_centmid->Write("hnum_cent_rap0016",TObject::kSingleKey);
+   oden_centmid->Write("hden_cent_rap0016",TObject::kSingleKey);
+   onum_ptmid->Write("hnum_pt_rap0016",TObject::kSingleKey);
+   oden_ptmid->Write("hden_pt_rap0016",TObject::kSingleKey);
+   onum_centfwd->Write("hnum_cent_rap1624",TObject::kSingleKey);
+   oden_centfwd->Write("hden_cent_rap1624",TObject::kSingleKey);
+   onum_ptfwd->Write("hnum_pt_rap1624",TObject::kSingleKey);
+   oden_ptfwd->Write("hden_pt_rap1624",TObject::kSingleKey);
+
+   //f->Write();
    f->Close();
 
 }

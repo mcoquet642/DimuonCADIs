@@ -774,7 +774,70 @@ bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, ma
  		      Form("pdfCTAUDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
  		      ));
  
-      cout << Form("[INFO] %s Background Triple Decay Ctau PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break; 
+      cout << Form("[INFO] %s Background Triple Decay Ctau PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
+        
+        
+      case (CtauModel::QuadrupleDecay):
+        if (!(
+              parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+              parIni.count(Form("lambdaDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+              parIni.count(Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+              parIni.count(Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+              parIni.count(Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+              parIni.count(Form("fDFSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+              parIni.count(Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))
+              )) {
+          cout << Form("[ERROR] Initial parameters where not found for %s Background Quadruple Decay Ctau Model in %s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; return false;
+        }
+        
+        // create the variables for this model
+        if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))) ){
+          ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+        }
+        ws.factory( parIni[Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+        ws.factory( parIni[Form("lambdaDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+        ws.factory( parIni[Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()  );
+        ws.factory( parIni[Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+        ws.factory( parIni[Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()     );
+        ws.factory( parIni[Form("fDFSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()     );
+        ws.factory( parIni[Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()     );
+        
+        // create the four PDFs
+        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau",
+                        Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+                        ));
+        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau",
+                        Form("lambdaDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+                        ));
+        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::Flipped)", Form("pdfCTAUDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau",
+                        Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+                        ));
+        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::DoubleSided)", Form("pdfCTAUDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau",
+                        Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+                        ));
+        
+        // combine the three PDFs
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("fDFSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAUDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAUDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+                        ));
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAU2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAUDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+                        ));
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAU1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                        Form("pdfCTAUDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+                        ));
+        
+        cout << Form("[INFO] %s Background Quadruple Decay Ctau PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
  
     case (CtauModel::Delta): 
       
@@ -965,13 +1028,19 @@ void setCtauDefaultParameters(map<string, string> &parIni, bool isPbPb, double n
   if (parIni.count(Form("fDFSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDFSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
     parIni[Form("fDFSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.8, 0., 1.);
   }
-  if (parIni.count(Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
+  if (parIni.count(Form("fDFSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDFSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") {
+    parIni[Form("fDFSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.8, 0., 1.);
+  }
+  if (parIni.count(Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") {
     parIni[Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.5, 0., 1.);
   }
   if (parIni.count(Form("lambdaDSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
     parIni[Form("lambdaDSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.45, 0.0001, 5.0);
   }
-  if (parIni.count(Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
+  if (parIni.count(Form("lambdaDSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") {
+    parIni[Form("lambdaDSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.45, 0.0001, 5.0);
+  }
+  if (parIni.count(Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") {
     parIni[Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.30, 0.00001, 5.0);
   }
   if (parIni.count(Form("lambdaDDS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDDS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
