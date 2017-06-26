@@ -73,9 +73,9 @@ class getEffSyst{
       TProfile *peff_all;
     };
 
-    getEffSyst(string fnameSyst, bool ispbpb, bool takemax);
-    getEffSyst(string fname, string fnameSyst, bool ispbpb, bool takemax);
-    getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb, bool takemax);
+    getEffSyst(string fnameSyst, bool ispbpb, bool takemax, bool is16025);
+    getEffSyst(string fname, string fnameSyst, bool ispbpb, bool takemax, bool is16025);
+    getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb, bool takemax, bool is16025);
     virtual ~getEffSyst();
     void runStat();
     void runSyst();
@@ -87,7 +87,7 @@ class getEffSyst{
     // Input file
     TFile *finput, *finputSyst1, *finputSyst2;
 
-    bool ispbpb, takemax;
+    bool ispbpb, takemax, is16025;
 
     // nom is nominal
     // syst1 is used for syst with 100 toys or stat
@@ -117,28 +117,31 @@ class getEffSyst{
 };
 
 void getEffSyst::runStat() {
-  loadProfile16004(finputSyst1, syst1_04);
-  loadProfile16025(finputSyst1, syst1_25);
+  if (is16025) loadProfile16025(finputSyst1, syst1_25);
+  else loadProfile16004(finputSyst1, syst1_04);
 }
 
 void getEffSyst::runSyst() {
-  loadHisto16004(finput, nom_04);
-  loadHisto16004(finputSyst1, syst1_04);
-  getEfficiency16004(nom_04);
-  getEfficiency16004(syst1_04);
-  if (finputSyst2) {
-    loadHisto16004(finputSyst2, syst2_04);
-    getEfficiency16004(syst2_04);
+  if (is16025) {
+    loadHisto16025(finput, nom_25);
+    loadHisto16025(finputSyst1, syst1_25);
+    getEfficiency16025(nom_25);
+    getEfficiency16025(syst1_25);
+    if (finputSyst2) {
+      loadHisto16025(finputSyst2, syst2_25);
+      getEfficiency16025(syst2_25);
+    }
+  } else {
+    loadHisto16004(finput, nom_04);
+    loadHisto16004(finputSyst1, syst1_04);
+    getEfficiency16004(nom_04);
+    getEfficiency16004(syst1_04);
+    if (finputSyst2) {
+      loadHisto16004(finputSyst2, syst2_04);
+      getEfficiency16004(syst2_04);
+    }
   }
 
-  loadHisto16025(finput, nom_25);
-  loadHisto16025(finputSyst1, syst1_25);
-  getEfficiency16025(nom_25);
-  getEfficiency16025(syst1_25);
-  if (finputSyst2) {
-    loadHisto16025(finputSyst2, syst2_25);
-    getEfficiency16025(syst2_25);
-  }
 }
 
 void getEffSyst::fixCentPp(TH1F *hist) {
@@ -233,48 +236,53 @@ TProfile* getEffSyst::simpleEff(TObjArray *anum, TObjArray *aden, bool iscent) {
   return tprof;
 }
 
-getEffSyst::getEffSyst(string fnameSyst, bool ispbpb_, bool takemax_) {
+getEffSyst::getEffSyst(string fnameSyst, bool ispbpb_, bool takemax_, bool is16025_) {
   finputSyst1 = new TFile(fnameSyst.c_str());
   finput = 0;
   finputSyst2 = 0;
   ispbpb = ispbpb_;
   takemax = takemax_;
+  is16025 = is16025_;
 }
 
-getEffSyst::getEffSyst(string fname, string fnameSyst, bool ispbpb_, bool takemax_) {
+getEffSyst::getEffSyst(string fname, string fnameSyst, bool ispbpb_, bool takemax_, bool is16025_) {
   finput = new TFile(fname.c_str());
   finputSyst1 = new TFile(fnameSyst.c_str());
   finputSyst2 = 0;
   ispbpb = ispbpb_;
   takemax = takemax_;
+  is16025 = is16025_;
 }
 
-getEffSyst::getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb_, bool takemax_) {
+getEffSyst::getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb_, bool takemax_, bool is16025_) {
   finput = new TFile(fname.c_str());
   finputSyst1 = new TFile(fnameSyst.c_str());
   finputSyst2 = new TFile(fnameSyst2.c_str());
   ispbpb = ispbpb_;
   takemax = takemax_;
+  is16025 = is16025_;
 }
 
 getEffSyst::~getEffSyst() {
   if (finput) {
     cout << "cleaning the nominal " << endl;
-    clean16025(nom_25);
-    clean16004(nom_04, false);
+    if (is16025) clean16025(nom_25);
+    else clean16004(nom_04, false);
     delete finput;
   }
   if (finputSyst1) {
     cout << "cleaning the 1st syst " << endl;
-    clean16025(syst1_25);
-    if (finput==0) clean16004(syst1_04, true);
-    else clean16004(syst1_04, false);
+    if (is16025) clean16025(syst1_25);
+    else {
+      if (finput==0) clean16004(syst1_04, true);
+      else clean16004(syst1_04, false);
+    }
     delete finputSyst1;
   }
   if (finputSyst2) {
     cout << "cleaning the 2nd syst " << endl;
-    clean16025(syst2_25);
-    clean16004(syst2_04, false);
+    if (is16025) clean16025(syst2_25);
+    else clean16004(syst2_04, false);
     delete finputSyst2;
   }
 }
@@ -682,126 +690,132 @@ void getEffSyst::writeSyst(vector<string> *outname) {
  
   /////// relative uncertainties bin by bin
   double *effSystY, *effSystY2, *effY;
-  // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
-  for (int i=0; i<=nbins_4rap+1; i++) {
-    effSystY = syst1_25.heff_cent_rap[i]->GetY();
-    effY = nom_25.heff_cent_rap[i]->GetY();
-    effSystY2 = (takemax ? syst2_25.heff_cent_rap[i]->GetY() : effY);
+  
+  if (is16025) {
+    // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
+    for (int i=0; i<=nbins_4rap+1; i++) {
+      effSystY = syst1_25.heff_cent_rap[i]->GetY();
+      effY = nom_25.heff_cent_rap[i]->GetY();
+      effSystY2 = (takemax ? syst2_25.heff_cent_rap[i]->GetY() : effY);
 
-    for (int j=0; j<nom_25.hnum_cent_rap[i]->GetNbinsX(); j++) {
-      // centrality bin index is 0-200, so multiply 2
-      double lowEdge = nom_25.hnum_cent_rap[i]->GetBinLowEdge(j+1) *2;
-      double binWidth = nom_25.hnum_cent_rap[i]->GetBinWidth(j+1) *2;
+      for (int j=0; j<nom_25.hnum_cent_rap[i]->GetNbinsX(); j++) {
+        // centrality bin index is 0-200, so multiply 2
+        double lowEdge = nom_25.hnum_cent_rap[i]->GetBinLowEdge(j+1) *2;
+        double binWidth = nom_25.hnum_cent_rap[i]->GetBinWidth(j+1) *2;
+        double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
+        if (i==0) foSyst << "0, 2.4, 6.5, 50, ";
+        else if (i==nbins_4rap+1) foSyst << "1.8, 2.4, 3, 6.5, ";
+        else foSyst << bins_4rap[i-1] << ", " << bins_4rap[i] << ", 6.5, 50, ";
+        if (ispbpb) foSyst << lowEdge << ", " << lowEdge+binWidth << ", " << relSyst << endl;
+        else { foSyst << "0, 200, " << relSyst << endl; break; }
+      }
+    } // end of 1 line
+   
+    // Eff vs pT in 4+1 |y| regions
+    for (int i=0; i<=nbins_4rap; i++) {
+      effSystY = syst1_25.heff_pt_rap[i]->GetY();
+      effY = nom_25.heff_pt_rap[i]->GetY();
+      effSystY2 = (takemax ? syst2_25.heff_pt_rap[i]->GetY() : effY);
+      
+      for (int j=0; j<nom_25.hnum_pt_rap[i]->GetNbinsX(); j++) {
+        double lowEdge = nom_25.hnum_pt_rap[i]->GetBinLowEdge(j+1);
+        double binWidth = nom_25.hnum_pt_rap[i]->GetBinWidth(j+1);
+        double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
+        if (i==0) foSyst << "0, 2.4, " ;
+        else foSyst << bins_4rap[i-1] << ", " << bins_4rap[i] << ", " ;
+        foSyst << lowEdge << ", " << lowEdge+binWidth << ", 0, 200, " << relSyst << endl;
+      }
+    } // end of 1 line
+
+    // Eff vs pT in 3 centrality regions
+    for (int i=0; i<(ispbpb?nbins_3cent:1); i++) {
+      effSystY = syst1_25.heff_pt_cent[i]->GetY();
+      effY = nom_25.heff_pt_cent[i]->GetY();
+      effSystY2 = (takemax ? syst2_25.heff_pt_cent[i]->GetY() : effY);
+      
+      for (int j=0; j<nom_25.hnum_pt_cent[i]->GetNbinsX(); j++) {
+        double lowEdge = nom_25.hnum_pt_cent[i]->GetBinLowEdge(j+1);
+        double binWidth = nom_25.hnum_pt_cent[i]->GetBinWidth(j+1);
+        double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
+        foSyst << "0, 2.4, " ;
+        foSyst << lowEdge << ", " << lowEdge+binWidth << ", ";
+        if (ispbpb) foSyst << bins_3cent[i]*2 << ", " << bins_3cent[i+1]*2 << ", " << relSyst << endl;
+        else foSyst << "0, 200, " << relSyst << endl;
+      }
+    } // end of 1 line
+
+    // Eff vs rap integrated
+    effSystY = syst1_25.heff_rap->GetY();
+    effY = nom_25.heff_rap->GetY();
+    effSystY2 = (takemax ? syst2_25.heff_rap->GetY() : effY);
+    for (int j=0; j<nom_25.hnum_rap->GetNbinsX(); j++) {
+      double lowEdge = nom_25.hnum_rap->GetBinLowEdge(j+1);
+      double binWidth = nom_25.hnum_rap->GetBinWidth(j+1);
       double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-      if (i==0) foSyst << "0, 2.4, 6.5, 50, ";
-      else if (i==nbins_4rap+1) foSyst << "1.8, 2.4, 3, 6.5, ";
-      else foSyst << bins_4rap[i-1] << ", " << bins_4rap[i] << ", 6.5, 50, ";
+      foSyst << lowEdge << ", " << lowEdge+binWidth << ", ";
+      foSyst << "6.5, 50, 0, 200, " << relSyst << endl;
+    }
+    
+    if (ispbpb) {
+      // Eff all integrated (calculated by hnum_rap, hden_rap)
+      effSystY = syst1_25.heff_all->GetY();
+      effY = nom_25.heff_all->GetY();
+      effSystY2 = (takemax ? syst2_25.heff_all->GetY() : effY);
+      for (int j=0; j<nom_25.hnum_all->GetNbinsX(); j++) {
+        double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
+        foSyst << "0, 2.4, 6.5, 50, 0, 200, " << relSyst << endl;
+      }
+    }
+
+  } else {
+    // HIN-16-004 binning
+    effSystY = syst1_04.heff_centmid->GetY();
+    effY = nom_04.heff_centmid->GetY();
+    effSystY2 = (takemax ? syst2_04.heff_centmid->GetY() : effY);
+    for (int j=0; j<nom_04.hnum_centmid->GetNbinsX(); j++) {
+      double lowEdge = nom_04.hnum_centmid->GetBinLowEdge(j+1) *2;
+      double binWidth = nom_04.hnum_centmid->GetBinWidth(j+1) *2;
+      double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
+      foSyst << "0, 1.6, 6.5, 30, ";
       if (ispbpb) foSyst << lowEdge << ", " << lowEdge+binWidth << ", " << relSyst << endl;
       else { foSyst << "0, 200, " << relSyst << endl; break; }
     }
-  } // end of 1 line
- 
-  // Eff vs pT in 4+1 |y| regions
-  for (int i=0; i<=nbins_4rap; i++) {
-    effSystY = syst1_25.heff_pt_rap[i]->GetY();
-    effY = nom_25.heff_pt_rap[i]->GetY();
-    effSystY2 = (takemax ? syst2_25.heff_pt_rap[i]->GetY() : effY);
-    
-    for (int j=0; j<nom_25.hnum_pt_rap[i]->GetNbinsX(); j++) {
-      double lowEdge = nom_25.hnum_pt_rap[i]->GetBinLowEdge(j+1);
-      double binWidth = nom_25.hnum_pt_rap[i]->GetBinWidth(j+1);
-      double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-      if (i==0) foSyst << "0, 2.4, " ;
-      else foSyst << bins_4rap[i-1] << ", " << bins_4rap[i] << ", " ;
-      foSyst << lowEdge << ", " << lowEdge+binWidth << ", 0, 200, " << relSyst << endl;
-    }
-  } // end of 1 line
 
-  // Eff vs pT in 3 centrality regions
-  for (int i=0; i<(ispbpb?nbins_3cent:1); i++) {
-    effSystY = syst1_25.heff_pt_cent[i]->GetY();
-    effY = nom_25.heff_pt_cent[i]->GetY();
-    effSystY2 = (takemax ? syst2_25.heff_pt_cent[i]->GetY() : effY);
-    
-    for (int j=0; j<nom_25.hnum_pt_cent[i]->GetNbinsX(); j++) {
-      double lowEdge = nom_25.hnum_pt_cent[i]->GetBinLowEdge(j+1);
-      double binWidth = nom_25.hnum_pt_cent[i]->GetBinWidth(j+1);
+    effSystY = syst1_04.heff_centfwd->GetY();
+    effY = nom_04.heff_centfwd->GetY();
+    effSystY2 = (takemax ? syst2_04.heff_centfwd->GetY() : effY);
+    for (int j=0; j<nom_04.hnum_centfwd->GetNbinsX(); j++) {
+      double lowEdge = nom_04.hnum_centfwd->GetBinLowEdge(j+1) *2;
+      double binWidth = nom_04.hnum_centfwd->GetBinWidth(j+1) *2;
       double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-      foSyst << "0, 2.4, " ;
+      foSyst << "1.6, 2.4, 3, 30, ";
+      if (ispbpb) foSyst << lowEdge << ", " << lowEdge+binWidth << ", " << relSyst << endl;
+      else { foSyst << "0, 200, " << relSyst << endl; break; }
+    }
+
+    effSystY = syst1_04.heff_ptmid->GetY();
+    effY = nom_04.heff_ptmid->GetY();
+    effSystY2 = (takemax ? syst2_04.heff_ptmid->GetY() : effY);
+    for (int j=0; j<nom_04.hnum_ptmid->GetNbinsX(); j++) {
+      double lowEdge = nom_04.hnum_ptmid->GetBinLowEdge(j+1);
+      double binWidth = nom_04.hnum_ptmid->GetBinWidth(j+1);
+      double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
+      foSyst << "0, 1.6, ";
       foSyst << lowEdge << ", " << lowEdge+binWidth << ", ";
-      if (ispbpb) foSyst << bins_3cent[i] << ", " << bins_3cent[i+1] << ", " << relSyst << endl;
-      else foSyst << "0, 200, " << relSyst << endl;
+      foSyst << "0, 200, " << relSyst << endl;
     }
-  } // end of 1 line
 
-  // Eff vs rap integrated
-  effSystY = syst1_25.heff_rap->GetY();
-  effY = nom_25.heff_rap->GetY();
-  effSystY2 = (takemax ? syst2_25.heff_rap->GetY() : effY);
-  for (int j=0; j<nom_25.hnum_rap->GetNbinsX(); j++) {
-    double lowEdge = nom_25.hnum_rap->GetBinLowEdge(j+1);
-    double binWidth = nom_25.hnum_rap->GetBinWidth(j+1);
-    double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-    foSyst << lowEdge << ", " << lowEdge+binWidth << ", ";
-    foSyst << "6.5, 50, 0, 200, " << relSyst << endl;
-  }
-  
-  // Eff all integrated (calculated by hnum_rap, hden_rap)
-  effSystY = syst1_25.heff_all->GetY();
-  effY = nom_25.heff_all->GetY();
-  effSystY2 = (takemax ? syst2_25.heff_all->GetY() : effY);
-  for (int j=0; j<nom_25.hnum_all->GetNbinsX(); j++) {
-    double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-    foSyst << "0, 2.4, 6.5, 50, 0, 200, " << relSyst << endl;
-  }
-
-  // HIN-16-004 binning
-  effSystY = syst1_04.heff_centmid->GetY();
-  effY = nom_04.heff_centmid->GetY();
-  effSystY2 = (takemax ? syst2_04.heff_centmid->GetY() : effY);
-  for (int j=0; j<nom_04.hnum_centmid->GetNbinsX(); j++) {
-    double lowEdge = nom_04.hnum_centmid->GetBinLowEdge(j+1) *2;
-    double binWidth = nom_04.hnum_centmid->GetBinWidth(j+1) *2;
-    double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-    foSyst << "0, 1.6, 6.5, 30, ";
-    if (ispbpb) foSyst << lowEdge << ", " << lowEdge+binWidth << ", " << relSyst << endl;
-    else { foSyst << "0, 200, " << relSyst << endl; break; }
-  }
-
-  effSystY = syst1_04.heff_centfwd->GetY();
-  effY = nom_04.heff_centfwd->GetY();
-  effSystY2 = (takemax ? syst2_04.heff_centfwd->GetY() : effY);
-  for (int j=0; j<nom_04.hnum_centfwd->GetNbinsX(); j++) {
-    double lowEdge = nom_04.hnum_centfwd->GetBinLowEdge(j+1) *2;
-    double binWidth = nom_04.hnum_centfwd->GetBinWidth(j+1) *2;
-    double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-    foSyst << "1.6, 2.4, 3, 30, ";
-    if (ispbpb) foSyst << lowEdge << ", " << lowEdge+binWidth << ", " << relSyst << endl;
-    else { foSyst << "0, 200, " << relSyst << endl; break; }
-  }
-
-  effSystY = syst1_04.heff_ptmid->GetY();
-  effY = nom_04.heff_ptmid->GetY();
-  effSystY2 = (takemax ? syst2_04.heff_ptmid->GetY() : effY);
-  for (int j=0; j<nom_04.hnum_ptmid->GetNbinsX(); j++) {
-    double lowEdge = nom_04.hnum_ptmid->GetBinLowEdge(j+1);
-    double binWidth = nom_04.hnum_ptmid->GetBinWidth(j+1);
-    double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-    foSyst << "0, 1.6, ";
-    foSyst << lowEdge << ", " << lowEdge+binWidth << ", ";
-    foSyst << "0, 200, " << relSyst << endl;
-  }
-
-  effSystY = syst1_04.heff_ptfwd->GetY();
-  effY = nom_04.heff_ptfwd->GetY();
-  effSystY2 = (takemax ? syst2_04.heff_ptfwd->GetY() : effY);
-  for (int j=0; j<nom_04.hnum_ptfwd->GetNbinsX(); j++) {
-    double lowEdge = nom_04.hnum_ptfwd->GetBinLowEdge(j+1);
-    double binWidth = nom_04.hnum_ptfwd->GetBinWidth(j+1);
-    double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
-    foSyst << "1.6, 2.4, ";
-    foSyst << lowEdge << ", " << lowEdge+binWidth << ", ";
-    foSyst << "0, 200, " << relSyst << endl;
+    effSystY = syst1_04.heff_ptfwd->GetY();
+    effY = nom_04.heff_ptfwd->GetY();
+    effSystY2 = (takemax ? syst2_04.heff_ptfwd->GetY() : effY);
+    for (int j=0; j<nom_04.hnum_ptfwd->GetNbinsX(); j++) {
+      double lowEdge = nom_04.hnum_ptfwd->GetBinLowEdge(j+1);
+      double binWidth = nom_04.hnum_ptfwd->GetBinWidth(j+1);
+      double relSyst = max( TMath::Abs(effSystY[j]-effY[j]),TMath::Abs(effSystY2[j]-effY[j]) )/effY[j];
+      foSyst << "1.6, 2.4, ";
+      foSyst << lowEdge << ", " << lowEdge+binWidth << ", ";
+      foSyst << "0, 200, " << relSyst << endl;
+    }
   }
 
   foSyst.close();
@@ -818,115 +832,120 @@ void getEffSyst::writeStat(vector<string> *outname) {
   foStat << outname->at(0) << endl;
  
   /////// relative uncertainties bin by bin
-  // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
-  for (int i=0; i<=nbins_4rap+1; i++) {
-    for (int j=0; j<syst1_25.peff_cent_rap[i]->GetNbinsX(); j++) {
-      double effStatY = syst1_25.peff_cent_rap[i]->GetBinError(j+1);
-      double effY = syst1_25.peff_cent_rap[i]->GetBinContent(j+1);
-      // centrality bin index is 0-200, so multiply 2
-      double lowEdge = syst1_25.peff_cent_rap[i]->GetBinLowEdge(j+1) *2;
-      double binWidth = syst1_25.peff_cent_rap[i]->GetBinWidth(j+1) *2;
+  if (is16025) {
+    // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
+    for (int i=0; i<=nbins_4rap+1; i++) {
+      for (int j=0; j<syst1_25.peff_cent_rap[i]->GetNbinsX(); j++) {
+        double effStatY = syst1_25.peff_cent_rap[i]->GetBinError(j+1);
+        double effY = syst1_25.peff_cent_rap[i]->GetBinContent(j+1);
+        // centrality bin index is 0-200, so multiply 2
+        double lowEdge = syst1_25.peff_cent_rap[i]->GetBinLowEdge(j+1) *2;
+        double binWidth = syst1_25.peff_cent_rap[i]->GetBinWidth(j+1) *2;
+        double relStat = TMath::Abs(effStatY/effY);
+        if (i==0) foStat << "0, 2.4, 6.5, 50, ";
+        else if (i==nbins_4rap+1) foStat << "1.8, 2.4, 3, 6.5, ";
+        else foStat << bins_4rap[i-1] << ", " << bins_4rap[i] << ", 6.5, 50, ";
+        // pp has bin contents in the 1st bin only
+        if (ispbpb) foStat << lowEdge << ", " << lowEdge+binWidth << ", " << relStat << endl;
+        else { foStat << "0, 200, " << relStat << endl; break; }
+      }
+    } // end of 1 line
+   
+    // Eff vs pT in 4+1 |y| regions
+    for (int i=0; i<=nbins_4rap; i++) {
+      for (int j=0; j<syst1_25.peff_pt_rap[i]->GetNbinsX(); j++) {
+        double effStatY = syst1_25.peff_pt_rap[i]->GetBinError(j+1);
+        double effY = syst1_25.peff_pt_rap[i]->GetBinContent(j+1);
+        double lowEdge = syst1_25.peff_pt_rap[i]->GetBinLowEdge(j+1);
+        double binWidth = syst1_25.peff_pt_rap[i]->GetBinWidth(j+1);
+        double relStat = TMath::Abs(effStatY/effY);
+        if (i==0) foStat << "0, 2.4, " ;
+        else foStat << bins_4rap[i-1] << ", " << bins_4rap[i] << ", " ;
+        foStat << lowEdge << ", " << lowEdge+binWidth << ", 0, 200, " << relStat << endl;
+      }
+    } // end of 1 line
+
+    // Eff vs pT in 3 centrality regions
+    for (int i=0; i<(ispbpb?nbins_3cent:1); i++) {
+      for (int j=0; j<syst1_25.peff_pt_cent[i]->GetNbinsX(); j++) {
+        double effStatY = syst1_25.peff_pt_cent[i]->GetBinError(j+1);
+        double effY = syst1_25.peff_pt_cent[i]->GetBinContent(j+1);
+        double lowEdge = syst1_25.peff_pt_cent[i]->GetBinLowEdge(j+1);
+        double binWidth = syst1_25.peff_pt_cent[i]->GetBinWidth(j+1);
+        double relStat = TMath::Abs(effStatY/effY);
+        foStat << "0, 2.4, " ;
+        foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
+        if (ispbpb) foStat << bins_3cent[i]*2 << ", " << bins_3cent[i+1]*2 << ", " << relStat << endl;
+        else foStat << "0, 200, " << relStat << endl;
+      }
+    } // end of 1 line
+
+    // Eff vs rap integrated
+    for (int j=0; j<syst1_25.peff_rap->GetNbinsX(); j++) {
+      double effStatY = syst1_25.peff_rap->GetBinError(j+1);
+      double effY = syst1_25.peff_rap->GetBinContent(j+1);
+      double lowEdge = syst1_25.peff_rap->GetBinLowEdge(j+1);
+      double binWidth = syst1_25.peff_rap->GetBinWidth(j+1);
       double relStat = TMath::Abs(effStatY/effY);
-      if (i==0) foStat << "0, 2.4, 6.5, 50, ";
-      else if (i==nbins_4rap+1) foStat << "1.8, 2.4, 3, 6.5, ";
-      else foStat << bins_4rap[i-1] << ", " << bins_4rap[i] << ", 6.5, 50, ";
-      // pp has bin contents in the 1st bin only
+      foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
+      foStat << "6.5, 50, 0, 200, " << relStat << endl;
+    }
+    
+    if (ispbpb) {
+      // Eff all integrated (calculated by hnum_rap, hden_rap)
+      for (int j=0; j<syst1_25.peff_all->GetNbinsX(); j++) {
+        double effStatY = syst1_25.peff_all->GetBinError(j+1);
+        double effY = syst1_25.peff_all->GetBinContent(j+1);
+        double relStat = TMath::Abs(effStatY/effY);
+        foStat << "0, 2.4, 6.5, 50, 0, 200, " << relStat << endl;
+      }
+    }
+
+  } else {
+    // HIN-16-004 binning
+    for (int j=0; j<syst1_04.peff_centmid->GetNbinsX(); j++) {
+      double effStatY = syst1_04.peff_centmid->GetBinError(j+1);
+      double effY = syst1_04.peff_centmid->GetBinContent(j+1);
+      double lowEdge = syst1_04.peff_centmid->GetBinLowEdge(j+1) *2;
+      double binWidth = syst1_04.peff_centmid->GetBinWidth(j+1) *2;
+      double relStat = TMath::Abs(effStatY/effY);
+      foStat << "0, 1.6, 6.5, 30, ";
       if (ispbpb) foStat << lowEdge << ", " << lowEdge+binWidth << ", " << relStat << endl;
       else { foStat << "0, 200, " << relStat << endl; break; }
     }
-  } // end of 1 line
- 
-  // Eff vs pT in 4+1 |y| regions
-  for (int i=0; i<=nbins_4rap; i++) {
-    for (int j=0; j<syst1_25.peff_pt_rap[i]->GetNbinsX(); j++) {
-      double effStatY = syst1_25.peff_pt_rap[i]->GetBinError(j+1);
-      double effY = syst1_25.peff_pt_rap[i]->GetBinContent(j+1);
-      double lowEdge = syst1_25.peff_pt_rap[i]->GetBinLowEdge(j+1);
-      double binWidth = syst1_25.peff_pt_rap[i]->GetBinWidth(j+1);
-      double relStat = TMath::Abs(effStatY/effY);
-      if (i==0) foStat << "0, 2.4, " ;
-      else foStat << bins_4rap[i-1] << ", " << bins_4rap[i] << ", " ;
-      foStat << lowEdge << ", " << lowEdge+binWidth << ", 0, 200, " << relStat << endl;
-    }
-  } // end of 1 line
 
-  // Eff vs pT in 3 centrality regions
-  for (int i=0; i<(ispbpb?nbins_3cent:1); i++) {
-    for (int j=0; j<syst1_25.peff_pt_cent[i]->GetNbinsX(); j++) {
-      double effStatY = syst1_25.peff_pt_cent[i]->GetBinError(j+1);
-      double effY = syst1_25.peff_pt_cent[i]->GetBinContent(j+1);
-      double lowEdge = syst1_25.peff_pt_cent[i]->GetBinLowEdge(j+1);
-      double binWidth = syst1_25.peff_pt_cent[i]->GetBinWidth(j+1);
+    for (int j=0; j<syst1_04.peff_centfwd->GetNbinsX(); j++) {
+      double effStatY = syst1_04.peff_centfwd->GetBinError(j+1);
+      double effY = syst1_04.peff_centfwd->GetBinContent(j+1);
+      double lowEdge = syst1_04.peff_centfwd->GetBinLowEdge(j+1) *2;
+      double binWidth = syst1_04.peff_centfwd->GetBinWidth(j+1) *2;
       double relStat = TMath::Abs(effStatY/effY);
-      foStat << "0, 2.4, " ;
+      foStat << "1.6, 2.4, 3, 30, ";
+      if (ispbpb) foStat << lowEdge << ", " << lowEdge+binWidth << ", " << relStat << endl;
+      else { foStat << "0, 200, " << relStat << endl; break; }
+    }
+
+    for (int j=0; j<syst1_04.peff_ptmid->GetNbinsX(); j++) {
+      double effStatY = syst1_04.peff_ptmid->GetBinError(j+1);
+      double effY = syst1_04.peff_ptmid->GetBinContent(j+1);
+      double lowEdge = syst1_04.peff_ptmid->GetBinLowEdge(j+1);
+      double binWidth = syst1_04.peff_ptmid->GetBinWidth(j+1);
+      double relStat = TMath::Abs(effStatY/effY);
+      foStat << "0, 1.6, ";
       foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
-      if (ispbpb) foStat << bins_3cent[i] << ", " << bins_3cent[i+1] << ", " << relStat << endl;
-      else foStat << "0, 200, " << relStat << endl;
+      foStat << "0, 200, " << relStat << endl;
     }
-  } // end of 1 line
 
-  // Eff vs rap integrated
-  for (int j=0; j<syst1_25.peff_rap->GetNbinsX(); j++) {
-    double effStatY = syst1_25.peff_rap->GetBinError(j+1);
-    double effY = syst1_25.peff_rap->GetBinContent(j+1);
-    double lowEdge = syst1_25.peff_rap->GetBinLowEdge(j+1);
-    double binWidth = syst1_25.peff_rap->GetBinWidth(j+1);
-    double relStat = TMath::Abs(effStatY/effY);
-    foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
-    foStat << "6.5, 50, 0, 200, " << relStat << endl;
-  }
-  
-  // Eff all integrated (calculated by hnum_rap, hden_rap)
-  for (int j=0; j<syst1_25.peff_all->GetNbinsX(); j++) {
-    double effStatY = syst1_25.peff_all->GetBinError(j+1);
-    double effY = syst1_25.peff_all->GetBinContent(j+1);
-    double relStat = TMath::Abs(effStatY/effY);
-    foStat << "0, 2.4, 6.5, 50, 0, 200, " << relStat << endl;
-  }
-
-  // HIN-16-004 binning
-  for (int j=0; j<syst1_04.peff_centmid->GetNbinsX(); j++) {
-    double effStatY = syst1_04.peff_centmid->GetBinError(j+1);
-    double effY = syst1_04.peff_centmid->GetBinContent(j+1);
-    double lowEdge = syst1_04.peff_centmid->GetBinLowEdge(j+1) *2;
-    double binWidth = syst1_04.peff_centmid->GetBinWidth(j+1) *2;
-    double relStat = TMath::Abs(effStatY/effY);
-    foStat << "0, 1.6, 6.5, 30, ";
-    if (ispbpb) foStat << lowEdge << ", " << lowEdge+binWidth << ", " << relStat << endl;
-    else { foStat << "0, 200, " << relStat << endl; break; }
-  }
-
-  for (int j=0; j<syst1_04.peff_centfwd->GetNbinsX(); j++) {
-    double effStatY = syst1_04.peff_centfwd->GetBinError(j+1);
-    double effY = syst1_04.peff_centfwd->GetBinContent(j+1);
-    double lowEdge = syst1_04.peff_centfwd->GetBinLowEdge(j+1) *2;
-    double binWidth = syst1_04.peff_centfwd->GetBinWidth(j+1) *2;
-    double relStat = TMath::Abs(effStatY/effY);
-    foStat << "1.6, 2.4, 3, 30, ";
-    if (ispbpb) foStat << lowEdge << ", " << lowEdge+binWidth << ", " << relStat << endl;
-    else { foStat << "0, 200, " << relStat << endl; break; }
-  }
-
-  for (int j=0; j<syst1_04.peff_ptmid->GetNbinsX(); j++) {
-    double effStatY = syst1_04.peff_ptmid->GetBinError(j+1);
-    double effY = syst1_04.peff_ptmid->GetBinContent(j+1);
-    double lowEdge = syst1_04.peff_ptmid->GetBinLowEdge(j+1);
-    double binWidth = syst1_04.peff_ptmid->GetBinWidth(j+1);
-    double relStat = TMath::Abs(effStatY/effY);
-    foStat << "0, 1.6, ";
-    foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
-    foStat << "0, 200, " << relStat << endl;
-  }
-
-  for (int j=0; j<syst1_04.peff_ptfwd->GetNbinsX(); j++) {
-    double effStatY = syst1_04.peff_ptfwd->GetBinError(j+1);
-    double effY = syst1_04.peff_ptfwd->GetBinContent(j+1);
-    double lowEdge = syst1_04.peff_ptfwd->GetBinLowEdge(j+1);
-    double binWidth = syst1_04.peff_ptfwd->GetBinWidth(j+1);
-    double relStat = TMath::Abs(effStatY/effY);
-    foStat << "1.6, 2.4, ";
-    foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
-    foStat << "0, 200, " << relStat << endl;
+    for (int j=0; j<syst1_04.peff_ptfwd->GetNbinsX(); j++) {
+      double effStatY = syst1_04.peff_ptfwd->GetBinError(j+1);
+      double effY = syst1_04.peff_ptfwd->GetBinContent(j+1);
+      double lowEdge = syst1_04.peff_ptfwd->GetBinLowEdge(j+1);
+      double binWidth = syst1_04.peff_ptfwd->GetBinWidth(j+1);
+      double relStat = TMath::Abs(effStatY/effY);
+      foStat << "1.6, 2.4, ";
+      foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
+      foStat << "0, 200, " << relStat << endl;
+    }
   }
 
   foStat.close();
@@ -935,7 +954,7 @@ void getEffSyst::writeStat(vector<string> *outname) {
 ////////////////////////////////////////////
 ///////////////// M A I N  //////////////////
 /////////////////////////////////////////////
-void writeCSVs() {
+void writeCSVs(bool is16025 = true) {
 
   string dir = "syst";
   string subdir = "eff";
@@ -955,6 +974,9 @@ void writeCSVs() {
   const int nsystdir = sizeof(systdirs)/sizeof(string);
   const int nsystdirMax = sizeof(systdirsMax)/sizeof(string);
   
+  string nameTag = "16004";
+  if (is16025) nameTag = "16025";
+  
   // treat statistical efficiencies
   dir = "stat";
   gSystem->mkdir(dir.c_str(),kTRUE);
@@ -965,44 +987,44 @@ void writeCSVs() {
     bool takemax=false;
     
     vector<string> latex;
-    latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),statdirs_name[i].c_str()));
+    latex.push_back(statdirs_name[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("stat_PP_NJpsi_prompt_%s.csv",statdirs_name[i].c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_prompt_PP_%s.csv",nameTag.c_str(),statdirs_name[i].c_str()));
     getEffSyst pp_pr(
         Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),statdirs[i].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pp_pr.runStat();
     pp_pr.writeStat(&latex);
     latex.clear();
 
-    latex.push_back(Form("%s %s nonprompt Jpsi pp",subdir.c_str(),statdirs_name[i].c_str()));
+    latex.push_back(statdirs_name[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("stat_PP_NJpsi_nonprompt_%s.csv",statdirs_name[i].c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_nonprompt_PP_%s.csv",nameTag.c_str(),statdirs_name[i].c_str()));
     getEffSyst pp_np(
         Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),statdirs[i].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pp_np.runStat();
     pp_np.writeStat(&latex);
     latex.clear();
 
     ispbpb=true;
 
-    latex.push_back(Form("%s %s prompt Jpsi pbpb",subdir.c_str(),statdirs_name[i].c_str()));
+    latex.push_back(statdirs_name[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("stat_PbPb_NJpsi_prompt_%s.csv",statdirs_name[i].c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_prompt_PbPb_%s.csv",nameTag.c_str(),statdirs_name[i].c_str()));
     getEffSyst pbpb_pr(
         Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),statdirs[i].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pbpb_pr.runStat();
     pbpb_pr.writeStat(&latex);
     latex.clear();
 
-    latex.push_back(Form("%s %s nonprompt Jpsi pbpb",subdir.c_str(),statdirs_name[i].c_str()));
+    latex.push_back(statdirs_name[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("stat_PbPb_NJpsi_nonprompt_%s.csv",statdirs_name[i].c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_nonprompt_PbPb_%s.csv",nameTag.c_str(),statdirs_name[i].c_str()));
     getEffSyst pbpb_np(
         Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),statdirs[i].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pbpb_np.runStat();
     pbpb_np.writeStat(&latex);
   }
@@ -1018,48 +1040,48 @@ void writeCSVs() {
     bool takemax=false;
 
     vector<string> latex;
-    latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),systdirs[i].c_str()));
+    latex.push_back(systdirs[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("syst_PP_NJpsi_prompt_%s.csv",systdirs[i].c_str()));
+    latex.push_back(Form("syst_%s_NJpsi_prompt_PP_%s.csv",nameTag.c_str(),systdirs[i].c_str()));
     getEffSyst pp_pr(
         Form("files/%s/nominal/histos_jpsi_pp.root",subdir.c_str()),
         Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),systdirs[i].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pp_pr.runSyst();
     pp_pr.writeSyst(&latex);
     latex.clear();
 
-    latex.push_back(Form("%s %s nonprompt Jpsi pp",subdir.c_str(),systdirs[i].c_str()));
+    latex.push_back(systdirs[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("syst_PP_NJpsi_nonprompt_%s.csv",systdirs[i].c_str()));
+    latex.push_back(Form("syst_%s_NJpsi_nonprompt_PP_%s.csv",nameTag.c_str(),systdirs[i].c_str()));
     getEffSyst pp_np(
         Form("files/%s/nominal/histos_npjpsi_pp.root",subdir.c_str()),
         Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),systdirs[i].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pp_np.runSyst();
     pp_np.writeSyst(&latex);
     latex.clear();
 
     ispbpb = true;
 
-    latex.push_back(Form("%s %s prompt Jpsi pbpb",subdir.c_str(),systdirs[i].c_str()));
+    latex.push_back(systdirs[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("syst_PbPb_NJpsi_prompt_%s.csv",systdirs[i].c_str()));
+    latex.push_back(Form("syst_%s_NJpsi_prompt_PbPb_%s.csv",nameTag.c_str(),systdirs[i].c_str()));
     getEffSyst pbpb_pr(
         Form("files/%s/nominal/histos_jpsi_pbpb.root",subdir.c_str()),
         Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),systdirs[i].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pbpb_pr.runSyst();
     pbpb_pr.writeSyst(&latex);
     latex.clear();
 
-    latex.push_back(Form("%s %s nonprompt Jpsi pbpb",subdir.c_str(),systdirs[i].c_str()));
+    latex.push_back(systdirs[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("syst_PbPb_NJpsi_nonprompt_%s.csv",systdirs[i].c_str()));
+    latex.push_back(Form("syst_%s_NJpsi_nonprompt_PbPb_%s.csv",nameTag.c_str(),systdirs[i].c_str()));
     getEffSyst pbpb_np(
         Form("files/%s/nominal/histos_npjpsi_pbpb.root",subdir.c_str()),
         Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),systdirs[i].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pbpb_np.runSyst();
     pbpb_np.writeSyst(&latex);
   }
@@ -1075,52 +1097,52 @@ void writeCSVs() {
     bool takemax=true;
 
     vector<string> latex;
-    latex.push_back(Form("%s %s prompt Jpsi pp",subdir.c_str(),systdirsMax_name[i/2].c_str()));
+    latex.push_back(systdirsMax_name[i/2].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("syst_PP_NJpsi_prompt_%s.csv",systdirsMax_name[i/2].c_str()));
+    latex.push_back(Form("syst_%s_NJpsi_prompt_PP_%s.csv",nameTag.c_str(),systdirsMax_name[i/2].c_str()));
     getEffSyst pp_pr(
         Form("files/%s/nominal/histos_jpsi_pp.root",subdir.c_str()),
         Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),systdirsMax[i].c_str()),
         Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),systdirsMax[i+1].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pp_pr.runSyst();
     pp_pr.writeSyst(&latex);
     latex.clear();
 
-    latex.push_back(Form("%s %s nonprompt Jpsi pp",subdir.c_str(),systdirsMax_name[i/2].c_str()));
+    latex.push_back(systdirsMax_name[i/2].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("syst_PP_NJpsi_nonprompt_%s.csv",systdirsMax_name[i/2].c_str()));
+    latex.push_back(Form("syst_%s_NJpsi_nonprompt_PP_%s.csv",nameTag.c_str(),systdirsMax_name[i/2].c_str()));
     getEffSyst pp_np(
         Form("files/%s/nominal/histos_npjpsi_pp.root",subdir.c_str()),
         Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),systdirsMax[i].c_str()),
         Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),systdirsMax[i+1].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pp_np.runSyst();
     pp_np.writeSyst(&latex);
     latex.clear();
     
     ispbpb=true;
 
-    latex.push_back(Form("%s %s prompt Jpsi pbpb",subdir.c_str(),systdirsMax_name[i/2].c_str()));
+    latex.push_back(systdirsMax_name[i/2].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("syst_PbPb_NJpsi_prompt_%s.csv",systdirsMax_name[i/2].c_str()));
+    latex.push_back(Form("syst_%s_NJpsi_prompt_PbPb_%s.csv",nameTag.c_str(),systdirsMax_name[i/2].c_str()));
     getEffSyst pbpb_pr(
         Form("files/%s/nominal/histos_jpsi_pbpb.root",subdir.c_str()),
         Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),systdirsMax[i].c_str()),
         Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),systdirsMax[i+1].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pbpb_pr.runSyst();
     pbpb_pr.writeSyst(&latex);
     latex.clear();
     
-    latex.push_back(Form("%s %s nonprompt Jpsi pbpb",subdir.c_str(),systdirsMax_name[i/2].c_str()));
+    latex.push_back(systdirsMax_name[i/2].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("syst_PbPb_NJpsi_nonprompt_%s.csv",systdirsMax_name[i/2].c_str()));
+    latex.push_back(Form("syst_%s_NJpsi_nonprompt_PbPb_%s.csv",nameTag.c_str(),systdirsMax_name[i/2].c_str()));
     getEffSyst pbpb_np(
         Form("files/%s/nominal/histos_npjpsi_pbpb.root",subdir.c_str()),
         Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),systdirsMax[i].c_str()),
         Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),systdirsMax[i+1].c_str()),
-        ispbpb,takemax);
+        ispbpb,takemax,is16025);
     pbpb_np.runSyst();
     pbpb_np.writeSyst(&latex);
   }
