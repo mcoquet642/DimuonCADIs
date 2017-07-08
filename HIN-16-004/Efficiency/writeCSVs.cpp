@@ -77,9 +77,10 @@ class getEffSyst{
     getEffSyst(string fname, string fnameSyst, bool ispbpb, bool takemax, bool is16025);
     getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb, bool takemax, bool is16025);
     virtual ~getEffSyst();
-    void runStat();
+    void runStat(bool isToy=true);
     void runSyst();
     virtual void writeStat(vector<string> *outname);
+    virtual void writeStatToy(vector<string> *outname);
     virtual void writeSyst(vector<string> *outname);
 
 
@@ -87,7 +88,7 @@ class getEffSyst{
     // Input file
     TFile *finput, *finputSyst1, *finputSyst2;
 
-    bool ispbpb, takemax, is16025;
+    bool ispbpb, takemax, is16025, istoy;
 
     // nom is nominal
     // syst1 is used for syst with 100 toys or stat
@@ -95,7 +96,7 @@ class getEffSyst{
     h16004 nom_04, syst1_04, syst2_04;
     h16025 nom_25, syst1_25, syst2_25;
     
-    void clean16004(h16004 &syst, bool isstat);
+    void clean16004(h16004 &syst);
     void clean16025(h16025 &syst);
     void loadHisto16004(TFile *f, h16004 &h);
     void loadHisto16025(TFile *f, h16025 &h);
@@ -116,12 +117,24 @@ class getEffSyst{
 
 };
 
-void getEffSyst::runStat() {
-  if (is16025) loadProfile16025(finputSyst1, syst1_25);
-  else loadProfile16004(finputSyst1, syst1_04);
+void getEffSyst::runStat(bool isToy_) {
+  istoy = isToy_;
+  if (istoy) {
+    if (is16025) loadProfile16025(finputSyst1, syst1_25);
+    else loadProfile16004(finputSyst1, syst1_04);
+  } else {
+    if (is16025) {
+      loadHisto16025(finputSyst1, syst1_25);
+      getEfficiency16025(syst1_25);
+    } else {
+      loadHisto16004(finputSyst1, syst1_04);
+      getEfficiency16004(syst1_04);
+    }
+  }
 }
 
 void getEffSyst::runSyst() {
+  istoy = false;
   if (is16025) {
     loadHisto16025(finput, nom_25);
     loadHisto16025(finputSyst1, syst1_25);
@@ -265,31 +278,25 @@ getEffSyst::getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool i
 
 getEffSyst::~getEffSyst() {
   if (finput) {
-    cout << "cleaning the nominal " << endl;
     if (is16025) clean16025(nom_25);
-    else clean16004(nom_04, false);
+    else clean16004(nom_04);
     delete finput;
   }
   if (finputSyst1) {
-    cout << "cleaning the 1st syst " << endl;
     if (is16025) clean16025(syst1_25);
-    else {
-      if (finput==0) clean16004(syst1_04, true);
-      else clean16004(syst1_04, false);
-    }
+    else clean16004(syst1_04);
     delete finputSyst1;
   }
   if (finputSyst2) {
-    cout << "cleaning the 2nd syst " << endl;
     if (is16025) clean16025(syst2_25);
-    else clean16004(syst2_04, false);
+    else clean16004(syst2_04);
     delete finputSyst2;
   }
 }
 
-void getEffSyst::clean16004(h16004 &syst, bool isstat=false) {
+void getEffSyst::clean16004(h16004 &syst) {
   // hin-16-004 binning 
-  if (isstat) {
+  if (istoy) {
     if (syst.peff_centfwd) delete syst.peff_centfwd;
     if (syst.peff_ptfwd) delete syst.peff_ptfwd;
     if (syst.peff_centmid) delete syst.peff_centmid;
@@ -682,7 +689,7 @@ void getEffSyst::getEfficiency16004(h16004 &h) {
 void getEffSyst::writeSyst(vector<string> *outname) {
   string foutdir = outname->at(1);
   string foutname = outname->at(2);
-  cout << foutdir << "    " <<foutname << endl;
+  cout << foutdir << "/" <<foutname << endl;
   gSystem->mkdir(Form("%s",foutdir.c_str()),kTRUE);
   ofstream foSyst(Form("%s/%s",foutdir.c_str(),foutname.c_str()), ios::out);
 
@@ -821,11 +828,149 @@ void getEffSyst::writeSyst(vector<string> *outname) {
   foSyst.close();
 }
 
-
 void getEffSyst::writeStat(vector<string> *outname) {
   string foutdir = outname->at(1);
   string foutname = outname->at(2);
-  cout << foutdir << "    " <<foutname << endl;
+  cout << foutdir << "/" <<foutname << endl;
+  gSystem->mkdir(Form("%s",foutdir.c_str()),kTRUE);
+  ofstream foStat(Form("%s/%s",foutdir.c_str(),foutname.c_str()), ios::out);
+
+  foStat << outname->at(0) << endl;
+ 
+  /////// relative uncertainties bin by bin
+  double *effY, *effEY;
+  
+  if (is16025) {
+    // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
+    for (int i=0; i<=nbins_4rap+1; i++) {
+      effY = syst1_25.heff_cent_rap[i]->GetY();
+      effEY = syst1_25.heff_cent_rap[i]->GetEYhigh();
+
+      for (int j=0; j<syst1_25.hnum_cent_rap[i]->GetNbinsX(); j++) {
+        // centrality bin index is 0-200, so multiply 2
+        double lowEdge = syst1_25.hnum_cent_rap[i]->GetBinLowEdge(j+1) *2;
+        double binWidth = syst1_25.hnum_cent_rap[i]->GetBinWidth(j+1) *2;
+        double relSyst = TMath::Abs(effEY[j]/effY[j]);
+        if (i==0) foStat << "0, 2.4, 6.5, 50, ";
+        else if (i==nbins_4rap+1) foStat << "1.8, 2.4, 3, 6.5, ";
+        else foStat << bins_4rap[i-1] << ", " << bins_4rap[i] << ", 6.5, 50, ";
+        if (ispbpb) foStat << lowEdge << ", " << lowEdge+binWidth << ", " << relSyst << endl;
+        else { foStat << "0, 200, " << relSyst << endl; break; }
+      }
+    } // end of 1 line
+   
+    // Eff vs pT in 4+1 |y| regions
+    for (int i=0; i<=nbins_4rap; i++) {
+      effY = syst1_25.heff_pt_rap[i]->GetY();
+      effEY = syst1_25.heff_pt_rap[i]->GetEYhigh();
+      
+      for (int j=0; j<syst1_25.hnum_pt_rap[i]->GetNbinsX(); j++) {
+        double lowEdge = syst1_25.hnum_pt_rap[i]->GetBinLowEdge(j+1);
+        double binWidth = syst1_25.hnum_pt_rap[i]->GetBinWidth(j+1);
+        double relSyst = TMath::Abs(effEY[j]/effY[j]);
+        if (i==0) foStat << "0, 2.4, " ;
+        else foStat << bins_4rap[i-1] << ", " << bins_4rap[i] << ", " ;
+        foStat << lowEdge << ", " << lowEdge+binWidth << ", 0, 200, " << relSyst << endl;
+      }
+    } // end of 1 line
+
+    // Eff vs pT in 3 centrality regions
+    for (int i=0; i<(ispbpb?nbins_3cent:1); i++) {
+      effY = syst1_25.heff_pt_cent[i]->GetY();
+      effEY = syst1_25.heff_pt_cent[i]->GetEYhigh();
+      
+      for (int j=0; j<syst1_25.hnum_pt_cent[i]->GetNbinsX(); j++) {
+        double lowEdge = syst1_25.hnum_pt_cent[i]->GetBinLowEdge(j+1);
+        double binWidth = syst1_25.hnum_pt_cent[i]->GetBinWidth(j+1);
+        double relSyst = TMath::Abs(effEY[j]/effY[j]);
+        foStat << "0, 2.4, " ;
+        foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
+        if (ispbpb) foStat << bins_3cent[i]*2 << ", " << bins_3cent[i+1]*2 << ", " << relSyst << endl;
+        else foStat << "0, 200, " << relSyst << endl;
+      }
+    } // end of 1 line
+
+    // Eff vs rap integrated
+    effY = syst1_25.heff_rap->GetY();
+    effEY = syst1_25.heff_rap->GetEYhigh();
+    
+    for (int j=0; j<syst1_25.hnum_rap->GetNbinsX(); j++) {
+      double lowEdge = syst1_25.hnum_rap->GetBinLowEdge(j+1);
+      double binWidth = syst1_25.hnum_rap->GetBinWidth(j+1);
+      double relSyst = TMath::Abs(effEY[j]/effY[j]);
+      foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
+      foStat << "6.5, 50, 0, 200, " << relSyst << endl;
+    }
+    
+    if (ispbpb) {
+      // Eff all integrated (calculated by hnum_rap, hden_rap)
+      effY = syst1_25.heff_all->GetY();
+      effEY = syst1_25.heff_all->GetEYhigh();
+
+      for (int j=0; j<syst1_25.hnum_all->GetNbinsX(); j++) {
+        double relSyst = TMath::Abs(effEY[j]/effY[j]);
+        foStat << "0, 2.4, 6.5, 50, 0, 200, " << relSyst << endl;
+      }
+    }
+
+  } else {
+    // HIN-16-004 binning
+    effY = syst1_04.heff_centmid->GetY();
+    effEY = syst1_04.heff_centmid->GetEYhigh();
+
+    for (int j=0; j<syst1_04.hnum_centmid->GetNbinsX(); j++) {
+      double lowEdge = syst1_04.hnum_centmid->GetBinLowEdge(j+1) *2;
+      double binWidth = syst1_04.hnum_centmid->GetBinWidth(j+1) *2;
+      double relSyst = TMath::Abs(effEY[j]/effY[j]);
+      foStat << "0, 1.6, 6.5, 30, ";
+      if (ispbpb) foStat << lowEdge << ", " << lowEdge+binWidth << ", " << relSyst << endl;
+      else { foStat << "0, 200, " << relSyst << endl; break; }
+    }
+
+    effY = syst1_04.heff_centfwd->GetY();
+    effEY = syst1_04.heff_centfwd->GetEYhigh();
+
+    for (int j=0; j<syst1_04.hnum_centfwd->GetNbinsX(); j++) {
+      double lowEdge = syst1_04.hnum_centfwd->GetBinLowEdge(j+1) *2;
+      double binWidth = syst1_04.hnum_centfwd->GetBinWidth(j+1) *2;
+      double relSyst = TMath::Abs(effEY[j]/effY[j]);
+      foStat << "1.6, 2.4, 3, 30, ";
+      if (ispbpb) foStat << lowEdge << ", " << lowEdge+binWidth << ", " << relSyst << endl;
+      else { foStat << "0, 200, " << relSyst << endl; break; }
+    }
+
+    effY = syst1_04.heff_ptmid->GetY();
+    effEY = syst1_04.heff_ptmid->GetEYhigh();
+
+    for (int j=0; j<syst1_04.hnum_ptmid->GetNbinsX(); j++) {
+      double lowEdge = syst1_04.hnum_ptmid->GetBinLowEdge(j+1);
+      double binWidth = syst1_04.hnum_ptmid->GetBinWidth(j+1);
+      double relSyst = TMath::Abs(effEY[j]/effY[j]);
+      foStat << "0, 1.6, ";
+      foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
+      foStat << "0, 200, " << relSyst << endl;
+    }
+
+    effY = syst1_04.heff_ptfwd->GetY();
+    effEY = syst1_04.heff_ptfwd->GetEYhigh();
+
+    for (int j=0; j<syst1_04.hnum_ptfwd->GetNbinsX(); j++) {
+      double lowEdge = syst1_04.hnum_ptfwd->GetBinLowEdge(j+1);
+      double binWidth = syst1_04.hnum_ptfwd->GetBinWidth(j+1);
+      double relSyst = TMath::Abs(effEY[j]/effY[j]);
+      foStat << "1.6, 2.4, ";
+      foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
+      foStat << "0, 200, " << relSyst << endl;
+    }
+  }
+
+  foStat.close();
+}
+
+void getEffSyst::writeStatToy(vector<string> *outname) {
+  string foutdir = outname->at(1);
+  string foutname = outname->at(2);
+  cout << foutdir << "/" <<foutname << endl;
   gSystem->mkdir(Form("%s",foutdir.c_str()),kTRUE);
   ofstream foStat(Form("%s/%s",foutdir.c_str(),foutname.c_str()), ios::out);
 
@@ -959,7 +1104,7 @@ void writeCSVs(bool is16025 = true) {
   string dir = "syst";
   string subdir = "eff";
 
-  string statdirs[] = {"trg_ptWeighting","trg_toy","trg__muid_toy","trg__sta_toy"};
+  string statdirsToy[] = {"trg_ptWeighting","trg_toy","trg__muid_toy","trg__sta_toy"};
   string systdirs[] = {"trg_binned"};
   string systdirsMax[] = {
   "trg_minus1sigma","trg_plus1sigma",
@@ -967,66 +1112,122 @@ void writeCSVs(bool is16025 = true) {
   "trg__muid_plus1sigma","trg__muid_minus1sigma",
   "trg__sta_plus1sigma","trg__sta_minus1sigma"};
 
-  string statdirs_name[] = {"ptWeighting","trg_stat","muid_stat","sta_stat"};
+  string statdirsToy_name[] = {"ptWeighting","trg_stat","muid_stat","sta_stat"};
   string systdirsMax_name[] = {"trg_syst","trk_syst","muid_syst","sta_syst"};
 
-  const int nstatdir = sizeof(statdirs)/sizeof(string);
+  const int nstatdirToy = sizeof(statdirsToy)/sizeof(string);
   const int nsystdir = sizeof(systdirs)/sizeof(string);
   const int nsystdirMax = sizeof(systdirsMax)/sizeof(string);
   
   string nameTag = "16004";
   if (is16025) nameTag = "16025";
   
-  // treat statistical efficiencies
+  // treat statistical efficiencies 
   dir = "stat";
   gSystem->mkdir(dir.c_str(),kTRUE);
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
-  
-  for (int i=0; i<nstatdir; i++) {
+ 
+  for (int i=0; i<2; i++) {
     bool ispbpb=false;
     bool takemax=false;
+    bool isToy = false;
+    subdir = i==0? "acc" : "eff";
     
     vector<string> latex;
-    latex.push_back(statdirs_name[i].c_str());
+    latex.push_back("nominal");
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("stat_%s_NJpsi_prompt_PP_%s.csv",nameTag.c_str(),statdirs_name[i].c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_prompt_PP_%s.csv",nameTag.c_str(),subdir.c_str()));
     getEffSyst pp_pr(
-        Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),statdirs[i].c_str()),
+        Form("files/%s/nominal/histos_jpsi_pp.root",subdir.c_str()),
         ispbpb,takemax,is16025);
-    pp_pr.runStat();
+    pp_pr.runStat(isToy);
     pp_pr.writeStat(&latex);
     latex.clear();
 
-    latex.push_back(statdirs_name[i].c_str());
+    latex.push_back("nominal");
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("stat_%s_NJpsi_nonprompt_PP_%s.csv",nameTag.c_str(),statdirs_name[i].c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_nonprompt_PP_%s.csv",nameTag.c_str(),subdir.c_str()));
     getEffSyst pp_np(
-        Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),statdirs[i].c_str()),
+        Form("files/%s/nominal/histos_npjpsi_pp.root",subdir.c_str()),
         ispbpb,takemax,is16025);
-    pp_np.runStat();
+    pp_np.runStat(isToy);
     pp_np.writeStat(&latex);
+    latex.clear();
+
+    ispbpb = i==0? false : true;
+
+    latex.push_back("nominal");
+    latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_prompt_PbPb_%s.csv",nameTag.c_str(),subdir.c_str()));
+    getEffSyst pbpb_pr(
+        Form("files/%s/nominal/histos_jpsi_pbpb.root",subdir.c_str()),
+        ispbpb,takemax,is16025);
+    pbpb_pr.runStat(isToy);
+    pbpb_pr.writeStat(&latex);
+    latex.clear();
+
+    latex.push_back("nominal");
+    latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_nonprompt_PbPb_%s.csv",nameTag.c_str(),subdir.c_str()));
+    getEffSyst pbpb_np(
+        Form("files/%s/nominal/histos_npjpsi_pbpb.root",subdir.c_str()),
+        ispbpb,takemax,is16025);
+    pbpb_np.runStat(isToy);
+    pbpb_np.writeStat(&latex);
+  }
+
+  // treat statistical efficiencies with 100 Toys
+  dir = "stat";
+  subdir = "eff";
+  gSystem->mkdir(dir.c_str(),kTRUE);
+  gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
+  
+  for (int i=0; i<nstatdirToy; i++) {
+    bool ispbpb=false;
+    bool takemax=false;
+    bool isToy = true;
+    
+    vector<string> latex;
+    latex.push_back(statdirsToy_name[i].c_str());
+    latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_prompt_PP_%s.csv",nameTag.c_str(),statdirsToy_name[i].c_str()));
+    getEffSyst pp_pr(
+        Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),statdirsToy[i].c_str()),
+        ispbpb,takemax,is16025);
+    pp_pr.runStat(isToy);
+    pp_pr.writeStatToy(&latex);
+    latex.clear();
+
+    latex.push_back(statdirsToy_name[i].c_str());
+    latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_nonprompt_PP_%s.csv",nameTag.c_str(),statdirsToy_name[i].c_str()));
+    getEffSyst pp_np(
+        Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),statdirsToy[i].c_str()),
+        ispbpb,takemax,is16025);
+    pp_np.runStat(isToy);
+    pp_np.writeStatToy(&latex);
     latex.clear();
 
     ispbpb=true;
 
-    latex.push_back(statdirs_name[i].c_str());
+    latex.push_back(statdirsToy_name[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("stat_%s_NJpsi_prompt_PbPb_%s.csv",nameTag.c_str(),statdirs_name[i].c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_prompt_PbPb_%s.csv",nameTag.c_str(),statdirsToy_name[i].c_str()));
     getEffSyst pbpb_pr(
-        Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),statdirs[i].c_str()),
+        Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),statdirsToy[i].c_str()),
         ispbpb,takemax,is16025);
-    pbpb_pr.runStat();
-    pbpb_pr.writeStat(&latex);
+    pbpb_pr.runStat(isToy);
+    pbpb_pr.writeStatToy(&latex);
     latex.clear();
 
-    latex.push_back(statdirs_name[i].c_str());
+    latex.push_back(statdirsToy_name[i].c_str());
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
-    latex.push_back(Form("stat_%s_NJpsi_nonprompt_PbPb_%s.csv",nameTag.c_str(),statdirs_name[i].c_str()));
+    latex.push_back(Form("stat_%s_NJpsi_nonprompt_PbPb_%s.csv",nameTag.c_str(),statdirsToy_name[i].c_str()));
     getEffSyst pbpb_np(
-        Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),statdirs[i].c_str()),
+        Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),statdirsToy[i].c_str()),
         ispbpb,takemax,is16025);
-    pbpb_np.runStat();
-    pbpb_np.writeStat(&latex);
+    pbpb_np.runStat(isToy);
+    pbpb_np.writeStatToy(&latex);
   }
   
   
