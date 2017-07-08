@@ -25,6 +25,8 @@
 #include "TSystemFile.h"
 #include "TArrow.h"
 #include "TString.h"
+#include "TLatex.h"
+#include "TMathText.h"
 
 using namespace std;
 
@@ -38,14 +40,16 @@ using namespace std;
 //#endif
 //const char* ylabel        = "R_{AA}";
 
-bool  doprompt      = true;  // prompt Jpsi
-bool  dononprompt   = false;  // nonprompt Jpsi
+bool  doprompt      = false;  // prompt Jpsi
+bool  dononprompt   = true;  // nonprompt Jpsi
 bool  is16004       = false; // plot results in 16-004 bins. If false use 16-025 bins
 bool  plotPsi2S     = false; // plot Psi2S
 bool  plot14005     = false; // plot results at 2.76 TeV
 bool  applyEff      = true;
-bool  applyAcc      = false;
+bool  applyAcc      = true;
 bool  doLogPt       = false;
+bool  includeEffSyst = true;
+bool  excludeNonFitSyst = false;
 string nameTag_base = "_prompt";    // can put here e.g. "_prompt", "_nonprompt", ...
 
 const bool useNcoll = false; // false -> use TAA / NMB, true -> use Ncoll / lumiPbPb
@@ -55,9 +59,9 @@ const bool useNcoll = false; // false -> use TAA / NMB, true -> use Ncoll / lumi
 //////////////////
 
 void printOptions();
-void setOptions(bool adoprompt, bool adononprompt, bool  ais16004, bool aplotPsi2S, bool aplot14005, string anameTag_base);
-void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst);
-void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst, const char* collName);
+void setOptions(bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base="");
+void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst_low, map<anabin, syst> gsyst_high);
+void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst_low, map<anabin, syst> gsyst_high, const char* collName);
 void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, const char* collName);
 void plotRAA(vector<anabin> thecats, string xaxis, string workDirName);
 void plotXS(vector<anabin> thecats, string xaxis, string workDirName);
@@ -79,6 +83,18 @@ public:
   double effaa;
   double accpp;
   double accaa;
+  double effppP; // Only used for the b fraction correction
+  double effaaP; // Only used for the b fraction correction
+  double accppP; // Only used for the b fraction correction
+  double accaaP; // Only used for the b fraction correction
+  double effppNP; // Only used for the b fraction correction
+  double effaaNP; // Only used for the b fraction correction
+  double accppNP; // Only used for the b fraction correction
+  double accaaNP; // Only used for the b fraction correction
+  double systeffppP; // Only used for the b fraction correction
+  double systeffaaP; // Only used for the b fraction correction
+  double systeffppNP; // Only used for the b fraction correction
+  double systeffaaNP; // Only used for the b fraction correction
   double taa;
   double lumipp;
   double lumiaa;
@@ -208,6 +224,8 @@ void plotRap(string workDirName, string poiname) {
 void plotAll(string workDirName, string poiname) {
   // poiname is the observable to be plotted = "RAA", "BF" and "XS" (For RAA, b-fraction and cross-section)
   if (dononprompt) nameTag_base = "_nonprompt";
+  if (!doprompt && !dononprompt) nameTag_base = "";
+  
   if (is16004)
   {
     plotPt(workDirName,poiname,3);
@@ -217,7 +235,7 @@ void plotAll(string workDirName, string poiname) {
     plotPt(workDirName,poiname,0);
     plotPt(workDirName,poiname,1);
     plotPt(workDirName,poiname,2);
-    if (poiname.find("XS")==std::string::npos)
+    if ((poiname.find("XS")==std::string::npos) && (poiname.find("BF")==std::string::npos))
     {
       plotCent(workDirName,poiname,0);
       plotCent(workDirName,poiname,1);
@@ -225,6 +243,83 @@ void plotAll(string workDirName, string poiname) {
     }
     plotRap(workDirName,poiname);
   }
+};
+
+void doAllplots(bool is16004=false) {
+  //bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base=""
+  
+  if (!is16004)
+  {
+    // pr J/psi
+    // noCorr with fitSyst
+    setOptions(true,false,false,false,false,false,false,false,true,false);
+    printOptions();
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","XS");
+    
+    // accEffCorr with all syst
+    setOptions(true,false,false,false,false,true,true,false,true,false);
+    printOptions();
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","XS");
+    
+//    setOptions(true,false,false,false,true,true,true,false,true,false);
+//    printOptions();
+//    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA"); // Comparison with 2.76
+    
+    // np J/psi
+    // noCorr with fitSyst
+    setOptions(false,true,false,false,false,false,false,false,true,false);
+    printOptions();
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","XS");
+    
+    // accEffCorr with all syst -> Systematics on POINTS are not working for RAA vs. pT and |y|
+    setOptions(false,true,false,false,false,true,true,false,true,false);
+    printOptions();
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","XS");
+   
+//    setOptions(false,true,false,false,true,true,true,false,true,false);
+//    printOptions();
+//      plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA"); // Comparison with 2.76
+
+    // noCorr with fitSyst
+    setOptions(false,false,false,false,false,false,false,false,false,true,"");
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","BF");
+    
+    // accEffCorr with all syst
+    setOptions(false,false,false,false,false,true,true,false,true,false,"");
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","BF");
+    
+    // Tables of systematics
+//    map<anabin, syst> syst_PP = readSyst_all("PP","NJpsi_prompt","16025",true,true,"",true,"Systematics/systs_PP_prompt_all.tex");
+//    syst_PP = readSyst_all("PP","NJpsi_nonprompt","16025",true,true,"",true,"Systematics/systs_PP_nonprompt_all.tex");
+//    
+//    map<anabin, syst> syst_PbPb = readSyst_all("PbPb","NJpsi_prompt","16025",true,true,"",true,"Systematics/systs_PbPb_prompt_all.tex");
+//    syst_PbPb = readSyst_all("PbPb","NJpsi_nonprompt","16025",true,true,"",true,"Systematics/systs_PbPb_nonprompt_all.tex");
+  }
+  else
+  {
+//    setOptions(true,false,true,false,false,false,false,false,false,true);
+//    printOptions();
+//    plotAll("DataFits_16004_2D_2CB_polBkg_nominal","RAA");
+//    
+//    
+//    setOptions(true,false,true,false,false,true,false,false,false,true);
+//    printOptions();
+//    plotAll("DataFits_16004_2D_2CB_polBkg_nominal","RAA");
+    
+//    setOptions(true,false,true,false,false,true,true,false,true,false);
+//    printOptions();
+//    plotAll("DataFits_16004_2D_2CB_polBkg_nominal","RAA");
+    
+  //bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base=""
+    setOptions(true,false,true,true,false,true,true,false,true,false);
+    printOptions();
+    plotAll("DataFits_16004_2D_2CB_polBkg_nominal","RAA");
+  }
+
 };
 
 /////////////////////
@@ -241,6 +336,10 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
     return;
   }
   
+  TString poi("NJpsi");
+  if (doprompt) poi = "NJpsi_prompt";
+  if (dononprompt) poi = "NJpsi_nonprompt";
+  
   TFile *f = new TFile(treeFileName(outputDir.c_str(),"DATA"));
   if (!f || !f->IsOpen()) {
     results2tree(outputDir.c_str(),"DATA");
@@ -255,15 +354,15 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
   
   map<anabin, raa_input> theVars_inputs;
   
-  map<anabin, syst> syst_PP = readSyst_all("PP","NJpsi",sTag.Data());
-  map<anabin, syst> syst_PbPb = readSyst_all("PbPb","NJpsi",sTag.Data());
-  map<anabin, syst> syst_taa = readSyst("Systematics/csv/syst_PbPb_taa.csv");
-  map<anabin, syst> syst_Nmb = readSyst("Systematics/csv/syst_PbPb_Nmb.csv");
-  map<anabin, syst> syst_lumipp = readSyst("Systematics/csv/syst_PP_lumi.csv");
-  map<anabin, syst> syst_trkpp = readSyst("Systematics/csv/syst_PP_trk.csv");
-  map<anabin, syst> syst_trkpbpb = readSyst("Systematics/csv/syst_PbPb_trk.csv");
+  map<anabin, syst> syst_PP = readSyst_all("PP",poi.Data(),sTag.Data(),includeEffSyst);
+  map<anabin, syst> syst_PbPb = readSyst_all("PbPb",poi.Data(),sTag.Data(),includeEffSyst);
+  map<anabin, syst> syst_taa_low = readSyst(Form("Systematics/csv/syst_%s_PbPb_taa_low.csv",sTag.Data()),excludeNonFitSyst);
+  map<anabin, syst> syst_taa_high = readSyst(Form("Systematics/csv/syst_%s_PbPb_taa_high.csv",sTag.Data()),excludeNonFitSyst);
+  map<anabin, syst> syst_Nmb = readSyst(Form("Systematics/csv/syst_%s_PbPb_Nmb.csv",sTag.Data()),excludeNonFitSyst);
+  map<anabin, syst> syst_lumipp = readSyst(Form("Systematics/csv/syst_%s_PP_lumi.csv",sTag.Data()),excludeNonFitSyst);
   map<anabin, syst> stat_PP; // for PP statistics
-  map<anabin, syst> syst_glb; // for the boxes at 1
+  map<anabin, syst> syst_glb_low; // for the boxes at 1
+  map<anabin, syst> syst_glb_high; // for the boxes at 1
   
   vector<double> x, ex, y, ey;
   float ptmin, ptmax, ymin, ymax, centmin, centmax;
@@ -279,9 +378,11 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
   tr->SetBranchAddress("ymax",&ymax);
   tr->SetBranchAddress("centmin",&centmin);
   tr->SetBranchAddress("centmax",&centmax);
-  tr->SetBranchAddress("N_Jpsi_val",&val);
-  tr->SetBranchAddress("N_Jpsi_errL",&errL);
-  tr->SetBranchAddress("N_Jpsi_errH",&errH);
+//  tr->SetBranchAddress("N_Jpsi_val",&val);
+//  tr->SetBranchAddress("N_Jpsi_errL",&errL);
+//  tr->SetBranchAddress("N_Jpsi_errH",&errH);
+  tr->SetBranchAddress("N_Jpsi_parLoad_mass",&val);
+  tr->SetBranchAddress("N_Jpsi_parLoad_mass_err",&errL);
   tr->SetBranchAddress("collSystem",collSystem);
   if (!dononprompt)
   {
@@ -342,7 +443,8 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
   map<anabin, vector<anabin> > theBins;
   map<anabin, vector<double> > theVarsBinned;
   map<anabin, vector<double> > theVarsBinned_stat;
-  map<anabin, vector<double> > theVarsBinned_syst;
+  map<anabin, vector<double> > theVarsBinned_syst_low;
+  map<anabin, vector<double> > theVarsBinned_syst_high;
   map<anabin, TGraphAsymmErrors* > theGraphs;
   map<anabin, TGraphAsymmErrors* > theGraphs_syst;
   
@@ -366,8 +468,19 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
 //    thebinOrig.print();
 //    cout << s.naa  << " +- " << s.dnaa_stat << " ; " << spp.npp << " +- " << spp.dnpp_stat << " ; " << s.bfracaa << " ; " << spp.bfracpp << endl;
     if (s.naa <= 0 || spp.npp <= 0) continue;
-    if (applyEff && (s.effaa <= 0 || spp.effpp <= 0)) continue;
-    if (applyAcc && (s.accaa <= 0 || spp.accpp <= 0)) continue;
+    if (applyEff && (s.effaa <= 0 || spp.effpp <= 0))
+    {
+      thebinOrig.print();
+      cout << s.effaa << " " << spp.effpp << endl;
+      cout << "[WARNING] : You want to correct by efficiency but the value is <=0 for this bin " << endl;
+      continue;
+    }
+    if (applyAcc && (s.accaa <= 0 || spp.accpp <= 0))
+    {
+      thebinOrig.print();
+      cout << "[WARNING] : You want to correct by acceptance but the value is <=0 for this bin " << endl;
+      continue;
+    }
     if ((doprompt || dononprompt) && (spp.bfracpp<=0 || s.bfracaa<=0)) continue;
     
     theBins[thebin].push_back(it->first);
@@ -381,6 +494,8 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
     } else {
       double myNmb = NMB * s.lumiaa / lumipbpb_ABCD;
       normfactoraa = 1./(myNmb*s.taa*1e-3); // the 1e-3 factor is because taa is in mb-1 while lumis are in mub-1
+//      thebinOrig.print();
+//      cout << "Taa = " << s.taa << endl;
     }
     normfactoraa *= 200./(it->first.centbin().high()-it->first.centbin().low());
     
@@ -389,12 +504,12 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
       normfactorpp = normfactorpp / (spp.effpp*spp.accpp);
       normfactoraa = normfactoraa / (s.effaa*s.accaa);
     }
-    if (applyEff)
+    else if (applyEff)
     {
       normfactorpp = normfactorpp / (spp.effpp);
       normfactoraa = normfactoraa / (s.effaa);
     }
-//    cout << "normFact = " << normfactoraa << " ; " << normfactorpp << endl;
+
     double naa = s.naa;
     double npp = spp.npp;
     double dnaa = s.dnaa_stat;
@@ -429,12 +544,14 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
     double raa = npp>0 ? naa / npp : 0;
     double draa = raa>0 ? raa*sqrt(pow(dnaa/naa,2) + pow(dnpp/npp,2)) : 0;
 //    cout << it->first.ptbin().low() << " " << it->first.ptbin().high() << " -> " << raa << " " << s.naa << " " << spp.npp << " " << s.effaa << " "  << spp.effpp << " " << s.accaa << " " << s.accpp << ", " << s.bfracaa << " " << spp.bfracpp <<  " " << s.taa << endl;
-    double syst = raa*sqrt(pow(spp.systpp,2)+pow(s.systaa,2));
+    double syst_low = raa*sqrt(pow(spp.systpp,2)+pow(s.systaa,2));
+    double syst_high = syst_low;
     
     // case of the centrality dependence: factor out pp uncertainties, but include taa
     if (xaxis=="cent") {
       draa = raa*dnaa/naa;
-      syst = raa*sqrt(pow(s.systaa,2)+pow(syst_taa[it->first].value,2));
+      syst_low = raa*sqrt(pow(s.systaa,2)+pow(syst_taa_low[it->first].value,2));
+      syst_high = raa*sqrt(pow(s.systaa,2)+pow(syst_taa_high[it->first].value,2));
     }
     
     if (is16004 && plotPsi2S) // Compute Psi2S Raa from the product of Jpsi Raa and 16-004 double ratio
@@ -447,7 +564,8 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
 //        thebinOrig.print();
 //        cout << "raa = " << raa << " ; dnaa_stat = " << doubleR16004.dnaa_stat << " ; systaa = " << doubleR16004.systaa << endl;
         draa = raa*doubleR16004.dnaa_stat; // Lower limit
-        syst = raa*doubleR16004.systaa; // Upper limit
+        syst_low =0;
+        syst_high = raa*doubleR16004.systaa; // Upper limit
         raa = 0.;
         
 //        cout << raa << " ; " << draa << " ; " << syst << endl;
@@ -455,18 +573,21 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
       else
       {
         draa = TMath::Sqrt(TMath::Power(doubleR16004.dnaa_stat/doubleR16004.naa,2.) + TMath::Power(draa/raa,2.));
-        syst = TMath::Sqrt(TMath::Power(doubleR16004.systaa/doubleR16004.naa,2.) + TMath::Power(syst/raa,2.));
+        syst_low = TMath::Sqrt(TMath::Power(doubleR16004.systaa/doubleR16004.naa,2.) + TMath::Power(syst_low/raa,2.));
+        syst_high = TMath::Sqrt(TMath::Power(doubleR16004.systaa/doubleR16004.naa,2.) + TMath::Power(syst_high/raa,2.));
         
         raa = raa*doubleR16004.naa;
         draa = raa*draa;
-        syst = raa*syst;
+        syst_low = raa*syst_low;
+        syst_high = raa*syst_high;
       }
     }
 //    thebinOrig.print();
 //    cout << "Raa = " << raa << " +- " << draa << " +- " << syst << endl;
     theVarsBinned[thebin].push_back(raa);
     theVarsBinned_stat[thebin].push_back(draa);
-    theVarsBinned_syst[thebin].push_back(syst);
+    theVarsBinned_syst_low[thebin].push_back(syst_low);
+    theVarsBinned_syst_high[thebin].push_back(syst_high);
   }
   
   // systematics
@@ -476,17 +597,20 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
     all_glb.push_back(stat_PP);
     all_glb.push_back(syst_lumipp);
     all_glb.push_back(syst_Nmb);
-    all_glb.push_back(syst_trkpp);
-    all_glb.push_back(syst_trkpbpb);
-    syst_glb = combineSyst(all_glb,"global");
+    syst_glb_low = combineSyst(all_glb,"global");
+    syst_glb_high = syst_glb_low;
   } else {
-    vector< map<anabin, syst> > all_glb;
-    all_glb.push_back(syst_taa);
-    all_glb.push_back(syst_lumipp);
-    all_glb.push_back(syst_Nmb);
-    all_glb.push_back(syst_trkpp);
-    all_glb.push_back(syst_trkpbpb);
-    syst_glb = combineSyst(all_glb,"global");
+    vector< map<anabin, syst> > all_glb_low;
+    all_glb_low.push_back(syst_taa_low);
+    all_glb_low.push_back(syst_lumipp);
+    all_glb_low.push_back(syst_Nmb);
+    syst_glb_low = combineSyst(all_glb_low,"global");
+    
+    vector< map<anabin, syst> > all_glb_high;
+    all_glb_high.push_back(syst_taa_high);
+    all_glb_high.push_back(syst_lumipp);
+    all_glb_high.push_back(syst_Nmb);
+    syst_glb_high = combineSyst(all_glb_high,"global");
   }
   
   // make TGraphAsymmErrors
@@ -506,7 +630,7 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
     
     for (int i=0; i<n; i++) {
       double x=0, exl=0, exh=0, y=0, eyl=0, eyh=0;
-      double exsyst=0, eysyst=0;
+      double exsyst=0, eysyst_low=0,eysyst_high=0;
       double low=0, high=0;
       anabin thebin = theBins[*it][i];
       y = theVarsBinned[*it][i];
@@ -524,7 +648,8 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
         exsyst = (xaxis=="pt") ? 0.5 : 0.05;
 //        eysyst = y*sqrt(pow(syst_PP[thebin].value,2) + pow(syst_PbPb[thebin].value,2)); // quadratic sum of PP and PbPb systs
 //        if (plotPsi2S && (y == 0)) eysyst = theVarsBinned_syst[*it][i];
-        eysyst = theVarsBinned_syst[*it][i];
+        eysyst_low = theVarsBinned_syst_low[*it][i];
+        eysyst_high = theVarsBinned_syst_high[*it][i];
       }
       if (xaxis=="cent") {
         low= thebin.centbin().low();
@@ -537,7 +662,8 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
         exsyst = exl;
 //        eysyst = y*syst_PbPb[thebin].value; // only PbPb syst: the PP one will go to a dedicated box
 //        if (plotPsi2S && (y == 0)) eysyst = theVarsBinned_syst[*it][i];
-        eysyst = theVarsBinned_syst[*it][i];
+        eysyst_low = theVarsBinned_syst_low[*it][i];
+        eysyst_high = theVarsBinned_syst_high[*it][i];
       }
       eyl = fabs(theVarsBinned_stat[*it][i]);
       eyh = eyl;
@@ -547,7 +673,7 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
       theGraphs[*it]->SetPoint(i,x,y);
       theGraphs[*it]->SetPointError(i,exl,exh,eyl,eyh);
       theGraphs_syst[*it]->SetPoint(i,x,y);
-      theGraphs_syst[*it]->SetPointError(i,exsyst,exsyst,eysyst,eysyst);
+      theGraphs_syst[*it]->SetPointError(i,exsyst,exsyst,eysyst_low,eysyst_high);
 //       cout << "final = " << x << " " << y << " " << eyl << " " << eyh << " " << eysyst << endl;
       
       // theGraphs[*it]->Sort();
@@ -557,7 +683,7 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
   }
   
   // plot
-  plotGraphRAA(theGraphs, theGraphs_syst, xaxis, outputDir, syst_glb);
+  plotGraphRAA(theGraphs, theGraphs_syst, xaxis, outputDir, syst_glb_low, syst_glb_high);
 }
 
 void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
@@ -570,8 +696,12 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
     return;
   }
   
+  TString poi("NJpsi");
+  if (doprompt) poi = "NJpsi_prompt";
+  if (dononprompt) poi = "NJpsi_nonprompt";
+  
   if (xaxis=="cent") {
-    cout << "ERROR cross-sections vs centrality not implemented" << endl;
+    cout << "ERROR cross-sections vs centrality not implemented" << endl; // Important note: if you remove this, remeber to include Taa uncertainty
     return;
   }
   
@@ -589,14 +719,19 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
   
   map<anabin, raa_input> theVars_inputs;
   
-  map<anabin, syst> syst_PP = readSyst_all("PP","NJpsi",sTag.Data());
-  map<anabin, syst> syst_PbPb = readSyst_all("PbPb","NJpsi",sTag.Data());
-  map<anabin, syst> syst_taa = readSyst("Systematics/csv/syst_PbPb_taa.csv");
-  map<anabin, syst> syst_Nmb = readSyst("Systematics/csv/syst_PbPb_Nmb.csv");
-  map<anabin, syst> syst_lumipp = readSyst("Systematics/csv/syst_PP_lumi.csv");
-  map<anabin, syst> syst_trkpp = readSyst("Systematics/csv/syst_PP_trk.csv");
-  map<anabin, syst> syst_trkpbpb = readSyst("Systematics/csv/syst_PbPb_trk.csv");
-  map<anabin, syst> syst_glb_aa; // for the boxes at 1
+  map<anabin, syst> syst_PP = readSyst_all("PP",poi.Data(),sTag.Data(),includeEffSyst);
+  map<anabin, syst> syst_PbPb = readSyst_all("PbPb",poi.Data(),sTag.Data(),includeEffSyst);
+  map<anabin, syst> syst_taa_low = readSyst(Form("Systematics/csv/syst_%s_PbPb_taa_low.csv",sTag.Data()),excludeNonFitSyst);
+  map<anabin, syst> syst_taa_high = readSyst(Form("Systematics/csv/syst_%s_PbPb_taa_high.csv",sTag.Data()),excludeNonFitSyst);
+  map<anabin, syst> syst_Nmb = readSyst(Form("Systematics/csv/syst_%s_PbPb_Nmb.csv",sTag.Data()),excludeNonFitSyst);
+  map<anabin, syst> syst_lumipp = readSyst(Form("Systematics/csv/syst_%s_PP_lumi.csv",sTag.Data()),excludeNonFitSyst);
+  
+//  map<anabin, syst> syst_taa_low = readSyst("Systematics/csv/syst_PbPb_taa_low.csv",excludeNonFitSyst);
+//  map<anabin, syst> syst_taa_high = readSyst("Systematics/csv/syst_PbPb_taa_high.csv",excludeNonFitSyst);
+//  map<anabin, syst> syst_Nmb = readSyst("Systematics/csv/syst_PbPb_Nmb.csv",excludeNonFitSyst);
+//  map<anabin, syst> syst_lumipp = readSyst("Systematics/csv/syst_PP_lumi.csv",excludeNonFitSyst);
+  map<anabin, syst> syst_glb_aa_low; // for the boxes at 1
+  map<anabin, syst> syst_glb_aa_high; // for the boxes at 1
   map<anabin, syst> syst_glb_pp; // for the boxes at 1
   
   vector<double> x, ex, y, ey;
@@ -613,9 +748,11 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
   tr->SetBranchAddress("ymax",&ymax);
   tr->SetBranchAddress("centmin",&centmin);
   tr->SetBranchAddress("centmax",&centmax);
-  tr->SetBranchAddress("N_Jpsi_val",&val);
-  tr->SetBranchAddress("N_Jpsi_errL",&errL);
-  tr->SetBranchAddress("N_Jpsi_errH",&errH);
+//  tr->SetBranchAddress("N_Jpsi_val",&val);
+//  tr->SetBranchAddress("N_Jpsi_errL",&errL);
+//  tr->SetBranchAddress("N_Jpsi_errH",&errH);
+  tr->SetBranchAddress("N_Jpsi_parLoad_mass",&val);
+  tr->SetBranchAddress("N_Jpsi_parLoad_mass_err",&errL);
   tr->SetBranchAddress("collSystem",collSystem);
   if (!dononprompt)
   {
@@ -637,7 +774,11 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
   
   int ntr = tr->GetEntries();
   for (int i=0; i<ntr; i++) {
+
     tr->GetEntry(i);
+    
+    if (xaxis=="rap" && ((ymin==0 && ymax<=0.61 && ymax>=0.59 ) || (ymin>=0.59 && ymin<=0.61 && ymax>=1.19 && ymax <=1.21) || (ymin>=1.19 && ymin<=1.21 && ymax>=1.79 && ymax <=1.81) || (ymin>=1.79 && ymin<=1.81 && ymax>=2.39 && ymax <=2.41))) continue;
+    
     anabin thebin(ymin, ymax, ptmin, ptmax, centmin, centmax);
     
     bool ispp = (TString(collSystem)=="PP");
@@ -688,31 +829,46 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
   
   for (map<anabin, raa_input>::const_iterator it=theVars_inputs.begin(); it!=theVars_inputs.end(); it++) {
     anabin thebin = it->first;
+    anabin thebinOrig = it->first; // Original bin to retrieve results later if needed (cause binok() will overwrite thebin)
     raa_input s = it->second;
     if (!binok(thecats,xaxis,thebin)) continue;
     anabin thebinPP = it->first; thebinPP.setcentbin(binI(0,200));
     raa_input spp = theVars_inputs[thebinPP];
     
     if (s.naa <= 0 || spp.npp <= 0) continue;
-    if (applyEff && (s.effaa <= 0 || spp.effpp <= 0)) continue;
-    if (applyAcc && (s.accaa <= 0 || spp.accpp <= 0)) continue;
+    if (applyEff && (s.effaa <= 0 || spp.effpp <= 0))
+    {
+      thebinOrig.print();
+      cout << "[WARNING] : You want to correct by efficiency but the value is <=0 for this bin " << endl;
+      continue;
+    }
+    if (applyAcc && (s.accaa <= 0 || spp.accpp <= 0))
+    {
+      thebinOrig.print();
+      cout << "[WARNING] : You want to correct by acceptance but the value is <=0 for this bin " << endl;
+      continue;
+    }
     if ((doprompt || dononprompt) && (spp.bfracpp<=0 || s.bfracaa<=0)) continue;
     
     theBins[thebin].push_back(it->first);
     
-    double deltaPt = it->first.ptbin().high() - it->first.centbin().low();
+    double deltaPt = it->first.ptbin().high() - it->first.ptbin().low();
     double deltaRap = it->first.rapbin().high() - it->first.rapbin().low();
     
+//    cout << "deltaPt = " << deltaPt << " ; deltaY = " << deltaRap << endl;
+    
     double normfactorpp = 1., normfactoraa = 1.;
-    normfactorpp = 1./(spp.lumipp*deltaPt*deltaRap);
+    normfactorpp = 1./(spp.lumipp*deltaPt*deltaRap*1e-3); // the 1e-3 factor is because lumis are in mub-1 and we give xsection in nb-1
+    normfactoraa = 1./(deltaPt*deltaRap*1e-3);
     
     if (useNcoll) {
-      normfactoraa = 1./s.lumiaa;
+      normfactoraa = 1./(s.lumiaa*deltaPt*deltaRap*1e-3);
       normfactoraa *= 1./(208.*208.*(HI::findNcollAverage(it->first.centbin().low(),it->first.centbin().high())/HI::findNcollAverage(0,200)));
     } else {
       double myNmb = NMB * s.lumiaa / lumipbpb_ABCD;
-      normfactoraa = 1./(myNmb*s.taa*1e-3*deltaPt*deltaRap); // the 1e-3 factor is because taa is in mb-1 while lumis are in mub-1
+      normfactoraa *= 1./(myNmb*s.taa*1e-3); // the 1e-3 factor is because taa is in mb-1 while lumis are in mub-1
     }
+    
     normfactoraa *= 200./(it->first.centbin().high()-it->first.centbin().low());
     
     if (applyEff && applyAcc)
@@ -720,7 +876,7 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
       normfactorpp = normfactorpp / (spp.effpp*spp.accpp);
       normfactoraa = normfactoraa / (s.effaa*s.accaa);
     }
-    if (applyEff)
+    else if (applyEff)
     {
       normfactorpp = normfactorpp / (spp.effpp);
       normfactoraa = normfactoraa / (s.effaa);
@@ -762,6 +918,8 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
     double syst_xsec_aa = xsec_aa*sqrt(pow(s.systaa,2));
     double syst_xsec_pp = xsec_pp*sqrt(pow(spp.systpp,2));
     
+//    cout << "PbPb: " << xsec_aa << " pp : " << xsec_pp << endl;
+    
     theVarsBinned_aa[thebin].push_back(xsec_aa);
     theVarsBinned_pp[thebin].push_back(xsec_pp);
     theVarsBinned_stat_aa[thebin].push_back(delta_xsec_aa);
@@ -771,15 +929,18 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
   }
   
   // systematics
-  vector< map<anabin, syst> > all_glb_aa;
-  all_glb_aa.push_back(syst_taa);
-  all_glb_aa.push_back(syst_Nmb);
-  all_glb_aa.push_back(syst_trkpbpb);
-  syst_glb_aa = combineSyst(all_glb_aa,"global");
+  vector< map<anabin, syst> > all_glb_aa_low;
+  all_glb_aa_low.push_back(syst_taa_low);
+  all_glb_aa_low.push_back(syst_Nmb);
+  syst_glb_aa_low = combineSyst(all_glb_aa_low,"global");
+  
+  vector< map<anabin, syst> > all_glb_aa_high;
+  all_glb_aa_high.push_back(syst_taa_high);
+  all_glb_aa_high.push_back(syst_Nmb);
+  syst_glb_aa_high = combineSyst(all_glb_aa_high,"global");
   
   vector< map<anabin, syst> > all_glb_pp;
   all_glb_pp.push_back(syst_lumipp);
-  all_glb_pp.push_back(syst_trkpp);
   syst_glb_pp = combineSyst(all_glb_pp,"global");
   
   // make TGraphAsymmErrors
@@ -852,8 +1013,8 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
   }
   
   // plot
-  plotGraphXS(theGraphs_aa, theGraphs_syst_aa, xaxis, outputDir, syst_glb_aa,"pbpb");
-  plotGraphXS(theGraphs_pp, theGraphs_syst_pp, xaxis, outputDir, syst_glb_pp,"pp");
+  plotGraphXS(theGraphs_aa, theGraphs_syst_aa, xaxis, outputDir, syst_glb_aa_low, syst_glb_aa_high,"pbpb");
+  plotGraphXS(theGraphs_pp, theGraphs_syst_pp, xaxis, outputDir, syst_glb_pp, syst_glb_pp, "pp");
 }
 
 void plotBF(vector<anabin> thecats, string xaxis, string outputDir) {
@@ -861,8 +1022,8 @@ void plotBF(vector<anabin> thecats, string xaxis, string outputDir) {
   // xaxis is the variable to be plotted. "pt", "rap" or "cent"
   // outputDir is the directory to save the plots
   
-  if (doprompt && dononprompt) {
-    cout << "ERROR you can't set both doprompt and dononprompt to true." << endl;
+  if (doprompt || dononprompt) {
+    cout << "ERROR for b fractions both doprompt and dononprompt have to be set to false." << endl;
     return;
   }
   
@@ -880,11 +1041,16 @@ void plotBF(vector<anabin> thecats, string xaxis, string outputDir) {
   
   map<anabin, raa_input> theVars_inputs;
   
-  map<anabin, syst> syst_PP = readSyst_all("PP","BJpsi",sTag.Data());
-  map<anabin, syst> syst_PbPb = readSyst_all("PbPb","BJpsi",sTag.Data());
+  map<anabin, syst> syst_PP = readSyst_all("PP","BJpsi",sTag.Data(),false);
+  map<anabin, syst> syst_PbPb = readSyst_all("PbPb","BJpsi",sTag.Data(),false);
+  map<anabin, syst> systEffP_PP = readSyst_all("PP","NJpsi_prompt",sTag.Data(),true,false);
+  map<anabin, syst> systEffP_PbPb = readSyst_all("PbPb","NJpsi_prompt",sTag.Data(),true,false);
+  map<anabin, syst> systEffNP_PP = readSyst_all("PP","NJpsi_nonprompt",sTag.Data(),true,false);
+  map<anabin, syst> systEffNP_PbPb = readSyst_all("PbPb","NJpsi_nonprompt",sTag.Data(),true,false);
   
   vector<double> x, ex, y, ey;
   float ptmin, ptmax, ymin, ymax, centmin, centmax;
+  float effp, accp,effnp, accnp;
   float val, err=0;
   float bfrac, bfrac_err;
   float correl=0;
@@ -899,21 +1065,44 @@ void plotBF(vector<anabin> thecats, string xaxis, string outputDir) {
   tr->SetBranchAddress("collSystem",collSystem);
   tr->SetBranchAddress("b_Jpsi_val",&bfrac);
   tr->SetBranchAddress("b_Jpsi_errL",&bfrac_err);
+  tr->SetBranchAddress("eff_val",&effp);
+  tr->SetBranchAddress("acc_val",&accp);
+  tr->SetBranchAddress("effnp_val",&effnp);
+  tr->SetBranchAddress("accnp_val",&accnp);
   
   int ntr = tr->GetEntries();
   for (int i=0; i<ntr; i++) {
+    
     tr->GetEntry(i);
-    anabin thebin(ymin, ymax, ptmin, ptmax, centmin, centmax);
     
     bool ispp = (TString(collSystem)=="PP");
     
+    if (xaxis=="rap" && ((ymin==0 && ymax<=0.61 && ymax>=0.59 ) || (ymin>=0.59 && ymin<=0.61 && ymax>=1.19 && ymax <=1.21) || (ymin>=1.19 && ymin<=1.21 && ymax>=1.79 && ymax <=1.81) || (ymin>=1.79 && ymin<=1.81 && ymax>=2.39 && ymax <=2.41))) continue;
+    if (xaxis=="pt" && (ptmin>=2.99 && ptmin<=3.01 && ptmax<=6.51 && ptmax>=6.49)) continue;
+    //fixing the error bin problems?
+    //if (xaxis=="pt" && ((centmin == 0) && (centmax == 200) && ymin==0 && ymax>=2.39 && ymax <=2.41 && ((ptmin>=14.99 && ptmin<15.01 && ptmax <= 20.01 && ptmax > 19.99) || (ptmin>=19.99 && ptmin<20.01 && ptmax <= 30.01 && ptmax > 29.99) || (ptmin>=29.99 && ptmin<30.01 && ptmax <= 50.01 && ptmax > 49.99)))) continue;
+    
+    anabin thebin(ymin, ymax, ptmin, ptmax, centmin, centmax);
+
     if (ispp) {
       theVars_inputs[thebin].bfracpp = bfrac;
       theVars_inputs[thebin].dbfracpp = bfrac_err;
+      theVars_inputs[thebin].effppP = effp;
+      theVars_inputs[thebin].systeffppP = systEffP_PP[thebin].value;
+      theVars_inputs[thebin].accppP = accp;
+      theVars_inputs[thebin].effppNP = effnp;
+      theVars_inputs[thebin].systeffppNP = systEffNP_PP[thebin].value;
+      theVars_inputs[thebin].accppNP = accnp;
       theVars_inputs[thebin].systbfracpp = syst_PP[thebin].value;
     } else {
       theVars_inputs[thebin].bfracaa = bfrac;
       theVars_inputs[thebin].dbfracaa = bfrac_err;
+      theVars_inputs[thebin].effaaP = effp;
+      theVars_inputs[thebin].systeffaaP = systEffP_PbPb[thebin].value;
+      theVars_inputs[thebin].accaaP = accp;
+      theVars_inputs[thebin].effaaNP = effnp;
+      theVars_inputs[thebin].systeffaaNP = systEffNP_PbPb[thebin].value;
+      theVars_inputs[thebin].accaaNP = accnp;
       theVars_inputs[thebin].systbfracaa = syst_PbPb[thebin].value;
     }
   }
@@ -939,12 +1128,25 @@ void plotBF(vector<anabin> thecats, string xaxis, string outputDir) {
   
   for (map<anabin, raa_input>::const_iterator it=theVars_inputs.begin(); it!=theVars_inputs.end(); it++) {
     anabin thebin = it->first;
+    anabin thebinOrig = it->first; // Original bin to retrieve results later if needed (cause binok() will overwrite thebin)
     raa_input s = it->second;
     if (!binok(thecats,xaxis,thebin)) continue;
     anabin thebinPP = it->first; thebinPP.setcentbin(binI(0,200));
     raa_input spp = theVars_inputs[thebinPP];
     
-    if ((doprompt || dononprompt) && (spp.bfracpp<=0 || s.bfracaa<=0)) continue;
+    if ((doprompt || dononprompt) && (spp.effppP<=0 || s.bfracaa<=0)) continue;
+    if (applyEff && (s.effaaP <= 0 || spp.effppP <= 0 || s.effaaNP <= 0 || spp.effppNP <= 0))
+    {
+      thebinOrig.print();
+      cout << "[WARNING] : You want to correct by efficiency but the value is <=0 for this bin " << endl;
+      continue;
+    }
+    if (applyAcc && (s.accaaP <= 0 || spp.accppP <= 0 || s.accaaNP <= 0 || spp.accppNP <= 0))
+    {
+      thebinOrig.print();
+      cout << "[WARNING] : You want to correct by acceptance but the value is <=0 for this bin " << endl;
+      continue;
+    }
     
     theBins[thebin].push_back(it->first);
     
@@ -954,8 +1156,59 @@ void plotBF(vector<anabin> thecats, string xaxis, string outputDir) {
     double bf_pp = spp.bfracpp;
     double delta_bf_pp = spp.dbfracpp;
     
-    double syst_bf_aa = bf_aa*sqrt(pow(s.systbfracaa,2));
-    double syst_bf_pp = bf_pp*sqrt(pow(spp.systbfracpp,2));
+    double accxEffaa_p(1.);
+    double accxEffaa_np(1.);
+    
+    double accxEffpp_p(1.);
+    double accxEffpp_np(1.);
+    
+    double systEff_pp(0.);
+    double systEff_aa(0.);
+    double corrFactor_pp(1.);
+    double corrFactor_aa(1.);
+    if (applyEff && applyAcc)
+    {
+      accxEffaa_p = (s.effaaP*s.accaaP);
+      accxEffaa_np = (s.effaaNP*s.accaaNP);
+      
+      accxEffpp_p = (spp.effppP*spp.accppP);
+      accxEffpp_np = (spp.effppNP*spp.accppNP);
+    
+      
+//      systEff_aa = abs(bf_aa -(bf_aa*(accxEffaa_p/((bf_aa*accxEffaa_p) + (1.-bf_aa)*accxEffaa_np))))/bf_aa;
+//      systEff_pp = abs(bf_pp -(bf_pp*(accxEffpp_p/((bf_pp*accxEffpp_p) + (1.-bf_pp)*accxEffpp_np))))/bf_pp;
+    }
+    else if (applyEff)
+    {
+      accxEffaa_p = s.effaaP;
+      accxEffaa_np = s.effaaNP;
+      
+      accxEffpp_p = spp.effppP;
+      accxEffpp_np = spp.effppNP;
+      
+//      systEff_aa = abs(bf_aa -(bf_aa*(effaa_p/((bf_aa*effaa_p) + (1.-bf_aa)*effaa_np))))/bf_aa;
+//      systEff_pp = abs(bf_pp -(bf_pp*(effpp_p/((bf_pp*effpp_p) + (1.-bf_pp)*effpp_np))))/bf_pp;
+    }
+    
+    corrFactor_pp = (accxEffpp_p/((bf_pp*accxEffpp_p) + (1.-bf_pp)*accxEffpp_np));
+    bf_pp *= corrFactor_pp;
+    delta_bf_pp *= corrFactor_pp;
+    
+//    systEff_pp =(accxEffpp_np/accxEffpp_p)*corrFactor_pp*sqrt(pow(spp.systbfracpp/spp.bfracpp,2) + pow(1-spp.bfracpp,2)*(pow(spp.systeffaaP/accxEffpp_p,2)+pow(spp.systeffppNP/accxEffpp_np,2)));
+    systEff_pp =(accxEffpp_np/accxEffpp_p)*corrFactor_pp*sqrt(pow(spp.systbfracpp,2) + pow(1-spp.bfracpp,2)*(pow(spp.systeffaaP,2)+pow(spp.systeffppNP,2)));
+    
+    corrFactor_aa = (accxEffaa_p/((bf_aa*accxEffaa_p) + (1.-bf_aa)*accxEffaa_np));
+    bf_aa *= corrFactor_aa;
+    delta_bf_aa *= corrFactor_aa;
+    
+//    systEff_aa = (accxEffaa_np/accxEffaa_p)*corrFactor_aa*sqrt(pow(s.systbfracaa/s.bfracaa,2) + pow(1-s.bfracaa,2)*(pow(s.systeffaaP/accxEffaa_p,2)+pow(s.systeffaaNP/accxEffaa_np,2)));
+    systEff_aa = (accxEffaa_np/accxEffaa_p)*corrFactor_aa*sqrt(pow(s.systbfracaa,2) + pow(1-s.bfracaa,2)*(pow(s.systeffaaP,2)+pow(s.systeffaaNP,2)));
+    
+//    double syst_bf_aa = bf_aa*sqrt(pow(s.systbfracaa,2) + pow(systEff_aa,2));
+//    double syst_bf_pp = bf_pp*sqrt(pow(spp.systbfracpp,2) + pow(systEff_pp,2));
+
+    double syst_bf_aa = bf_aa*sqrt(pow(s.systbfracaa,2) + pow(systEff_aa,2));
+    double syst_bf_pp = bf_pp*sqrt(pow(spp.systbfracpp,2) + pow(systEff_pp,2));
     
     theVarsBinned_aa[thebin].push_back(bf_aa);
     theVarsBinned_pp[thebin].push_back(bf_pp);
@@ -1039,10 +1292,12 @@ void plotBF(vector<anabin> thecats, string xaxis, string outputDir) {
   plotGraphBF(theGraphs_pp, theGraphs_syst_pp, xaxis, outputDir,"pp");
 }
 
-void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst) {
+void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst_low, map<anabin, syst> gsyst_high) {
   setTDRStyle();
   
   const char* ylabel = "R_{AA}";
+  
+  int intervals2Plot = theGraphs.size();
   
   vector<anabin> theCats;
   
@@ -1053,12 +1308,18 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   // the axes
   TH1F *haxes=NULL; TLine line;
   if (xaxis=="pt") {
-    haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0,is16004 ? 30 : 50);
-    line = TLine(doLogPt ? 3 : 0,1,is16004 ? 30 : 50,1);
+    if (intervals2Plot != 1) {
+      haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0, 30);
+      line = TLine(doLogPt ? 3 : 0, 1, 30, 1);
+    } else {
+      haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0,is16004 ? 30 : 50);
+      line = TLine(doLogPt ? 3 : 0,1,is16004 ? 30 : 50,1);
+    }
     if (doLogPt) c1->SetLogx();
   }
   if (xaxis=="rap") {
     haxes = new TH1F("haxes","haxes",1,0,2.4);
+    haxes->GetXaxis()->SetNdivisions(306,false);
     line = TLine(0,1,2.4,1);
   }
   if (xaxis=="cent") {
@@ -1070,14 +1331,24 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   haxes->GetYaxis()->SetTitle(ylabel);
   const char* xlabel = (xaxis=="pt") ? "p_{T} (GeV/c)" : ((xaxis=="rap") ? "|y|" : "N_{part}");
   haxes->GetXaxis()->SetTitle(xlabel);
+  haxes->GetXaxis()->CenterTitle(true);
   haxes->Draw();
-  line.Draw();
+//  line.Draw();
   
-  double xshift=0.;
-  if (xaxis=="cent") xshift=0.05;
-  TLegend *tleg = new TLegend(0.16+xshift,0.73,0.50,0.89);
+  double xshift=0.025;
+//  if (xaxis=="cent") xshift=0.05;
+//  TLegend *tleg = new TLegend(0.16+xshift,0.67,0.50, ((xaxis == "cent") && is16004) ? 0.89 : 0.83);
+  TLegend *tleg(0x0);
+  if (xaxis!="cent" && intervals2Plot == 2) tleg = new TLegend(0.44,0.50,0.76,0.62);
+  else if (xaxis=="cent" && intervals2Plot == 2) tleg = new TLegend(0.19,0.16,0.51,0.28);
+  else if (dononprompt && intervals2Plot == 3) tleg = new TLegend(0.56,0.47,0.88,0.62);
+  else if (doprompt && intervals2Plot == 3) tleg = new TLegend(0.19,0.49,0.51,0.64);
+  else tleg = new TLegend(0.56,0.42,0.88,0.62);
   tleg->SetBorderSize(0);
-  tleg->SetTextSize(0.03);
+  tleg->SetFillStyle(0);
+  tleg->SetTextFont(42);
+  tleg->SetTextSize(0.04);
+  bool drawLegend(true);
   
   // prepare for the printing of the result tables
   const char* xname = (xaxis=="cent") ? "Centrality" : (xaxis=="pt" ? "\\pt" : "$|y|$");
@@ -1144,24 +1415,53 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
           tg->SetLineColor(13+cnt);
           tg_syst->SetLineColor(13+cnt);
           tg_syst->SetFillColorAlpha(13+cnt, 0.5);
-          tg->SetMarkerSize(1.5);
+          if (markerstyle(cnt+4) == kFullStar) tg->SetMarkerSize(2.3);
+          else if (markerstyle(cnt+4) == kFullDiamond) tg->SetMarkerSize(2.2);
+          else if (markerstyle(cnt+4) == kFullCross) tg->SetMarkerSize(2.0);
+          else tg->SetMarkerSize(1.5);
           tg->SetLineWidth(tg->GetLineWidth()*2);
           
           if (xaxis=="cent") {
             // do not plot wide centrality bins
             prune(tg, tg_syst);
           }
+          if (xaxis=="rap") tg_syst->GetXaxis()->SetNdivisions(306,false);
+          
           tg_syst->Draw("5");
           gStyle->SetEndErrorSize(5);
           tg->Draw("P");
           // tg->Draw("[]");
           
-          TString raplabel = Form("%.1f < |y| < %.1f, ",it->first.rapbin().low(),it->first.rapbin().high());
-          if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
-          TString otherlabel = "";
-          if (xaxis == "pt") otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
-          if (xaxis == "cent" || xaxis == "rap") otherlabel.Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
-          tleg->AddEntry(tg, (raplabel + otherlabel + ", #sqrt{s_{NN}}=2.76TeV"), "p");
+//          TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
+//          if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f",it->first.rapbin().high());
+//          TString ptlabel = Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+//          TString centlabel = Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//          
+//          if (xaxis == "pt")
+//          {
+//            if (intervals2Plot > 3) tleg->AddEntry(tg, raplabel, "p");
+//            else tleg->AddEntry(tg, Form("%s, %s",raplabel.Data(),centlabel.Data()), "p");
+//          }
+//          if (xaxis == "cent")
+//          {
+//            if (intervals2Plot > 3 || intervals2Plot == 2) tleg->AddEntry(tg, ptlabel, "p");
+//            else tleg->AddEntry(tg, Form("%s, %s",raplabel.Data(),ptlabel.Data()), "p");
+//          }
+//          if (xaxis == "rap")
+//          {
+//            if (intervals2Plot > 3) tleg->AddEntry(tg, ptlabel, "p");
+//            else tleg->AddEntry(tg, Form("%s, %s",ptlabel.Data(),centlabel.Data()), "p");
+//          }
+          
+//          TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
+//          if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
+//          TString otherlabel = "";
+//          if (xaxis == "pt") otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//          if (xaxis == "cent" || xaxis == "rap") otherlabel.Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+//          tleg->AddEntry(tg, (raplabel + otherlabel + ", #sqrt{s_{NN}}=2.76TeV"), "p");
+          
+
+          tleg->AddEntry(tg, "#splitline{#sqrt[]{s_{NN}} = 2.76 TeV}{#scale[0.6]{(Eur.Phys.J. C77 (2017) no.4, 252)}}", "p");
           
           // in the case where the centrality dependence is plotted: treat the PP uncertainties as global systematics
           double x, dx, y, dy;
@@ -1191,13 +1491,19 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
       if (fraa_syst) delete fraa_syst;
     } // if (plot14005)
     
+    int style = cnt;
+    if (intervals2Plot==2) cnt==0 ? style = 8 : style =4;
+    if (intervals2Plot>3) style = cnt+1;
     
-    tg->SetMarkerStyle(markerstyle(cnt));
-    tg->SetMarkerColor(color(cnt));
-    tg->SetLineColor(color(cnt));
-    tg_syst->SetLineColor(color(cnt));
-    tg_syst->SetFillColorAlpha(color(cnt)-11, 1);
-    tg->SetMarkerSize(1.5);
+    tg->SetMarkerStyle(markerstyle(style));
+    tg->SetMarkerColor(color(style));
+    tg->SetLineColor(color(style));
+    tg_syst->SetLineColor(color(style));
+    tg_syst->SetFillColorAlpha(color(style)-11, 1);
+    if (markerstyle(style) == kFullStar) tg->SetMarkerSize(2.3);
+    else if (markerstyle(style) == kFullDiamond) tg->SetMarkerSize(2.2);
+    else if (markerstyle(style) == kFullCross) tg->SetMarkerSize(2.0);
+    else tg->SetMarkerSize(1.5);
     tg->SetLineWidth(tg->GetLineWidth()*2);
     
     if (xaxis=="cent") {
@@ -1240,17 +1546,111 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
         }
       }
     }
+    
+    // in the case where the centrality dependence is plotted: treat the PP uncertainties as global systematics
+    // if (xaxis == "cent") {
+    double x, dx, y, dy_low, dy_high;
+    double rightA = 0.;
+    int centminGlob(0),centmaxGlob(200);
+    if (xaxis=="cent") {
+      dx = 10;
+      rightA = 420.;
+    } else if (xaxis=="pt") {
+      dx = 0.625;
+      if (intervals2Plot == 1) rightA = 50.;
+      else rightA = 30.;
+      if (intervals2Plot == 3)
+      {
+        centminGlob = it->first.centbin().low();
+        centmaxGlob = it->first.centbin().high();
+      }
+    } else if (xaxis=="rap") {
+      dx = 0.06;
+      rightA = 2.4;
+    }
+    x = rightA - (2*dx*cnt + dx);
+    y = 1;
+ 
+    anabin thebinglb(it->first.rapbin().low(),
+                     it->first.rapbin().high(),
+                     it->first.ptbin().low(),
+                     it->first.ptbin().high(),
+                     centminGlob,centmaxGlob);
+    thebinglb.print();
+    dy_low = gsyst_low[thebinglb].value;
+    dy_high = gsyst_high[thebinglb].value;
+    cout << "global syst: " << "+" << dy_high << " -" << dy_low << endl;  
+    TBox *tbox = new TBox(x-dx,y-dy_low,x+dx,y+dy_high);
+    tbox->SetFillColorAlpha(color(style)-11, 1);
+    tbox->SetLineColor(color(style));
+    tbox->Draw("l");
+    TBox *tboxl = (TBox*) tbox->Clone("tboxl");
+    tboxl->SetFillStyle(0);
+    tboxl->Draw("l");
+    // }
+    
+    // Plot graphs after uncertainties to avoid overlap
     tg_syst->Draw("5");
     gStyle->SetEndErrorSize(5);
     tg->Draw("P");
     // tg->Draw("[]");
+  
+    TLatex tl;
+    double tlx = 0.25; //0.92;
+    double tly = 0.80; //0.69;
+    tl.SetTextFont(42); // consistent font for symbol and plain text
+
+    if (plot14005)
+    {
+      tleg->AddEntry(tg, "#sqrt[]{s_{NN}} = 5.02 TeV", "p");
+    }
+    else
+    {
+      TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
+      if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f",it->first.rapbin().high());
+      TString ptlabel = Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+      TString centlabel = Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+      
+      if (xaxis == "pt")
+      {
+        if (is16004) tleg->AddEntry(tg, raplabel, "p");
+        else
+        {
+          if (intervals2Plot > 3) tleg->AddEntry(tg, raplabel, "p");
+          else if (intervals2Plot == 3) tleg->AddEntry(tg, Form("Cent. %s",centlabel.Data()), "p");
+          else if (intervals2Plot == 1) drawLegend = false;
+          else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",raplabel.Data(),centlabel.Data()));
+          //else tleg->AddEntry(tg, Form("%s, Cent. %s",raplabel.Data(),centlabel.Data()), "p");
+        }
+      }
+      if (xaxis == "cent")
+      {
+        if (is16004) tleg->AddEntry(tg, Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()), "p");
+        else
+        {
+          if (intervals2Plot > 3 ) tleg->AddEntry(tg, raplabel, "p");
+          else if (intervals2Plot == 2) tleg->AddEntry(tg, ptlabel, "p");
+          else if (intervals2Plot == 1) drawLegend = false;
+          else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()));
+          //else tleg->AddEntry(tg, Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()), "p");
+        }
+      }
+      if (xaxis == "rap")
+      {
+        if (intervals2Plot > 3) tleg->AddEntry(tg, ptlabel, "p");
+        else if (intervals2Plot == 1) drawLegend = false;
+        else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",ptlabel.Data(),centlabel.Data()));
+        //else tleg->AddEntry(tg, Form("#splitline{%s}{Cent. %s}",ptlabel.Data(),centlabel.Data()), "p");
+      }
+    }
     
-    TString raplabel = Form("%.1f < |y| < %.1f, ",it->first.rapbin().low(),it->first.rapbin().high());
-    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
-    TString otherlabel = "";
-    if (xaxis == "pt") otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
-    if (xaxis == "cent" || xaxis == "rap") otherlabel.Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
-    tleg->AddEntry(tg, (raplabel + otherlabel), "p");
+//    TString raplabel = Form("%.1f < |y| < %.1f, ",it->first.rapbin().low(),it->first.rapbin().high());
+//    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
+//    TString otherlabel = "";
+//    if (xaxis == "pt") otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//    if (xaxis == "cent") otherlabel.Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+//    if (xaxis == "rap") otherlabel.Form("%g < p_{T} < %g GeV/c, %i-%i%s",it->first.ptbin().low(), it->first.ptbin().high(),(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//    tleg->AddEntry(tg, (xaxis == "rap") ? otherlabel : (raplabel + otherlabel), "p");
     
     // print tex
     ostringstream oss;
@@ -1264,54 +1664,162 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
     
     // for the centrality dependence: we want Npart plotted, not the centrality
     if (xaxis == "cent") {
-      centrality2npart(tg, false, (150./1.6)*it->first.rapbin().low());
-      centrality2npart(tg_syst, true, (150./1.6)*it->first.rapbin().low());
+//      centrality2npart(tg, false, (150./1.6)*it->first.rapbin().low());
+//      centrality2npart(tg_syst, true, (150./1.6)*it->first.rapbin().low());
+      centrality2npart(tg, false, (intervals2Plot > 3) ? ((30./1.8)*it->first.rapbin().low()) : 0.);
+      centrality2npart(tg_syst, true, (intervals2Plot > 3) ? ((30./1.8)*it->first.rapbin().low()) : 0.);
     }
-    
-    // in the case where the centrality dependence is plotted: treat the PP uncertainties as global systematics
-    // if (xaxis == "cent") {
-    double x, dx, y, dy;
-    if (xaxis=="cent") {
-      dx = 10;
-    } else if (xaxis=="pt") {
-      dx = 1.25;
-    } else if (xaxis=="rap") {
-      dx = 0.06;
-    }
-    x = 2*dx*cnt + dx;
-    y = 1;
-    anabin thebinglb(it->first.rapbin().low(),
-                     it->first.rapbin().high(),
-                     it->first.ptbin().low(),
-                     it->first.ptbin().high(),
-                     0,200);
-    dy = gsyst[thebinglb].value;
-    cout << "global syst: " << dy << endl;
-    TBox *tbox = new TBox(x-dx,y-dy,x+dx,y+dy);
-    tbox->SetFillColorAlpha(color(cnt)-11, 1);
-    tbox->SetLineColor(color(cnt));
-    tbox->Draw("l");
-    TBox *tboxl = (TBox*) tbox->Clone("tboxl");
-    tboxl->SetFillStyle(0);
-    tboxl->Draw("l");
-    // }
     
     cnt++;
     it_syst++;
   }
   
   
-  tleg->Draw();
+  if (drawLegend) tleg->Draw();
+  line.Draw();
+  
+  if (plot14005)
+  {
+    if(xaxis=="cent")
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"#splitline{6.5 < p_{T} < 50 GeV/c}{|y| < 2.4}");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+    }
+    if(xaxis=="pt")
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"#splitline{|y| < 2.4}{Cent. 0-100%}");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+    }
+    if(xaxis=="rap")
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"#splitline{6.5 < p_{T} < 50 GeV/c}{Cent. 0-100%}");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+    }
+  }
+  else
+  {
+    if(xaxis!="cent" && intervals2Plot > 3)
+    {
+//      TLatex *tex = new TLatex(0.21,0.86,"Cent. 0-100%");
+      TLatex *tex = new TLatex(0.2,0.78,"Cent. 0-100%");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+    }
+    if(xaxis=="cent" && intervals2Plot == 2 && !is16004)
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"1.8 < |y| < 2.4");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+    }
+    if(xaxis=="cent" && intervals2Plot > 3)
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"6.5 < p_{T} < 50 GeV/c");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+    }
+    if(xaxis=="cent" && intervals2Plot == 1)
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"|y| < 2.4");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+      
+      TLatex *tex2 = new TLatex(0.2,0.73,"6.5 < p_{T} < 50 GeV/c");
+      tex2->SetNDC();
+      tex2->SetTextSize(0.044);
+      tex2->SetTextFont(42);
+      tex2->SetLineWidth(2);
+      tex2->Draw();
+    }
+    if(xaxis=="pt" && intervals2Plot == 3)
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"|y| < 2.4");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+    }
+    if(xaxis=="pt" && intervals2Plot == 1)
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"|y| < 2.4");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+      
+      TLatex *tex2 = new TLatex(0.2,0.73,"Cent. 0-100%");
+      tex2->SetNDC();
+      tex2->SetTextSize(0.044);
+      tex2->SetTextFont(42);
+      tex2->SetLineWidth(2);
+      tex2->Draw();
+    }
+    if(xaxis=="pt" && is16004)
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"Cent. 0-100%");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+    }
+    if(xaxis=="rap" && intervals2Plot == 1)
+    {
+      TLatex *tex = new TLatex(0.2,0.78,"6.5 < p_{T} < 50 GeV/c");
+      tex->SetNDC();
+      tex->SetTextSize(0.044);
+      tex->SetTextFont(42);
+      tex->SetLineWidth(2);
+      tex->Draw();
+      
+      TLatex *tex2 = new TLatex(0.2,0.73,"Cent. 0-100%");
+      tex2->SetNDC();
+      tex2->SetTextSize(0.044);
+      tex2->SetTextFont(42);
+      tex2->SetLineWidth(2);
+      tex2->Draw();
+    }
+  }
   
   TLatex tl;
-  double tlx = 0.92;
-  double tly = 0.69;
-  tl.SetTextAlign(32); // right adjusted
+//  double tlx = 0.54; //0.92;
+  double tlx = 0.20; //0.92;
+  double tly = 0.85; //0.69;
+//  tl.SetTextAlign(32); // right adjusted
+  tl.SetTextFont(42); // consistent font for symbol and plain text
+  tl.SetTextSize(0.046); 
   if (doprompt) tl.DrawLatexNDC(tlx,tly,plotPsi2S ? "Prompt #psi(2S)" : "Prompt J/#psi");
+  //if (doprompt) tl.DrawLatexNDC(tlx-0.08,tly,plotPsi2S ? "Prompt #psi(2S)" : "Prompt J/#psi");
   if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
   
   int iPos = 33;
-  CMS_lumi( (TPad*) gPad, 106, iPos, "" );
+  if (xaxis=="cent") CMS_lumi( (TPad*) gPad, 1061, iPos, "" );
+  else CMS_lumi( (TPad*) gPad, 106, iPos, "" );
   // CMS_lumi( (TPad*) gPad, 103, iPos, "" );
   
   c1->cd();
@@ -1333,12 +1841,14 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   cout << "Closed " << texname << endl;
 }
 
-void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst, const char* collName) {
+void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst_low, map<anabin, syst> gsyst_high, const char* collName) {
   setTDRStyle();
   
   const char* ylabel = "";
   TString scollName(collName);
   bool isPP = scollName.Contains("pp");
+  
+  int intervals2Plot = theGraphs.size();
   
   vector<anabin> theCats;
   
@@ -1347,34 +1857,61 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
   
   // in the case of the centrality dependence, we need the minimum bias panel on the right
   // the axes
-  TH1F *haxes=NULL;
+  TH1F *haxes=NULL; TLine line;
   if (xaxis=="pt") {
-    ylabel = "B #times d#sigma/dp_{T} (#mub / GeV/#it{c})";
-    haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0,is16004 ? 30 : 50);
+    if (scollName.Contains("pp")) ylabel = Form("#bf{#it{#Beta}} #times d%s#sigma/dp_{T}%s (nb / GeV/#it{c})",intervals2Plot>1 ? "^{2}" : "",intervals2Plot>1 ? "dy" : "");
+    else ylabel = Form("#bf{#it{#Beta}} #times (1/T_{AA}) #times d%sN/dp_{T}%s (nb / GeV/#it{c})",intervals2Plot>1 ? "^{2}" : "",intervals2Plot>1 ? "dy" : "");
+//    if (scollName.Contains("pp")) ylabel = "#bf{#it{#Beta}} #times d#sigma/dp_{T} (nb / GeV/#it{c})";
+//    else ylabel = "#bf{#it{#Beta}} #times (1/T_{AA}) #times dN/dp_{T} (nb / GeV/#it{c})";
+
+    if (intervals2Plot != 1) {
+      haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0, 30);
+      line = TLine(doLogPt ? 3 : 0, 1, 30, 1);
+    } else {
+      haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0,is16004 ? 30 : 50);
+      line = TLine(doLogPt ? 3 : 0,1,is16004 ? 30 : 50,1);
+    }
+
     if (doLogPt) c1->SetLogx();
+    haxes->GetYaxis()->SetRangeUser(0.0001,5E2);
+    
+    c1->SetLogy();
   }
   if (xaxis=="rap") {
     //    ylabel = "B #cdot #frac{d#sigma}{d#it{y}} (#mu b)";
-    ylabel = "B #times d#sigma/d#it{y} (#mub)";
+    if (scollName.Contains("pp")) ylabel = "#bf{#it{#Beta}} #times d#sigma/d#it{y} (nb)";
+    else ylabel = "#bf{#it{#Beta}} #times (1/T_{AA}) #times d#sigma/d#it{y} (nb)";
+//    if (scollName.Contains("pp")) ylabel = "#bf{#it{#Beta}} #times d#sigma/d#it{y} (nb)";
+//    else ylabel = "#bf{#it{#Beta}} #times (1/T_{AA}) #times d#sigma/d#it{y} (nb)";
+    
+//    c1->SetLogy();
+
     haxes = new TH1F("haxes","haxes",1,0,2.4);
+    haxes->GetYaxis()->SetRangeUser(0.001, 1);
+//    haxes->GetYaxis()->SetRangeUser(0.001,scollName.Contains("pp") ? 1 : 0.4);
+    haxes->GetXaxis()->SetNdivisions(306,false);
   }
   if (xaxis=="cent") {
     cout << "ERROR centrality plots are not implemented for cross section" << endl;
     return;
   }
-  haxes->GetYaxis()->SetRangeUser(0.0000001,100);
-  c1->SetLogy();
+  
   haxes->GetYaxis()->SetTitle(ylabel);
-  //  haxes->GetYaxis()->SetTitleSize(0.05);
+  haxes->GetYaxis()->SetTitleSize(0.055);
+  haxes->GetYaxis()->SetTitleOffset(1.35);
   const char* xlabel = (xaxis=="pt") ? "p_{T} (GeV/c)" : "|y|";
   haxes->GetXaxis()->SetTitle(xlabel);
+  haxes->GetXaxis()->CenterTitle(true);
   haxes->Draw();
   
-  double xshift=0.;
+  double xshift=0.025;
   //  if (xaxis=="cent") xshift=0.05;
-  TLegend *tleg = new TLegend(0.16+xshift,0.73,0.50,0.89);
+  TLegend *tleg = new TLegend(0.20,0.17,0.50,0.33);
+  //TLegend *tleg = new TLegend(0.16+xshift,0.67,0.50,0.83);
+  tleg->SetFillStyle(0);
   tleg->SetBorderSize(0);
-  tleg->SetTextSize(0.03);
+  tleg->SetTextSize(0.037);
+  tleg->SetTextFont(42);
   
   // prepare for the printing of the result tables
   const char* xname = xaxis=="pt" ? "\\pt" : "$|y|$";
@@ -1399,7 +1936,11 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
     tg->SetLineColor(color(cnt));
     tg_syst->SetLineColor(color(cnt));
     tg_syst->SetFillColorAlpha(color(cnt)-11, 1);
-    tg->SetMarkerSize(1.5);
+//    tg->SetMarkerSize(1.5);
+    if (markerstyle(cnt) == kFullStar) tg->SetMarkerSize(2.3);
+    else if (markerstyle(cnt) == kFullDiamond) tg->SetMarkerSize(2.2);
+    else if (markerstyle(cnt) == kFullCross) tg->SetMarkerSize(2.0);
+    else tg->SetMarkerSize(1.5);
     tg->SetLineWidth(tg->GetLineWidth()*2);
     
     tg_syst->Draw("5");
@@ -1407,12 +1948,62 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
     tg->Draw("P");
     // tg->Draw("[]");
     
-    TString raplabel = Form("%.1f < |y| < %.1f, ",it->first.rapbin().low(),it->first.rapbin().high());
-    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
-    TString otherlabel = "";
-    if (xaxis == "pt") otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
-    if (xaxis == "cent" || xaxis == "rap") otherlabel.Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
-    tleg->AddEntry(tg, (raplabel + otherlabel), "p");
+    
+//    TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
+//    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
+//    TString ptlabel = Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+//    TString centlabel = Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//    
+//    if (xaxis == "pt")
+//    {
+//      if (isPP) tleg->AddEntry(tg, raplabel, "p");
+//      else tleg->AddEntry(tg, Form("%s, %s",raplabel.Data(),centlabel.Data()), "p");
+//    }
+//    if (xaxis == "cent") tleg->AddEntry(tg, Form("%s, %s",raplabel.Data(),ptlabel.Data()), "p");
+//    if (xaxis == "rap")
+//    {
+//      if (isPP) tleg->AddEntry(tg, ptlabel, "p");
+//      else tleg->AddEntry(tg, Form("%s, %s",ptlabel.Data(),centlabel.Data()), "p");
+//    }
+    
+    TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
+    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f",it->first.rapbin().high());
+    TString ptlabel = Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+    TString centlabel = Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+    
+    TLatex tl;
+    double tlx = 0.92;
+    double tly = isPP ? 0.59 : 0.57; //0.69;
+    tl.SetTextAlign(32); // right adjusted
+    tl.SetTextFont(42); // consistent font for symbol and plain text
+    tl.SetTextSize(0.037); 
+
+    if (xaxis == "pt")
+    {
+      if (intervals2Plot > 3) tleg->AddEntry(tg, raplabel, "p");
+      else if (intervals2Plot == 3) tleg->AddEntry(tg, Form("Cent. %s",centlabel.Data()), "p");
+      else if (isPP) tl.DrawLatexNDC(tlx,tly,raplabel.Data());
+      else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",raplabel.Data(),centlabel.Data()));
+    }
+    if (xaxis == "cent")
+    {
+      if (intervals2Plot > 3 ) tleg->AddEntry(tg, raplabel, "p");
+      else if (intervals2Plot == 2) tleg->AddEntry(tg, ptlabel, "p");
+      else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()));
+    }
+    if (xaxis == "rap")
+    {
+      if (intervals2Plot > 3) tleg->AddEntry(tg, ptlabel, "p");
+      else if (isPP) tl.DrawLatexNDC(tlx,tly,ptlabel.Data());
+      else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",ptlabel.Data(),centlabel.Data()));
+    }
+//    TString raplabel = Form("%.1f < |y| < %.1f, ",it->first.rapbin().low(),it->first.rapbin().high());
+//    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
+//    TString otherlabel = "";
+//    if (xaxis == "pt") otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//    if (xaxis == "cent") otherlabel.Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+//    if (xaxis == "rap") otherlabel.Form("%g < p_{T} < %g GeV/c, %i-%i%s",it->first.ptbin().low(), it->first.ptbin().high(),(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//    tleg->AddEntry(tg, (xaxis == "rap") ? otherlabel : (raplabel + otherlabel), "p");
     
     // print tex
     ostringstream oss;
@@ -1425,7 +2016,7 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
     
     // in the case where the centrality dependence is plotted: treat the PP uncertainties as global systematics
     // if (xaxis == "cent") {
-    double x, dx, y, dy;
+    double x, dx, y, dy_low, dy_high;
     if (xaxis=="pt") {
       dx = 1.25;
     } else if (xaxis=="rap") {
@@ -1438,8 +2029,10 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
                      it->first.ptbin().low(),
                      it->first.ptbin().high(),
                      0,200);
-    //    dy = gsyst[thebinglb].value;
-    //    cout << "global syst: " << dy << endl;
+    dy_low = gsyst_low[thebinglb].value;
+    dy_high = gsyst_high[thebinglb].value;
+    cout << "global syst: " << "+" << dy_high << " -" << dy_low << endl;
+    
     //    TBox *tbox = new TBox(x-dx,y-dy,x+dx,y+dy);
     //    tbox->SetFillColorAlpha(color(cnt)-11, 1);
     //    tbox->SetLineColor(color(cnt));
@@ -1456,12 +2049,57 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
   
   tleg->Draw();
   
+  
+  if(xaxis!="cent" && intervals2Plot > 3 && !isPP)
+  {
+    TLatex *tex = new TLatex(0.22,0.35,"Cent. 0-100%");
+    tex->SetNDC();
+    tex->SetTextSize(0.037);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+  }
+  if(xaxis=="cent" && intervals2Plot == 2)
+  {
+    TLatex *tex = new TLatex(0.22,0.35,"1.8 < |y| < 2.4");
+    tex->SetNDC();
+    tex->SetTextSize(0.037);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+  }
+  if(xaxis=="cent" && intervals2Plot > 3)
+  {
+    TLatex *tex = new TLatex(0.22,0.35,"6.5 < p_{T} < 50 GeV/c");
+    tex->SetNDC();
+    tex->SetTextSize(0.037);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+  }
+  if(xaxis=="pt" && intervals2Plot == 3)
+  {
+    TLatex *tex = new TLatex(0.22,0.35,"|y| < 2.4");
+    tex->SetNDC();
+    tex->SetTextSize(0.037);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+  }
+
+  
+  
   TLatex tl;
-  double tlx = 0.92;
+  double tlx = 0.92; // position for the default font + right adjust
   double tly = 0.69;
   tl.SetTextAlign(32); // right adjusted
+  tl.SetTextFont(42); // consistent font for symbol and plain text
   if (doprompt) tl.DrawLatexNDC(tlx,tly,"Prompt J/#psi");
   if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
+  
+//  TLatex t2;
+//  t2.SetTextAlign(32); // right adjusted
+//  tl.DrawLatexNDC(tlx,tly+0.1,Form("Global unc. : +%.1%f-%.1%f",dy_high,dy_low));
   
   int iPos = 33;
   CMS_lumi( (TPad*) gPad, isPP ? 107 : 108, iPos, "" );
@@ -1489,9 +2127,11 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
 void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, const char* collName) {
   setTDRStyle();
   
-  const char* ylabel = "non prompt fraction";
+  const char* ylabel = "Nonprompt fraction";
   TString scollName(collName);
   bool isPP = scollName.Contains("pp");
+  
+  int intervals2Plot = theGraphs.size();
   
   vector<anabin> theCats;
   
@@ -1500,30 +2140,41 @@ void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
   
   // in the case of the centrality dependence, we need the minimum bias panel on the right
   // the axes
-  TH1F *haxes=NULL;
+  TH1F *haxes=NULL; TLine line;
   if (xaxis=="pt") {
-    haxes = new TH1F("haxes","haxes",1,0,50);
-    haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0,is16004 ? 30 : 50);
+    if (intervals2Plot != 1) {
+      haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0, 30);
+      line = TLine(doLogPt ? 3 : 0, 1, 30, 1);
+    } else {
+      haxes = new TH1F("haxes","haxes",1,doLogPt ? 3 : 0,is16004 ? 30 : 50);
+      line = TLine(doLogPt ? 3 : 0,1,is16004 ? 30 : 50,1);
+    }
     if (doLogPt) c1->SetLogx();
   }
   if (xaxis=="rap") {
     haxes = new TH1F("haxes","haxes",1,0,2.4);
+    haxes->GetXaxis()->SetNdivisions(306,false);
   }
   if (xaxis=="cent") {
     haxes = new TH1F("haxes","haxes",1,0,420);
     haxes->GetXaxis()->SetTickLength(gStyle->GetTickLength("X"));
   }
-  haxes->GetYaxis()->SetRangeUser(0,0.8);
+  haxes->GetYaxis()->SetRangeUser(0,0.9);
   haxes->GetYaxis()->SetTitle(ylabel);
   const char* xlabel = (xaxis=="pt") ? "p_{T} (GeV/c)" : ((xaxis=="rap") ? "|y|" : "N_{part}");
   haxes->GetXaxis()->SetTitle(xlabel);
+  haxes->GetXaxis()->CenterTitle(true);
   haxes->Draw();
   
-  double xshift=0.;
-  if (xaxis=="cent") xshift=0.05;
-  TLegend *tleg = new TLegend(0.16+xshift,0.73,0.50,0.89);
+  double xshift=0.025;
+  //  if (xaxis=="cent") xshift=0.05;
+  TLegend *tleg;
+  if(xaxis=="cent" && intervals2Plot == 2) tleg = new TLegend(0.21,0.20,0.50,0.36);
+  else tleg = new TLegend(0.16+xshift,0.67,0.50,0.83);
+  tleg->SetFillStyle(0);
   tleg->SetBorderSize(0);
-  tleg->SetTextSize(0.03);
+  tleg->SetTextSize(0.037);
+  tleg->SetTextFont(42);
   
   // prepare for the printing of the result tables
   const char* xname = (xaxis=="cent") ? "Centrality" : (xaxis=="pt" ? "\\pt" : "$|y|$");
@@ -1590,7 +2241,10 @@ void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
           tg->SetLineColor(13+cnt);
           tg_syst->SetLineColor(13+cnt);
           tg_syst->SetFillColorAlpha(13+cnt, 0.5);
-          tg->SetMarkerSize(1.5);
+          if (markerstyle(cnt+4) == kFullStar) tg->SetMarkerSize(2.3);
+          else if (markerstyle(cnt+4) == kFullDiamond) tg->SetMarkerSize(2.2);
+          else if (markerstyle(cnt+4) == kFullCross) tg->SetMarkerSize(2.0);
+          else tg->SetMarkerSize(1.5);
           tg->SetLineWidth(tg->GetLineWidth()*2);
           
           if (xaxis=="cent") {
@@ -1602,7 +2256,7 @@ void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
           tg->Draw("P");
           // tg->Draw("[]");
           
-          TString raplabel = Form("%.1f < |y| < %.1f, ",it->first.rapbin().low(),it->first.rapbin().high());
+          TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
           if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
           TString otherlabel = "";
           if (xaxis == "pt") otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
@@ -1643,7 +2297,10 @@ void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
     tg->SetLineColor(color(cnt));
     tg_syst->SetLineColor(color(cnt));
     tg_syst->SetFillColorAlpha(color(cnt)-11, 1);
-    tg->SetMarkerSize(1.5);
+    if (markerstyle(cnt) == kFullStar) tg->SetMarkerSize(2.3);
+    else if (markerstyle(cnt) == kFullDiamond) tg->SetMarkerSize(2.2);
+    else if (markerstyle(cnt) == kFullCross) tg->SetMarkerSize(2.0);
+    else tg->SetMarkerSize(1.5);
     tg->SetLineWidth(tg->GetLineWidth()*2);
     
     if (xaxis=="cent") {
@@ -1655,12 +2312,61 @@ void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
     tg->Draw("P");
     // tg->Draw("[]");
     
-    TString raplabel = Form("%.1f < |y| < %.1f, ",it->first.rapbin().low(),it->first.rapbin().high());
-    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
-    TString otherlabel = "";
-    if (xaxis == "pt") otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
-    if (xaxis == "cent" || xaxis == "rap") otherlabel.Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
-    tleg->AddEntry(tg, (raplabel + otherlabel), "p");
+//    TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
+//    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f, ",it->first.rapbin().high());
+//    TString ptlabel = Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+//    TString centlabel = Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//    
+//    if (xaxis == "pt")
+//    {
+//      if (isPP) tleg->AddEntry(tg, raplabel, "p");
+//      else tleg->AddEntry(tg, Form("%s, %s",raplabel.Data(),centlabel.Data()), "p");
+//    }
+//    if (xaxis == "cent") tleg->AddEntry(tg, Form("%s, %s",raplabel.Data(),ptlabel.Data()), "p");
+//    if (xaxis == "rap")
+//    {
+//      if (isPP) tleg->AddEntry(tg, ptlabel, "p");
+//      else tleg->AddEntry(tg, Form("%s, %s",ptlabel.Data(),centlabel.Data()), "p");
+//    }
+
+    
+    TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
+    if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f",it->first.rapbin().high());
+    TString ptlabel = Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+    TString centlabel = Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+    
+    TLatex tl;
+    double tlx = 0.20;
+    double tly = 0.80; //0.69;
+    tl.SetTextSize(0.037);
+    tl.SetTextFont(42); // consistent font for symbol and plain text
+
+    if (xaxis == "pt")
+    {
+      if (intervals2Plot > 3) tleg->AddEntry(tg, raplabel, "p");
+      else if (intervals2Plot == 3) tleg->AddEntry(tg, Form("Cent. %s",centlabel.Data()), "p");
+      else if (isPP) tl.DrawLatexNDC(tlx,tly,raplabel.Data());
+      else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",raplabel.Data(),centlabel.Data()));
+    }
+    if (xaxis == "cent")
+    {
+      if (intervals2Plot > 3 ) tleg->AddEntry(tg, raplabel, "p");
+      else if (intervals2Plot == 2) tleg->AddEntry(tg, ptlabel, "p");
+      else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()));
+    }
+    if (xaxis == "rap")
+    {
+      if (intervals2Plot > 3) tleg->AddEntry(tg, ptlabel, "p");
+      else if (isPP) tl.DrawLatexNDC(tlx,tly, ptlabel.Data());
+      else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",ptlabel.Data(),centlabel.Data()));
+    }
+    
+    
+//    TString otherlabel = "";
+//    if (xaxis == "pt" && !isPP) otherlabel.Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//    if (xaxis == "cent") otherlabel.Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+//    if (xaxis == "rap") otherlabel.Form("%g < p_{T} < %g GeV/c, %i-%i%s",it->first.ptbin().low(), it->first.ptbin().high(),(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+//    tleg->AddEntry(tg, (xaxis == "rap") ? otherlabel : (raplabel + otherlabel), "p");
     
     // print tex
     ostringstream oss;
@@ -1704,10 +2410,48 @@ void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
   
   tleg->Draw();
   
+  if(xaxis!="cent" && intervals2Plot > 3 && !isPP)
+  {
+    TLatex *tex = new TLatex(0.20,0.86,"Cent. 0-100%");
+    tex->SetNDC();
+    tex->SetTextSize(0.037);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+  }
+  if(xaxis=="cent" && intervals2Plot == 2)
+  {
+    TLatex *tex = new TLatex(0.20,0.86,"1.8 < |y| < 2.4");
+    tex->SetNDC();
+    tex->SetTextSize(0.037);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+  }
+  if(xaxis=="cent" && intervals2Plot > 3)
+  {
+    TLatex *tex = new TLatex(0.20,0.86,"6.5 < p_{T} < 50 GeV/c");
+    tex->SetNDC();
+    tex->SetTextSize(0.037);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+  }
+  if(xaxis=="pt" && intervals2Plot == 3)
+  {
+    TLatex *tex = new TLatex(0.20,0.86,"|y| < 2.4");
+    tex->SetNDC();
+    tex->SetTextSize(0.037);
+    tex->SetTextFont(42);
+    tex->SetLineWidth(2);
+    tex->Draw();
+  }
+  
   //  TLatex tl;
   //  double tlx = 0.92;
   //  double tly = 0.69;
   //  tl.SetTextAlign(32); // right adjusted
+  //  tl.SetTextFont(42); // consistent font for symbol and plain text
   //  if (doprompt) tl.DrawLatexNDC(tlx,tly,"Prompt J/#psi");
   //  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
   
@@ -1753,7 +2497,7 @@ void centrality2npart(TGraphAsymmErrors* tg, bool issyst, double xshift) {
         exh = exl;
       }
       x = HI::findNpartAverage(2.*(x-exlC),2.*(x+exhC));
-      tg->SetPoint(i,x,y);
+      tg->SetPoint(i,x+xshift,y);
       tg->SetPointError(i,exl,exh,eyl,eyh);
     }
     else
@@ -1779,18 +2523,26 @@ int markerstyle(int i) {
   else if (i==1) return kFullCircle;
   else if (i==2) return kFullStar;
   else if (i==3) return kFullCross;
-  else if (i==4) return kOpenSquare;
-  else if (i==5) return kOpenCircle;
-  else if (i==6) return kOpenStar;
+  else if (i==4) return kFullDiamond;
+  else if (i==5) return kOpenSquare;
+  else if (i==6) return kOpenCircle;
+  else if (i==7) return kOpenStar;
+  else if (i==8) return kFullTriangleDown;
   else return kOpenCross;
 }
 
-void setOptions(bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, string anameTag_base) {
+void setOptions(bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base) {
   doprompt = adoprompt;
   dononprompt = adononprompt;
   is16004 = ais16004;
-  aplotPsi2S = plotPsi2S;
+  plotPsi2S = aplotPsi2S;
   plot14005 = aplot14005;
+  applyEff = aapplyEff;
+  applyAcc = aapplyAcc;
+  doLogPt = adoLogPt;
+  includeEffSyst = aincludeEffSyst;
+  excludeNonFitSyst = aexcludeNonFitSyst;
+  
   nameTag_base = anameTag_base;
   
   if (plotPsi2S && !is16004)
@@ -1814,6 +2566,11 @@ void printOptions() {
   "is16004 = " << is16004 << ", " <<
   "plotPsi2S = " << plotPsi2S << ", " <<
   "plot14005 = " << plot14005 << ", " <<
+  "applyEff = " << applyEff << ", " <<
+  "applyAcc = " << applyAcc << ", " <<
+  "doLogPt = " << doLogPt << ", " <<
+  "includeEffSyst = " << includeEffSyst << ", " <<
+  "excludeNonFitSyst = " << excludeNonFitSyst << ", " <<
   "nameTag_base = \"" << nameTag_base << "\"" <<
   endl;
 }

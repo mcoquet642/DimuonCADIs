@@ -132,6 +132,7 @@ set<anabin> allbins() {
    ans.insert(anabin(0.6,1.2,6.5,50,0,200));
    ans.insert(anabin(1.2,1.8,6.5,50,0,200));
    ans.insert(anabin(1.8,2.4,6.5,50,0,200));
+   ans.insert(anabin(0.0,2.4,6.5,50,0,200));
 
 
    // pt dependence
@@ -143,9 +144,12 @@ set<anabin> allbins() {
    ans.insert(anabin(0,2.4,9.5,11,0,200));
    ans.insert(anabin(0,2.4,11,13,0,200));
    ans.insert(anabin(0,2.4,13,15,0,200));
-   ans.insert(anabin(0,2.4,15,20,0,200));
-   ans.insert(anabin(0,2.4,20,30,0,200));
-   ans.insert(anabin(0,2.4,30,50,0,200));
+   ans.insert(anabin(0,2.4,15,17.5,0,200));
+   ans.insert(anabin(0,2.4,17.5,20,0,200));
+   ans.insert(anabin(0,2.4,20,25,0,200));
+   ans.insert(anabin(0,2.4,25,30,0,200));
+   ans.insert(anabin(0,2.4,30,35,0,200));
+   ans.insert(anabin(0,2.4,35,50,0,200));
 
    // 4 rapidity intervals
    // |y|<0.6
@@ -153,20 +157,26 @@ set<anabin> allbins() {
    ans.insert(anabin(0,0.6,8.5,9.5,0,200));
    ans.insert(anabin(0,0.6,9.5,11,0,200));
    ans.insert(anabin(0,0.6,11,15,0,200));
-   ans.insert(anabin(0,0.6,15,50,0,200));
+   ans.insert(anabin(0,0.6,15,20,0,200));
+   ans.insert(anabin(0,0.6,20,30,0,200));
+//   ans.insert(anabin(0,0.6,30,50,0,200));
    // 0.6<|y|<1.2
    ans.insert(anabin(0.6,1.2,6.5,8.5,0,200));
    ans.insert(anabin(0.6,1.2,8.5,9.5,0,200));
    ans.insert(anabin(0.6,1.2,9.5,11,0,200));
    ans.insert(anabin(0.6,1.2,11,15,0,200));
-   ans.insert(anabin(0.6,1.2,15,50,0,200));
+   ans.insert(anabin(0.6,1.2,15,20,0,200));
+   ans.insert(anabin(0.6,1.2,20,30,0,200));
+//   ans.insert(anabin(0.6,1.2,30,50,0,200));
    // 0.6<|y|<1.8
    ans.insert(anabin(1.2,1.8,6.5,7.5,0,200));
    ans.insert(anabin(1.2,1.8,7.5,8.5,0,200));
    ans.insert(anabin(1.2,1.8,8.5,9.5,0,200));
    ans.insert(anabin(1.2,1.8,9.5,11,0,200));
    ans.insert(anabin(1.2,1.8,11,15,0,200));
-   ans.insert(anabin(1.2,1.8,15,50,0,200));
+   ans.insert(anabin(1.2,1.8,15,20,0,200));
+   ans.insert(anabin(1.2,1.8,20,30,0,200));
+//   ans.insert(anabin(1.2,1.8,30,50,0,200));
    // 1.8<|y|<2.4
    ans.insert(anabin(1.8,2.4,3.0,4.5,0,200));
    ans.insert(anabin(1.8,2.4,4.5,5.5,0,200));
@@ -176,7 +186,9 @@ set<anabin> allbins() {
    ans.insert(anabin(1.8,2.4,8.5,9.5,0,200));
    ans.insert(anabin(1.8,2.4,9.5,11,0,200));
    ans.insert(anabin(1.8,2.4,11,15,0,200));
-   ans.insert(anabin(1.8,2.4,15,50,0,200));
+   ans.insert(anabin(1.8,2.4,15,20,0,200));
+   ans.insert(anabin(1.8,2.4,20,30,0,200));
+//   ans.insert(anabin(1.8,2.4,30,50,0,200));
 
    // 3 centrality intervals
    // 0-10%
@@ -187,7 +199,8 @@ set<anabin> allbins() {
    ans.insert(anabin(0,2.4,11,13,0,20));
    ans.insert(anabin(0,2.4,13,15,0,20));
    ans.insert(anabin(0,2.4,15,20,0,20));
-   ans.insert(anabin(0,2.4,20,50,0,20));
+   ans.insert(anabin(0,2.4,20,30,0,20));
+//   ans.insert(anabin(0,2.4,30,50,0,20));
    // 10-30%
    ans.insert(anabin(0,2.4,6.5,7.5,20,60));
    ans.insert(anabin(0,2.4,7.5,8.5,20,60));
@@ -196,7 +209,8 @@ set<anabin> allbins() {
    ans.insert(anabin(0,2.4,11,13,20,60));
    ans.insert(anabin(0,2.4,13,15,20,60));
    ans.insert(anabin(0,2.4,15,20,20,60));
-   ans.insert(anabin(0,2.4,20,50,20,60));
+   ans.insert(anabin(0,2.4,20,30,20,60));
+//   ans.insert(anabin(0,2.4,30,50,20,60));
    // 30-100%
    ans.insert(anabin(0,2.4,6.5,7.5,60,200));
    ans.insert(anabin(0,2.4,7.5,8.5,60,200));
@@ -205,7 +219,8 @@ set<anabin> allbins() {
    ans.insert(anabin(0,2.4,11,13,60,200));
    ans.insert(anabin(0,2.4,13,15,60,200));
    ans.insert(anabin(0,2.4,15,20,60,200));
-   ans.insert(anabin(0,2.4,20,50,60,200));
+   ans.insert(anabin(0,2.4,20,30,60,200));
+//   ans.insert(anabin(0,2.4,30,50,60,200));
    // 0-100% (for pp)
    ans.insert(anabin(0,2.4,6.5,7.5,0,200));
    ans.insert(anabin(0,2.4,7.5,8.5,0,200));
@@ -213,8 +228,12 @@ set<anabin> allbins() {
    ans.insert(anabin(0,2.4,9.5,11,0,200));
    ans.insert(anabin(0,2.4,11,13,0,200));
    ans.insert(anabin(0,2.4,13,15,0,200));
-   ans.insert(anabin(0,2.4,15,20,0,200));
-   ans.insert(anabin(0,2.4,20,50,0,200));
+   ans.insert(anabin(0,2.4,15,17.5,0,200));
+   ans.insert(anabin(0,2.4,17.5,20,0,200));
+   ans.insert(anabin(0,2.4,20,25,0,200));
+   ans.insert(anabin(0,2.4,25,30,0,200));
+   ans.insert(anabin(0,2.4,30,35,0,200));
+   ans.insert(anabin(0,2.4,35,50,0,200));
 
    // rapidity dependence
    ans.insert(anabin(0.0,0.4,6.5,50,0,200));

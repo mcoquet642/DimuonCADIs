@@ -131,9 +131,24 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label )
       // lumiText += ", ";
       // lumiText += lumi_pp2015;
       // lumiText2 += " #sqrt{s_{NN}} = 5.02 TeV";
-      lumiText2 += lumi_PbPb2015 + ", ";
+      
+      lumiText2 += lumi_PbPb2015_OR + ", ";
       lumiText2 += lumi_pp2015 + " (5.02 TeV)";
     }
+  else if (iPeriod==1061)
+  {
+    // lumiText += lumi_PbPb2015;
+    // lumiText += ", ";
+    // lumiText += lumi_pp2015;
+    // lumiText2 += " #sqrt{s_{NN}} = 5.02 TeV";
+    
+    //      lumiText2 += lumi_PbPb2015 + ", ";
+    //      lumiText2 += lumi_pp2015 + " (5.02 TeV)";
+    
+    lumiText2 += "PbPb " + lumi_PbPb2015_OR_P + " (<30%) / " + lumi_PbPb2015_Peri_P + " (>30%)" + " #mub^{-1}, ";
+    lumiText2 += lumi_pp2015 + " (5.02 TeV)";
+  }
+
   else if (iPeriod==107)
     {
       // lumiText += lumi_pp2015;
@@ -144,7 +159,7 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label )
     {
       // lumiText += lumi_PbPb2015;
       // lumiText2 += " #sqrt{s_{NN}} = 5.02 TeV";
-      lumiText2 += lumi_PbPb2015 + " (5.02 TeV)";
+      lumiText2 += lumi_PbPb2015_OR + " (5.02 TeV)";
     }
    
   cout << lumiText << endl;
@@ -158,7 +173,8 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label )
 
   latex.SetTextFont(42);
   latex.SetTextAlign(31); 
-  latex.SetTextSize(lumiTextSize*t);    
+  if(iPeriod==1061) latex.SetTextSize(lumiTextSize*t/1.2);
+  else latex.SetTextSize(lumiTextSize*t);
   latex.DrawLatex(1-r,1-t+lumiTextOffset*t,lumiText2);
   // latex.DrawLatex(1-r,1-t+lumiTextOffset*t,lumiText);
   latex.SetTextAlign(11); 

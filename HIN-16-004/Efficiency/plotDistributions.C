@@ -37,7 +37,7 @@ const char* poiname       = "N_Jpsi";
 bool  fiterrors     = true;  // statistical errors are from the fit
 bool  doprompt      = true;  // prompt Jpsi
 bool  dononprompt   = false;  // nonprompt Jpsi
-string nameTag_base = "_data";    // can put here e.g. "_data", "_mc", ...
+string nameTag_base = "_mc";    // can put here e.g. "_data", "_mc", ...
 
 //////////////////
 // DECLARATIONS //
