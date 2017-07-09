@@ -144,6 +144,8 @@ map<anabin, syst> readSyst_all(const char* collSystem, const char* poiname, cons
      filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PbPb_sta_syst.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PbPb_trg_syst.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PbPb_trg_binned.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PbPb_acc.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PbPb_eff.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
 //     filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PbPb_trk_syst.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
     
      
@@ -163,6 +165,8 @@ map<anabin, syst> readSyst_all(const char* collSystem, const char* poiname, cons
      filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PP_sta_syst.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PP_trg_syst.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PP_trg_binned.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PP_acc.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PP_eff.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
 //     filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PP_trk_syst.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
    }
   
