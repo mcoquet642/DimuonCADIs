@@ -49,6 +49,7 @@ bool  applyAcc      = true;
 bool  doLogPt       = false;
 bool  includeEffSyst = true;
 bool  excludeNonFitSyst = false;
+bool  plotFwdMid    = false;
 string nameTag_base = "_prompt";    // can put here e.g. "_prompt", "_nonprompt", ...
 
 const bool useNcoll = false; // false -> use TAA / NMB, true -> use Ncoll / lumiPbPb
@@ -58,7 +59,7 @@ const bool useNcoll = false; // false -> use TAA / NMB, true -> use Ncoll / lumi
 //////////////////
 
 void printOptions();
-void setOptions(bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base="");
+void setOptions(bool adoprompt, bool adononprompt, bool aplotFwdMid, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base="");
 void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst_low, map<anabin, syst> gsyst_high);
 void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAsymmErrors*> theGraphs_syst, string xaxis, string outputDir, map<anabin, syst> gsyst_low, map<anabin, syst> gsyst_high, const char* collName);
 void plotCombGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs_pp, map<anabin, TGraphAsymmErrors*> theGraphs_syst_pp, map<anabin, TGraphAsymmErrors*> theGraphs_pbpb, map<anabin, TGraphAsymmErrors*> theGraphs_syst_pbpb, string xaxis, string outputDir, map<anabin, syst> gsyst_low_pp, map<anabin, syst> gsyst_high_pp, map<anabin, syst> gsyst_low_pbpb, map<anabin, syst> gsyst_high_pbpb, const char* collName="PPandPbPb");
@@ -247,51 +248,61 @@ void plotAll(string workDirName, string poiname) {
 };
 
 void doAllplots(bool is16004=false) {
-  //bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base=""
+  //bool adoprompt, bool adononprompt, bool aplotFwdMid, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base=""
   
   if (!is16004)
   {
     // pr J/psi
     // noCorr with fitSyst
-    setOptions(true,false,false,false,false,false,false,false,true,false);
+    setOptions(true,false,false,false,false,false,false,false,false,true,false);
     printOptions();
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","XS");
     
     // accEffCorr with all syst
-    setOptions(true,false,false,false,false,true,true,false,true,false);
+    setOptions(true,false,false,false,false,false,true,true,false,true,false);
     printOptions();
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","XS");
     
-    setOptions(true,false,false,false,true,true,true,false,true,false);
+    setOptions(true,false,false,false,false,true,true,true,false,true,false);
     printOptions();
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA"); // Comparison with 2.76
     
+    // accEffCorr only 2 rap ranges
+    setOptions(true,false,true,false,false,false,true,true,false,true,false);
+    printOptions();
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
+    
     // np J/psi
     // noCorr with fitSyst
-    setOptions(false,true,false,false,false,false,false,false,true,false);
+    setOptions(false,true,false,false,false,false,false,false,false,true,false);
     printOptions();
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","XS");
     
     // accEffCorr with all syst -> Systematics on POINTS are not working for RAA vs. pT and |y|
-    setOptions(false,true,false,false,false,true,true,false,true,false);
+    setOptions(false,true,false,false,false,false,true,true,false,true,false);
     printOptions();
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","XS");
    
-    setOptions(false,true,false,false,true,true,true,false,true,false);
+    setOptions(false,true,false,false,false,true,true,true,false,true,false);
     printOptions();
       plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA"); // Comparison with 2.76
+    
+    // accEffCorr only 2 rap ranges
+    setOptions(false,true,true,false,false,false,true,true,false,true,false);
+    printOptions();
+    plotAll("DataFits_16025_2D_2CB_polBkg_nominal","RAA");
 
     
     // noCorr with fitSyst
-    setOptions(false,false,false,false,false,false,false,false,true,false,"");
+    setOptions(false,false,false,false,false,false,false,false,false,true,false,"");
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","BF");
     
     // accEffCorr with all syst
-    setOptions(false,false,false,false,false,true,true,false,true,false,"");
+    setOptions(false,false,false,false,false,false,true,true,false,true,false,"");
     plotAll("DataFits_16025_2D_2CB_polBkg_nominal","BF");
     
     // Tables of systematics
@@ -317,7 +328,7 @@ void doAllplots(bool is16004=false) {
 //    plotAll("DataFits_16004_2D_2CB_polBkg_nominal","RAA");
     
   //bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base=""
-    setOptions(true,false,true,true,false,true,true,false,true,false);
+    setOptions(true,false,false,true,true,false,true,true,false,true,false);
     printOptions();
     plotAll("DataFits_16004_2D_2CB_polBkg_nominal","RAA");
   }
@@ -1292,6 +1303,8 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   
   if (intervals2Plot>1 && plot14005) return;
   
+  if (plotFwdMid && intervals2Plot<=3) return;
+  
   vector<anabin> theCats;
   
   TCanvas *c1 = NULL;
@@ -1338,6 +1351,7 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   else if (xaxis=="pt" && intervals2Plot == 1 && plot14005) tleg = new TLegend(0.19,0.49,0.51,0.64);
   else if (dononprompt && intervals2Plot == 3) tleg = new TLegend(0.56,0.47,0.88,0.62);
   else if (doprompt && intervals2Plot == 3) tleg = new TLegend(0.19,0.49,0.51,0.64);
+  else if (plotFwdMid && intervals2Plot == 4) tleg = new TLegend(0.56,0.47,0.88,0.62);
   else tleg = new TLegend(0.56,0.42,0.88,0.62);
   tleg->SetBorderSize(0);
   tleg->SetFillStyle(0);
@@ -1438,8 +1452,16 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
             rightA = 420.;
           } else if (xaxis=="pt") {
             dx = 0.625;
-            if (intervals2Plot == 1) rightA = 50.;
-            else rightA = 30.;
+            if (intervals2Plot == 1)
+            {
+              rightA = 50.;
+              dx = 1.25;
+            }
+            else
+            {
+              rightA = 30.;
+              dx = 0.65;
+            }
             if (intervals2Plot == 3)
             {
               centminGlob = it->first.centbin().low();
@@ -1543,100 +1565,122 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
       }
     }
     
+    bool plot = true;
+    if (plotFwdMid && (cnt!=0 && cnt!=3)) plot = false;
+    
     // in the case where the centrality dependence is plotted: treat the PP uncertainties as global systematics
     // if (xaxis == "cent") {
-    double x(0.), dx(0.), y(0.), dy_low(0.), dy_high(0.);
-    double rightA = 0.;
-    int centminGlob(0),centmaxGlob(200);
-    if (xaxis=="cent") {
-      dx = 10;
-      rightA = 420.;
-    } else if (xaxis=="pt") {
-      dx = 0.625;
-      if (intervals2Plot == 1) rightA = 50.;
-      else rightA = 30.;
-      if (intervals2Plot == 3)
-      {
-        centminGlob = it->first.centbin().low();
-        centmaxGlob = it->first.centbin().high();
+    if (plot)
+    {
+      double x(0.), dx(0.), y(0.), dy_low(0.), dy_high(0.);
+      double rightA = 0.;
+      int centminGlob(0),centmaxGlob(200);
+      if (xaxis=="cent") {
+        dx = 10;
+        rightA = 420.;
+      } else if (xaxis=="pt") {
+        dx = 0.625;
+        if (intervals2Plot == 1)
+        {
+          rightA = 50.;
+          dx = 1.25;
+        }
+        else
+        {
+          rightA = 30.;
+          dx = 0.65;
+        }
+        if (intervals2Plot == 3)
+        {
+          centminGlob = it->first.centbin().low();
+          centmaxGlob = it->first.centbin().high();
+        }
+      } else if (xaxis=="rap") {
+        dx = 0.06;
+        rightA = 2.4;
       }
-    } else if (xaxis=="rap") {
-      dx = 0.06;
-      rightA = 2.4;
+      x = rightA - (2*dx*cnt + dx);
+      if (plotFwdMid && cnt>0) x = rightA - (2*dx + dx);
+      y = 1;
+      
+      anabin thebinglb(it->first.rapbin().low(),
+                       it->first.rapbin().high(),
+                       it->first.ptbin().low(),
+                       it->first.ptbin().high(),
+                       centminGlob,centmaxGlob);
+      thebinglb.print();
+      dy_low = gsyst_low[thebinglb].value;
+      dy_high = gsyst_high[thebinglb].value;
+      cout << "global syst: " << "+" << dy_high << " -" << dy_low << endl;
+      TBox *tbox = new TBox(x-dx,y-dy_low,x+dx,y+dy_high);
+      tbox->SetFillColorAlpha(colorF, 1);
+      tbox->SetLineColor(color(colorI));
+      tbox->Draw("l");
+      TBox *tboxl = (TBox*) tbox->Clone("tboxl");
+      tboxl->SetFillStyle(0);
+      tboxl->Draw("l");
     }
-    x = rightA - (2*dx*cnt + dx);
-    y = 1;
- 
-    anabin thebinglb(it->first.rapbin().low(),
-                     it->first.rapbin().high(),
-                     it->first.ptbin().low(),
-                     it->first.ptbin().high(),
-                     centminGlob,centmaxGlob);
-    thebinglb.print();
-    dy_low = gsyst_low[thebinglb].value;
-    dy_high = gsyst_high[thebinglb].value;
-    cout << "global syst: " << "+" << dy_high << " -" << dy_low << endl;  
-    TBox *tbox = new TBox(x-dx,y-dy_low,x+dx,y+dy_high);
-    tbox->SetFillColorAlpha(colorF, 1);
-    tbox->SetLineColor(color(colorI));
-    tbox->Draw("l");
-    TBox *tboxl = (TBox*) tbox->Clone("tboxl");
-    tboxl->SetFillStyle(0);
-    tboxl->Draw("l");
     // }
     
     // Plot graphs after uncertainties to avoid overlap
-    tg_syst->Draw("5");
-    gStyle->SetEndErrorSize(5);
-    tg->Draw("P");
-    // tg->Draw("[]");
+
+    if (plot)
+    {
+      tg_syst->Draw("5");
+      gStyle->SetEndErrorSize(5);
+      tg->Draw("P");
+      // tg->Draw("[]");
+    }
   
     TLatex tl;
     double tlx = 0.25; //0.92;
     double tly = 0.80; //0.69;
     tl.SetTextFont(42); // consistent font for symbol and plain text
 
-    if (plot14005)
+    if (plot)
     {
-      tleg->AddEntry(tg, "#sqrt[]{s_{NN}} = 5.02 TeV", "p");
-    }
-    else
-    {
-      TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
-      if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f",it->first.rapbin().high());
-      TString ptlabel = Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
-      TString centlabel = Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
-      
-      if (xaxis == "pt")
+      if (plot14005)
       {
-        if (is16004) tleg->AddEntry(tg, raplabel, "p");
-        else
-        {
-          if (intervals2Plot > 3) tleg->AddEntry(tg, raplabel, "p");
-          else if (intervals2Plot == 3) tleg->AddEntry(tg, Form("Cent. %s",centlabel.Data()), "p");
-          else if (intervals2Plot == 1) drawLegend = false;
-          else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",raplabel.Data(),centlabel.Data()));
-          //else tleg->AddEntry(tg, Form("%s, Cent. %s",raplabel.Data(),centlabel.Data()), "p");
-        }
+        tleg->AddEntry(tg, "#sqrt[]{s_{NN}} = 5.02 TeV", "p");
       }
-      if (xaxis == "cent")
+      else
       {
-        if (is16004) tleg->AddEntry(tg, Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()), "p");
-        else
+        TString raplabel = Form("%.1f < |y| < %.1f",it->first.rapbin().low(),it->first.rapbin().high());
+        if (it->first.rapbin().low()<0.1) raplabel = Form("|y| < %.1f",it->first.rapbin().high());
+        TString ptlabel = Form("%g < p_{T} < %g GeV/c",it->first.ptbin().low(), it->first.ptbin().high());
+        TString centlabel = Form("%i-%i%s",(int) (it->first.centbin().low()/2.), (int) (it->first.centbin().high()/2.), "%");
+        
+        if (xaxis == "pt")
         {
-          if (intervals2Plot > 3 ) tleg->AddEntry(tg, raplabel, "p");
-          else if (intervals2Plot == 2) tleg->AddEntry(tg, ptlabel, "p");
-          else if (intervals2Plot == 1) drawLegend = false;
-          else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()));
-          //else tleg->AddEntry(tg, Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()), "p");
+          if (is16004) tleg->AddEntry(tg, raplabel, "p");
+          else
+          {
+            if (intervals2Plot > 3) tleg->AddEntry(tg, raplabel, "p");
+            else if (intervals2Plot == 3) tleg->AddEntry(tg, Form("Cent. %s",centlabel.Data()), "p");
+            else if (intervals2Plot == 1) drawLegend = false;
+            else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",raplabel.Data(),centlabel.Data()));
+            //else tleg->AddEntry(tg, Form("%s, Cent. %s",raplabel.Data(),centlabel.Data()), "p");
+          }
         }
-      }
-      if (xaxis == "rap")
-      {
-        if (intervals2Plot > 3) tleg->AddEntry(tg, ptlabel, "p");
-        else if (intervals2Plot == 1) drawLegend = false;
-        else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",ptlabel.Data(),centlabel.Data()));
-        //else tleg->AddEntry(tg, Form("#splitline{%s}{Cent. %s}",ptlabel.Data(),centlabel.Data()), "p");
+        if (xaxis == "cent")
+        {
+          if (is16004) tleg->AddEntry(tg, Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()), "p");
+          else
+          {
+            if (intervals2Plot > 3 ) tleg->AddEntry(tg, raplabel, "p");
+            else if (intervals2Plot == 2) tleg->AddEntry(tg, ptlabel, "p");
+            else if (intervals2Plot == 1) drawLegend = false;
+            else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()));
+            //else tleg->AddEntry(tg, Form("#splitline{%s}{%s}",raplabel.Data(),ptlabel.Data()), "p");
+          }
+        }
+        if (xaxis == "rap")
+        {
+          if (intervals2Plot > 3) tleg->AddEntry(tg, ptlabel, "p");
+          else if (intervals2Plot == 1) drawLegend = false;
+          else tl.DrawLatexNDC(tlx,tly,Form("#splitline{%s}{Cent. %s}",ptlabel.Data(),centlabel.Data()));
+          //else tleg->AddEntry(tg, Form("#splitline{%s}{Cent. %s}",ptlabel.Data(),centlabel.Data()), "p");
+        }
       }
     }
     
@@ -1652,8 +1696,8 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
     
     // for the centrality dependence: we want Npart plotted, not the centrality
     if (xaxis == "cent") {
-      centrality2npart(tg, false, (intervals2Plot > 3) ? ((30./1.8)*it->first.rapbin().low()) : 0.);
-      centrality2npart(tg_syst, true, (intervals2Plot > 3) ? ((30./1.8)*it->first.rapbin().low()) : 0.);
+      centrality2npart(tg, false, (intervals2Plot > 3 && !plotFwdMid) ? ((30./1.8)*it->first.rapbin().low()) : 0.);
+      centrality2npart(tg_syst, true, (intervals2Plot > 3 && !plotFwdMid) ? ((30./1.8)*it->first.rapbin().low()) : 0.);
     }
     
     cnt++;
@@ -1765,10 +1809,11 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   double tly = 0.85; //0.69;
 //  tl.SetTextAlign(32); // right adjusted
   tl.SetTextFont(42); // consistent font for symbol and plain text
-  tl.SetTextSize(0.046); 
+  tl.SetTextSize(0.057); 
   if (doprompt) tl.DrawLatexNDC(tlx,tly,plotPsi2S ? "Prompt #psi(2S)" : "Prompt J/#psi");
   //if (doprompt) tl.DrawLatexNDC(tlx-0.08,tly,plotPsi2S ? "Prompt #psi(2S)" : "Prompt J/#psi");
   if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
+  tl.SetTextSize(0.046); 
   
   int iPos = 33;
   if (xaxis=="cent") CMS_lumi( (TPad*) gPad, 1061, iPos, "" );
@@ -1784,6 +1829,16 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   c1->SaveAs(Form("Output/%s/plot/RESULT/png/result_%s_RAA_%s%s%s_%s.png",outputDir.c_str(), plotPsi2S ? "Psi2S" : "JPsi", xaxis.c_str(), nameTag.c_str(),(xaxis=="pt") ? (doLogPt ? "_logX" :"_linearX") : "",applyEff ? (applyAcc ? "accEffCorr" : "effCorr") : "noCorr"));
   gSystem->mkdir(Form("Output/%s/plot/RESULT/pdf/", outputDir.c_str()), kTRUE);
   c1->SaveAs(Form("Output/%s/plot/RESULT/pdf/result_%s_RAA_%s%s%s_%s.pdf",outputDir.c_str(), plotPsi2S ? "Psi2S" : "JPsi", xaxis.c_str(), nameTag.c_str(),(xaxis=="pt") ? (doLogPt ? "_logX" :"_linearX") : "",applyEff ? (applyAcc ? "accEffCorr" : "effCorr") : "noCorr"));
+  
+  if (plotFwdMid)
+  {
+    gSystem->mkdir(Form("Output/%s/plot/RESULT/root/", outputDir.c_str()), kTRUE);
+    c1->SaveAs(Form("Output/%s/plot/RESULT/root/result_%s_RAA_%s%s%s_2Rapranges_%s.root",outputDir.c_str(), plotPsi2S ? "Psi2S" : "JPsi", xaxis.c_str(), nameTag.c_str(),(xaxis=="pt") ? (doLogPt ? "_logX" :"_linearX") : "",applyEff ? (applyAcc ? "accEffCorr" : "effCorr") : "noCorr"));
+    gSystem->mkdir(Form("Output/%s/plot/RESULT/png/", outputDir.c_str()), kTRUE);
+    c1->SaveAs(Form("Output/%s/plot/RESULT/png/result_%s_RAA_%s%s%s_2Rapranges_%s.png",outputDir.c_str(), plotPsi2S ? "Psi2S" : "JPsi", xaxis.c_str(), nameTag.c_str(),(xaxis=="pt") ? (doLogPt ? "_logX" :"_linearX") : "",applyEff ? (applyAcc ? "accEffCorr" : "effCorr") : "noCorr"));
+    gSystem->mkdir(Form("Output/%s/plot/RESULT/pdf/", outputDir.c_str()), kTRUE);
+    c1->SaveAs(Form("Output/%s/plot/RESULT/pdf/result_%s_RAA_%s%s%s_2Rapranges_%s.pdf",outputDir.c_str(), plotPsi2S ? "Psi2S" : "JPsi", xaxis.c_str(), nameTag.c_str(),(xaxis=="pt") ? (doLogPt ? "_logX" :"_linearX") : "",applyEff ? (applyAcc ? "accEffCorr" : "effCorr") : "noCorr"));
+  }
   
   delete tleg;
   delete haxes;
@@ -2026,9 +2081,11 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
   double tly = 0.85; //0.69;
   //  tl.SetTextAlign(32); // right adjusted
   tl.SetTextFont(42); // consistent font for symbol and plain text
-  tl.SetTextSize(0.046);
+  tl.SetTextSize(0.055);
   if (doprompt) tl.DrawLatexNDC(tlx,tly,"Prompt J/#psi");
   if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
+  tl.SetTextSize(0.046);
+  
   
 //  TLatex t2;
 //  t2.SetTextAlign(32); // right adjusted
@@ -2248,7 +2305,7 @@ void plotCombGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs_pp, map<anabin, T
   texG->Draw();
   
   TLatex *texGpbpb(0x0);
-  texGpbpb = new TLatex(xG,yG-0.07,Form("PbPb global unc. #splitline{+%1.1f %%}{-%1.1f %%}",dy_high_pbpb*100.,dy_low_pbpb*100.));
+  texGpbpb = new TLatex(xG,yG-0.07,Form("PbPb global unc. #splitline{+%1.1f %%}{#minus%1.1f %%}",dy_high_pbpb*100.,dy_low_pbpb*100.));
   texGpbpb->SetTextAlign(32);
   texGpbpb->SetNDC();
   texGpbpb->SetTextSize(0.034);
@@ -2270,12 +2327,14 @@ void plotCombGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs_pp, map<anabin, T
   double tly = 0.85; //0.69;
   //  tl.SetTextAlign(32); // right adjusted
   tl.SetTextFont(42); // consistent font for symbol and plain text
-  tl.SetTextSize(0.046);
+  tl.SetTextSize(0.055);
   t2.SetTextFont(42); // consistent font for symbol and plain text
-  t2.SetTextSize(0.046);
+  t2.SetTextSize(0.055);
   if (doprompt) tl.DrawLatexNDC(tlx,tly,"Prompt J/#psi");
   if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
   t2.DrawLatexNDC(tlx,tly-0.05,"J/#psi #rightarrow #mu^{+}#mu^{-}");
+  tl.SetTextSize(0.046);
+  t2.SetTextSize(0.046);
   
   if(xaxis=="pt")
   {
@@ -2743,9 +2802,9 @@ void centrality2npart(TGraphAsymmErrors* tg, bool issyst, double xshift) {
 int color(int i) {
   if (i==0) return kRed+2;
   else if (i==1) return kBlue+2;
-  else if (i==2) return kGreen+2;
+  else if (i==2) return kMagenta+2;
   else if (i==3) return kCyan+2;
-  else if (i==4) return kMagenta+2;
+  else if (i==4) return kGreen+2;
   else if (i==5) return kOrange+2;
   else if (i==6) return kRed+1;
   else if (i==7) return kYellow+1;
@@ -2767,9 +2826,10 @@ int markerstyle(int i) {
   else return kOpenCross;
 }
 
-void setOptions(bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base) {
+void setOptions(bool adoprompt, bool adononprompt, bool aplotFwdMid, bool ais16004, bool aplotPsi2S, bool aplot14005, bool aapplyEff, bool aapplyAcc, bool adoLogPt, bool aincludeEffSyst, bool  aexcludeNonFitSyst, string anameTag_base) {
   doprompt = adoprompt;
   dononprompt = adononprompt;
+  plotFwdMid = aplotFwdMid;
   is16004 = ais16004;
   plotPsi2S = aplotPsi2S;
   plot14005 = aplot14005;
@@ -2790,9 +2850,11 @@ void setOptions(bool adoprompt, bool adononprompt, bool ais16004, bool aplotPsi2
   if (doprompt) nameTag_base += "_prompt";
   if (dononprompt) nameTag_base += "_nonprompt";
   
-  if (aplotPsi2S) nameTag_base += "_Psi2S";
-  else nameTag_base += "_JPsi";
+//  if (aplotPsi2S) nameTag_base += "_Psi2S";
+//  else nameTag_base += "_JPsi";
   
+  if (plotFwdMid) nameTag_base += "_2RapRanges";
+    
   if (is16004)  nameTag_base += "_16004";
   if (plot14005) nameTag_base += "_14005";
 }
