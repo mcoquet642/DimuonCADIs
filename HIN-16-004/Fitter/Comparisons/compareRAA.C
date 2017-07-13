@@ -174,8 +174,8 @@ void compareRAA(
   
   // 16004 psi2S
   string psi2s_fname[2] = {
-    "./root16004/result_Psi2S_RAA_cent_prompt_Psi2S_16004_3_accEffCorr.root",
-    "./root16004/result_Psi2S_RAA_pt_prompt_Psi2S_16004_3_linearX_accEffCorr.root"
+    "./root16004/result_Psi2S_RAA_cent_prompt_16004_3_accEffCorr.root",
+    "./root16004/result_Psi2S_RAA_pt_prompt_16004_3_linearX_accEffCorr.root"
   };
   
   TFile inputf_psi2s( psi2s_fname[1].c_str() );
@@ -321,8 +321,8 @@ void compareRAA(
     leg.SetHeader("Open beauty");
     entry = leg.AddEntry((TObject*)0,"#scale[1.0]{Nonprompt J/#psi}","");
     entry = leg.AddEntry((TObject*)0,"","");
-    entry = leg.AddEntry("bin_0","#scale[0.83]{1.8 < |y| < 2.4}","p");
-    entry = leg.AddEntry("bin_lowpt","#scale[0.83]{|y| < 2.4}","p");
+    entry = leg.AddEntry("bin_lowpt","#scale[0.83]{1.8 < |y| < 2.4}","p");
+    entry = leg.AddEntry("bin_0","#scale[0.83]{|y| < 2.4}","p");
     if (compare==0) {
       entry = leg.AddEntry("BmesonRAA_cent_0_100","#scale[0.83]{B^{+}} #scale[0.75]{|y| < 2.4}, #scale[0.67]{arXiv:1705.04727}","p");
     }
@@ -338,7 +338,7 @@ void compareRAA(
   TLatex tl;
   tl.SetNDC(); tl.SetTextFont(42); tl.SetTextSize(0.044);
   tl.SetTextSize(0.037);
-  if (v2) tl.DrawLatex(0.64,0.20,"Cent. 0-100%");
+  if (v2) tl.DrawLatex(0.70,0.18,"Cent. 0-100%");
   else tl.DrawLatex(0.64,0.53,"Cent. 0-100%");
 
   CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
@@ -365,7 +365,7 @@ void compareRAA(
   TBox *box0, *box_psi2s_mid, *box_psi2s_fwd;
   double dx= (logx ? 5 : 1.25);
   if (v2) dx = 40;
-  box0 = new TBox(xpos2-dx, 0.954338, xpos2, 1.041388);
+  box0 = new TBox(xpos2-dx, Jpsi_pt_rap0024_global[0], xpos2, Jpsi_pt_rap0024_global[1]);
   box0->SetLineColor(kRed+2);
   box0->SetFillColorAlpha(kRed,0.35);
   box0->Draw("lf");
@@ -411,12 +411,12 @@ void comparePsi2SJpsi(
 
   // 16004 results
   string jpsi_fname[2] = {
-    "./root16004/result_JPsi_RAA_cent_prompt_JPsi_16004_3_accEffCorr.root",
-    "./root16004/result_JPsi_RAA_pt_prompt_JPsi_16004_3_linearX_accEffCorr.root"
+    "./root16004/result_JPsi_RAA_cent_prompt_16004_3_accEffCorr.root",
+    "./root16004/result_JPsi_RAA_pt_prompt_16004_3_linearX_accEffCorr.root"
   };
   string psi2s_fname[2] = {
-    "./root16004/result_Psi2S_RAA_cent_prompt_Psi2S_16004_3_accEffCorr.root",
-    "./root16004/result_Psi2S_RAA_pt_prompt_Psi2S_16004_3_linearX_accEffCorr.root"
+    "./root16004/result_Psi2S_RAA_cent_prompt_16004_3_accEffCorr.root",
+    "./root16004/result_Psi2S_RAA_pt_prompt_16004_3_linearX_accEffCorr.root"
   };
   
   TFile inputf_jpsi( jpsi_fname[compare].c_str() );
@@ -699,10 +699,10 @@ void compareYnSJpsi(
   };
   // 16004 results
   string psi2s_fname[2] = {
-    "./root16004/result_Psi2S_RAA_cent_prompt_Psi2S_16004_3_accEffCorr.root",
-    "./root16004/result_Psi2S_RAA_pt_prompt_Psi2S_16004_3_linearX_accEffCorr.root"
+    "./root16004/result_Psi2S_RAA_cent_prompt_16004_3_accEffCorr.root",
+    "./root16004/result_Psi2S_RAA_pt_prompt_16004_3_linearX_accEffCorr.root"
   };
-  
+
   TFile inputf_jpsi( compare==0 ? jpsi_cent_fname[1].c_str() : jpsi_pt_fname[1].c_str() );
   TFile inputf_jpsi_lowpt( compare==0 ? jpsi_cent_fname[0].c_str() : jpsi_pt_fname[0].c_str() );
   TFile inputf_npjpsi( compare==0 ? npjpsi_cent_fname[1].c_str() : npjpsi_pt_fname[1].c_str() );
@@ -863,6 +863,11 @@ void compareYnSJpsi(
   SetLegendStyle(leg1);
   leg1.SetMargin(0.07);
   leg1.SetTextSize(0.033);
+  if (compare==1) {
+    leg1.SetX2(0.55);
+    leg1.SetMargin(0.2);
+    leg1.SetNColumns(2); // vs. pT
+  }
 
   TLegend leg(0.23,0.615,0.63,0.705,NULL,"brNDC");
   SetLegendStyle(leg);
@@ -893,19 +898,19 @@ void compareYnSJpsi(
     }
   } else if (compare==1) { // vs. pT
     if (doprompt) {
-      leg1.SetY1(0.69);
-      leg1.SetY2(0.89);
-      leg.SetY1(0.62);
-      leg.SetY2(0.68);
-      leg2.SetY1(0.60);
-      leg2.SetY2(0.615);
-    } else {
-      leg1.SetY1(0.71);
+      leg1.SetY1(0.72);
       leg1.SetY2(0.89);
       leg.SetY1(0.63);
-      leg.SetY2(0.70);
+      leg.SetY2(0.69);
       leg2.SetY1(0.60);
       leg2.SetY2(0.625);
+    } else {
+      leg1.SetY1(0.77);
+      leg1.SetY2(0.88);
+      leg.SetY1(0.65);
+      leg.SetY2(0.72);
+      leg2.SetY1(0.62);
+      leg2.SetY2(0.645);
     }
   }
  
@@ -1015,17 +1020,18 @@ void compareYnSJpsi(
       if (doprompt) leg1.SetHeader("#scale[1.15]{Charmonia}");
       else leg1.SetHeader("#scale[1.15]{Open beauty}");
       if (doprompt) {
-        entry = leg1.AddEntry("bin_lowpt", "#scale[0.83]{Prompt J/#psi}","p");
-        entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{1.8 < |y| < 2.4}","");
-        entry = leg1.AddEntry("bin_0_jpsi","#scale[0.83]{Prompt J/#psi}","p");
-        entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4}","");
-        entry = leg1.AddEntry("bin_0_psi2s","#scale[0.83]{Prompt #psi(2S)}","p");
-        entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{|y| < 1.6}","");
+        entry = leg1.AddEntry((TObject*)0, "#scale[0.83]{Prompt J/#psi}","");
+        entry = leg1.AddEntry((TObject*)0,"","");
+        entry = leg1.AddEntry("bin_lowpt","#scale[0.75]{1.8 < |y| < 2.4}","p");
+        entry = leg1.AddEntry("bin_0_jpsi","#scale[0.75]{|y| < 2.4}","p");
+        entry = leg1.AddEntry((TObject*)0,"#scale[0.83]{Prompt #psi(2S)}","");
+        entry = leg1.AddEntry((TObject*)0,"","");
+        entry = leg1.AddEntry("bin_0_psi2s","#scale[0.75]{|y| < 1.6}","p");
       } else {
-        entry = leg1.AddEntry("bin_lowpt", "#scale[0.83]{Nonprompt J/#psi}","p");
-        entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{1.8 < |y| < 2.4}","");
-        entry = leg1.AddEntry("bin_0_jpsi","#scale[0.83]{Nonprompt J/#psi}","p");
-        entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4}","");
+        entry = leg1.AddEntry((TObject*)0, "#scale[0.83]{Nonprompt J/#psi}","");
+        entry = leg1.AddEntry((TObject*)0,"","");
+        entry = leg1.AddEntry("bin_lowpt","#scale[0.75]{1.8 < |y| < 2.4}","p");
+        entry = leg1.AddEntry("bin_0_jpsi","#scale[0.75]{|y| < 2.4}","p");
       }
       if (doprompt) leg.SetHeader("#scale[1.15]{Bottomonia}"); 
       else leg.SetHeader("#scale[1.15]{Hidden beauty}");
@@ -1057,7 +1063,8 @@ void compareYnSJpsi(
       arrow.DrawArrow(Y3SRAA_cent_fx[1], 0.0, Y3SRAA_cent_fx[1], Y3SRAA_cent_fehy[1]); 
 
       box.SetFillColorAlpha(SetColor(jpsicolor),0.7);
-      box.DrawBox(x2, Jpsi_cent_rap0024_global[0], x1, Jpsi_cent_rap0024_global[1]);
+      if (doprompt) box.DrawBox(x2, Jpsi_cent_rap0024_global[0], x1, Jpsi_cent_rap0024_global[1]);
+      else box.DrawBox(x2, NPJpsi_cent_rap0024_global[0], x1, NPJpsi_cent_rap0024_global[1]);
     } else if (drawopt==1) {
       arrow.SetLineColor(SetColor(y1scolor+2));
       arrow.DrawArrow(Y3SRAA_cent_fx[0], 0.0, Y3SRAA_cent_fx[0], Y3SRAA_cent_fehy[0]); 
@@ -1069,7 +1076,8 @@ void compareYnSJpsi(
       }
       
       box.SetFillColorAlpha(SetColor(jpsicolor),0.7);
-      box.DrawBox(x2, Jpsi_cent_rap0024_global[0], x1, Jpsi_cent_rap0024_global[1]);
+      if (doprompt) box.DrawBox(x2, Jpsi_cent_rap0024_global[0], x1, Jpsi_cent_rap0024_global[1]);
+      else box.DrawBox(x2, NPJpsi_cent_rap0024_global[0], x1, NPJpsi_cent_rap0024_global[1]);
       if (doprompt) {
         box.SetFillColorAlpha(SetColor(psi2scolor),0.7);
         box.DrawBox(x2-dx, psi2S_cent_mid_global[0], x2, psi2S_cent_mid_global[1]);
@@ -1084,7 +1092,8 @@ void compareYnSJpsi(
       }
       
       box.SetFillColorAlpha(SetColor(jpsicolor),0.7);
-      box.DrawBox(x2, Jpsi_cent_rap0024_global[0], x1, Jpsi_cent_rap0024_global[1]);
+      if (doprompt) box.DrawBox(x2, Jpsi_cent_rap0024_global[0], x1, Jpsi_cent_rap0024_global[1]);
+      else box.DrawBox(x2, NPJpsi_cent_rap0024_global[0], x1, NPJpsi_cent_rap0024_global[1]);
       if (doprompt) {
         box.SetFillColorAlpha(SetColor(psi2scolor),0.7);
         box.DrawBox(x2-dx, psi2S_cent_mid_global[0], x2, psi2S_cent_mid_global[1]);
@@ -1336,8 +1345,6 @@ void extendLowPtFor14005(
   box.SetLineColor(kRed+2);
   box.SetFillColorAlpha(kRed-7,0.5);
   box.DrawBox(x2-dx, Jpsi_pt_rap0024_global[0], x2, Jpsi_pt_rap0024_global[1]);
-//  box.SetFillColorAlpha(kGreen+2,0.5);
-//  box.DrawBox(x2-dx, Jpsi_pt_rap1824_global[0], x2, Jpsi_pt_rap1824_global[1]);
   
   TLine line; line.SetLineColor(kBlack); line.SetNDC();
   line.DrawLine(xpos1,1,xpos2,1);

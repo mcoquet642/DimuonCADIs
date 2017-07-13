@@ -1,33 +1,33 @@
 // D meson RAA cent 0-100% (vs. pT)
 Double_t DmesonRAA_fx3001[5] = {22.5, 27.5, 35, 50, 80};
 Double_t DmesonRAA_fy3001[5] = {0.4279886,0.4447959,0.5041472,0.6796131,0.7424828};
-//syst error
+//stat error
 Double_t DmesonRAA_felx3001[5] = {2.5, 2.5, 5, 10, 20};
 Double_t DmesonRAA_fely3001[5] = {0.08040356,0.08777721,0.09566393,0.1257512,0.1437027};
 Double_t DmesonRAA_fehx3001[5] = {2.5, 2.5, 5, 10, 20};
 Double_t DmesonRAA_fehy3001[5] = {0.08040356,0.08777721,0.09566393,0.1257512,0.1437027};
-//stat error
+//syst error
 Double_t DmesonRAA_fey3001[5] = {0.05025093,0.04192271,0.04691724,0.03941607,0.07611912};
 
 Double_t DmesonRAA_fx3002[9] = {2.5, 3.5, 4.5, 5.5, 7, 9, 11.25, 13.75, 17.5};
 Double_t DmesonRAA_fy3002[9] = {0.6315195,0.4432341,0.3674997,0.2758138,0.2623725,0.2722143,0.3291268,0.3207651,0.3937182};
-//syst error
+//stat error
 Double_t DmesonRAA_felx3002[9] = {0.5, 0.5, 0.5, 0.5, 1, 1, 1.25, 1.25, 2.5};
 Double_t DmesonRAA_fely3002[9] = {0.1385446,0.08615785,0.06750189,0.05013722,0.04752139,0.04884336,0.05908503,0.05758429,0.07618566};
 Double_t DmesonRAA_fehx3002[9] = {0.5, 0.5, 0.5, 0.5, 1, 1, 1.25, 1.25, 2.5};
 Double_t DmesonRAA_fehy3002[9] = {0.1385446,0.08615785,0.06750189,0.05013722,0.04752139,0.04884336,0.05908503,0.05758429,0.07618566};
-//stat error
+//syst error
 Double_t DmesonRAA_fey3002[9] = {0.1116572,0.04535789,0.03419174,0.02501397,0.01804332,0.01714575,0.02192858,0.03017596,0.04454357};
 
 // B+ meson RAA cent 0-100% (vs. pT)
 Double_t BmesonRAA_fx3002[5] = {8.5, 12.5, 17.5, 25, 40};
 Double_t BmesonRAA_fy3002[5] = {0.3458558, 0.4480066, 0.4402087, 0.615181, 0.3486562};
-//syst error
+//stat error
 Double_t BmesonRAA_felx3002[5] = {1.5, 2.5, 2.5, 5, 10};
 Double_t BmesonRAA_fely3002[5] = {0.06570926, 0.07712284, 0.07409171, 0.1016717, 0.05734825};
 Double_t BmesonRAA_fehx3002[5] = {1.5, 2.5, 2.5, 5, 10};
 Double_t BmesonRAA_fehy3002[5] = {0.06570926, 0.07712284, 0.07409171, 0.1016717, 0.05734825};
-//stat error
+//syst error
 Double_t BmesonRAA_fey3002[5] = {0.1086955,0.07447295,0.07507186,0.09192405,0.1120147};
 
 // Charged particle RAA cent 0-100% (vs. pT)
@@ -95,10 +95,11 @@ Double_t psi2S_cent_fwd_global[2] = {0.929504, 1.070496};// add 2.2% to Jpsi's g
 Double_t psi2S_pt_mid_global[2] = {0.951740, 1.044238};
 Double_t psi2S_pt_fwd_global[2] = {0.951740, 1.044238};
 
-Double_t Jpsi_cent_rap0024_global[2] = {0.947089, 1.052911};
-Double_t Jpsi_cent_rap1824_global[2] = {0.951551, 1.048449};
+Double_t NPJpsi_cent_rap0024_global[2] = {0.941795, 1.058205}; //pt: 6.5-50
+Double_t NPJpsi_cent_rap1824_global[2] = {0.911473, 1.088527}; //pt: 3-6.5
+Double_t Jpsi_cent_rap0024_global[2] = {0.946875, 1.053125}; //pt: 6.5-50
+Double_t Jpsi_cent_rap1824_global[2] = {0.917862, 1.082138}; //pt: 3-6.5
 Double_t Jpsi_pt_rap0024_global[2] = {0.954338, 1.041388};
-Double_t Jpsi_pt_rap1824_global[2] = {0.954338, 1.041388};
 
 // 14005 J/psi results
 Double_t prJpsi_14005_pt_rap1624_x[3] = {3.75, 5, 6};
