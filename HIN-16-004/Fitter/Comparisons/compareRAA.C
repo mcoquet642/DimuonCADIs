@@ -341,6 +341,7 @@ void compareRAA(
   if (v2) tl.DrawLatex(0.70,0.18,"Cent. 0-100%");
   else tl.DrawLatex(0.64,0.53,"Cent. 0-100%");
 
+  // x-axis is always vs. pT -> use 106 option
   CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
 
   // draw a line at RAA=1
@@ -586,9 +587,15 @@ void comparePsi2SJpsi(
   }
  
   canv.cd();
-  CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
+  if (compare == 0) // vs. cent
+    CMS_lumi( (TPad*) gPad, 1061, 33, "" ); 
+  else
+    CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
   canv1.cd();
-  CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
+  if (compare == 0) // vs. cent
+    CMS_lumi( (TPad*) gPad, 1061, 33, "" ); 
+  else
+    CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
 
   // draw a line at RAA=1
   double xpos1 = haxes->GetXaxis()->GetBinLowEdge(1);
@@ -934,7 +941,10 @@ void compareYnSJpsi(
   // Global uncertainty boxes
   TBox box;
 
-  CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
+  if (compare == 0) // vs. cent
+    CMS_lumi( (TPad*) gPad, 1061, 33, "" ); 
+  else
+    CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
   
   if (compare==0) { // vs. cent
     if (drawopt==0) {
@@ -953,9 +963,9 @@ void compareYnSJpsi(
       //else leg.SetHeader("#scale[1.15]{Hidden beauty} #scale[0.75]{|y| < 2.4, p_{T} < 30 GeV/c}, #scale[0.67]{HIN-16-023}");
       if (doprompt) leg.SetHeader("#scale[1.15]{Bottomonia}"); 
       else leg.SetHeader("#scale[1.15]{Hidden beauty}");
-      entry = leg.AddEntry("Y1SRAA", "#scale[0.83]{#Upsilon(1S)}","p");
-      entry = leg.AddEntry("Y2SRAA", "#scale[0.83]{#Upsilon(2S)}","p");
-      entry = leg.AddEntry("Y3SRAA", "#scale[0.83]{#Upsilon(3S)}","l");
+      entry = leg.AddEntry("Y1SRAA", "#scale[0.83]{#varUpsilon(1S)}","p");
+      entry = leg.AddEntry("Y2SRAA", "#scale[0.83]{#varUpsilon(2S)}","p");
+      entry = leg.AddEntry("Y3SRAA", "#scale[0.83]{#varUpsilon(3S)}","l");
       entry = leg2.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4, p_{T} < 30 GeV/c}, #scale[0.67]{HIN-16-023}","");
     } else if (drawopt==1) {
       if (doprompt) leg1.SetHeader("#scale[1.15]{Charmonia}");
@@ -974,9 +984,9 @@ void compareYnSJpsi(
       }
       if (doprompt) leg.SetHeader("#scale[1.15]{Bottomonia}"); 
       else leg.SetHeader("#scale[1.15]{Hidden beauty}");
-      entry = leg.AddEntry("Y1SRAA", "#scale[0.83]{#Upsilon(1S)}","p");
-      entry = leg.AddEntry("Y2SRAA", "#scale[0.83]{#Upsilon(2S)}","p");
-      entry = leg.AddEntry("Y3SRAA", "#scale[0.83]{#Upsilon(3S)}","l");
+      entry = leg.AddEntry("Y1SRAA", "#scale[0.83]{#varUpsilon(1S)}","p");
+      entry = leg.AddEntry("Y2SRAA", "#scale[0.83]{#varUpsilon(2S)}","p");
+      entry = leg.AddEntry("Y3SRAA", "#scale[0.83]{#varUpsilon(3S)}","l");
       entry = leg2.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4, p_{T} < 30 GeV/c}, #scale[0.67]{HIN-16-023}","");
     } else if (drawopt==2) {
       tl.SetTextSize(0.050);
@@ -987,7 +997,7 @@ void compareYnSJpsi(
         entry = leg.AddEntry("bin_0_psi2s","#psi(2S) #scale[0.8]{|y| < 1.6, 6.5 < p_{T} < 30 GeV/c}","p");
         entry = leg.AddEntry("bin_1_psi2s","#psi(2S) #scale[0.8]{(1.6 < |y| < 2.4, 3 < p_{T} < 50 GeV/c)}","p");
       }
-      entry = leg.AddEntry("Y1SRAA", "#Upsilon(1S) #scale[0.8]{|y| < 2.4, p_{T} < 30 GeV/c}","p");
+      entry = leg.AddEntry("Y1SRAA", "#varUpsilon(1S) #scale[0.8]{|y| < 2.4, p_{T} < 30 GeV/c}","p");
     }
   } else if (compare==1) { // vs. pT
     tl.SetTextSize(0.037);
@@ -1012,9 +1022,9 @@ void compareYnSJpsi(
       }
       if (doprompt) leg.SetHeader("#scale[1.15]{Bottomonia}"); 
       else leg.SetHeader("#scale[1.15]{Hidden beauty}");
-      entry = leg.AddEntry("Y1SRAA", "#scale[0.83]{#Upsilon(1S)}","p");
-      entry = leg.AddEntry("Y2SRAA", "#scale[0.83]{#Upsilon(2S)}","p");
-      entry = leg.AddEntry("Y3SRAA", "#scale[0.83]{#Upsilon(3S)}","l");
+      entry = leg.AddEntry("Y1SRAA", "#scale[0.83]{#varUpsilon(1S)}","p");
+      entry = leg.AddEntry("Y2SRAA", "#scale[0.83]{#varUpsilon(2S)}","p");
+      entry = leg.AddEntry("Y3SRAA", "#scale[0.83]{#varUpsilon(3S)}","l");
       entry = leg2.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4, p_{T} < 30 GeV/c}, #scale[0.67]{HIN-16-023}","");
     } else if (drawopt==1) {
       if (doprompt) leg1.SetHeader("#scale[1.15]{Charmonia}");
@@ -1035,9 +1045,9 @@ void compareYnSJpsi(
       }
       if (doprompt) leg.SetHeader("#scale[1.15]{Bottomonia}"); 
       else leg.SetHeader("#scale[1.15]{Hidden beauty}");
-      entry = leg.AddEntry("Y1SRAA", "#scale[0.83]{#Upsilon(1S)}","p");
-      entry = leg.AddEntry("Y2SRAA", "#scale[0.83]{#Upsilon(2S)}","p");
-      entry = leg.AddEntry("Y3SRAA", "#scale[0.83]{#Upsilon(3S)}","l");
+      entry = leg.AddEntry("Y1SRAA", "#scale[0.83]{#varUpsilon(1S)}","p");
+      entry = leg.AddEntry("Y2SRAA", "#scale[0.83]{#varUpsilon(2S)}","p");
+      entry = leg.AddEntry("Y3SRAA", "#scale[0.83]{#varUpsilon(3S)}","l");
       entry = leg2.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4, p_{T} < 30 GeV/c}, #scale[0.67]{HIN-16-023}","");
     } else if (drawopt==2) {
       tl.SetTextSize(0.050);
@@ -1049,7 +1059,7 @@ void compareYnSJpsi(
         entry = leg.AddEntry("bin_0_psi2s","#psi(2S) #scale[0.8]{|y| < 1.6}","p");
         entry = leg.AddEntry("bin_1_psi2s","#psi(2S) #scale[0.8]{1.6 < |y| < 2.4}","p");
       }
-      entry = leg.AddEntry("Y1SRAA", "#Upsilon(1S) #scale[0.8]{|y| < 2.4}","p");
+      entry = leg.AddEntry("Y1SRAA", "#varUpsilon(1S) #scale[0.8]{|y| < 2.4}","p");
     }
   }
 
@@ -1300,6 +1310,7 @@ void extendLowPtFor14005(
   int lastbin = haxes->GetNbinsX();
   double xpos2 = haxes->GetXaxis()->GetBinLowEdge(lastbin) + haxes->GetXaxis()->GetBinWidth(lastbin);
 
+  // x-axis is always vs. pT -> use 106 option
   CMS_lumi( (TPad*) gPad, 106, 33, "" ); 
   
   tl.SetTextSize(0.037);
