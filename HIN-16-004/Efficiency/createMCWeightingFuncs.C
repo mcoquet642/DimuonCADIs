@@ -114,11 +114,9 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
   // Retrieve histos for 0-2.4 for normalisation
   TString sDataFile(fileData);
   sDataFile.Remove(sDataFile.First("/")+1,sDataFile.Sizeof());
-  cout << "Reading data files from directory " << sDataFile.Data() << endl;
   TFile* fNormData = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap0024_cent0100.root" : "cPbPb_pt_rap0024_cent0100.root"),"READ");
   TFile* fNormDataLowPt = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap1824_cent0100.root" : "cPbPb_pt_rap1824_cent0100.root"),"READ");
   sDataFile.ReplaceAll("data","mc");
-  cout << "Reading MC files from directory " << sDataFile.Data() << endl;
   TFile* fNormMC = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap0024_cent0100.root" : "cPbPb_pt_rap0024_cent0100.root"),"READ");
   TFile* fNormMCLowPt = new TFile(Form("%s%s",sDataFile.Data(),hName.Contains("PP") ? "cPP_pt_rap1824_cent0100.root" : "cPbPb_pt_rap1824_cent0100.root"),"READ");
   if (!fNormData || !fNormMC)
@@ -183,7 +181,7 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     }
     else break;
   }
-  
+
 //  cout << "Total NJpsi in DATA = " << normData << endl;
 //  cout << "Total NJpsi in MC = " << normMC << endl;
   
@@ -344,7 +342,7 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
     histoDataClone2->SetMarkerColor(nh==0 ? 1 : 2);
     histoDataClone2->GetXaxis()->SetTitle("p_{T}");
     histoDataClone2->GetYaxis()->SetTitle("dN/dp_{T}(DATA)/dN/dp_{T}(MC)");
-    histoDataClone2->GetYaxis()->SetRangeUser(0.4, 1.5);
+    histoDataClone2->GetYaxis()->SetRangeUser(0.0, 2.5);
     
     TString fName(nh==0 ? "wFunction_nominal" : Form("wFunction_n%d",nh-1));
     TF1* fWeight(0x0);
@@ -358,15 +356,15 @@ void createMCWeightingFuncs(const char* fileData, const char* fileMC, const char
       else fWeight->SetParameters(22, 0.3, 0.2);
 
       if (!strcmp(collName,"PbPb") && !strcmp(rapName,"1824")) {
-        if (!strcmp(partType,"prompt")) histoDataClone2->GetYaxis()->SetRangeUser(0.4, 2);
-        else histoDataClone2->GetYaxis()->SetRangeUser(0.4, 2.5);
+        if (!strcmp(partType,"prompt")) histoDataClone2->GetYaxis()->SetRangeUser(0.0, 2.5);
+        else histoDataClone2->GetYaxis()->SetRangeUser(0.0, 2.5);
         fWeight->SetParameters(-15, 0.1, 2.0);
       }
     }
     fWeight->SetLineColor(nh==0 ? kBlack : kBlue );
     int status = 0, fitcount = 0;
     do {
-      status = histoDataClone2->Fit(fWeight, "S");
+      status = histoDataClone2->Fit(fWeight, "N");
       Double_t *pars = static_cast<Double_t*>(fWeight->GetParameters());
       pars[0] = pars[0]+1.1*(fitcount%2==0 ? 1 : -1);
       pars[1] = pars[1]+1.3*(fitcount%2==0 ? 1 : -1);

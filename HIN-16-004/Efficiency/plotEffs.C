@@ -234,7 +234,7 @@ void drawingEff::getEfficiency(){
         double yd = hden_cent_rap[i]->GetBinContent(a+1);
         double yn = hnum_cent_rap[i]->GetBinContent(a+1);
         double uncert = yn/yd * sqrt( pow(eyd/yd,2) + pow(eyn/yn,2) ) / 2.0;
-        //cout << "   getEfficiency("<<a<<")\t" << yn/yd << "  " << uncert << endl;
+        cout << "   getEfficiency("<<a<<")\t" << yn/yd << "  " << uncert << endl;
         geff->SetPointError(a,gex,gex,uncert,uncert);
       }
     }
@@ -263,7 +263,7 @@ void drawingEff::getEfficiency(){
         double yd = hden_pt_rap[i]->GetBinContent(a+1);
         double yn = hnum_pt_rap[i]->GetBinContent(a+1);
         double uncert = yn/yd * sqrt( pow(eyd/yd,2) + pow(eyn/yn,2) ) / 2.0;
-        //cout << "   getEfficiency("<<a<<")\t" << yn/yd << "  " << uncert << endl;
+        cout << "   getEfficiency("<<a<<")\t" << yn/yd << "  " << uncert << endl;
         geff->SetPointError(a,gex,gex,uncert,uncert);
       }
     }
@@ -300,7 +300,7 @@ void drawingEff::getEfficiency(){
           double yd = hden_pt_cent[i]->GetBinContent(a+1);
           double yn = hnum_pt_cent[i]->GetBinContent(a+1);
           double uncert = yn/yd * sqrt( pow(eyd/yd,2) + pow(eyn/yn,2) ) / 2.0;
-          //cout << "   getEfficiency("<<a<<")\t" << yn/yd << "  " << uncert << endl;
+          cout << "   getEfficiency("<<a<<")\t" << yn/yd << "  " << uncert << endl;
           geff->SetPointError(a,gex,gex,uncert,uncert);
         }
       }
@@ -329,7 +329,7 @@ void drawingEff::getEfficiency(){
       double yd = hden_rap->GetBinContent(a+1);
       double yn = hnum_rap->GetBinContent(a+1);
       double uncert = yn/yd * sqrt( pow(eyd/yd,2) + pow(eyn/yn,2) ) / 2.0;
-      //cout << "   getEfficiency("<<a<<")\t" << yn/yd << "  " << uncert << endl;
+      cout << "   getEfficiency("<<a<<")\t" << yn/yd << "  " << uncert << endl;
       heff_rap->SetPointError(a,gex,gex,uncert,uncert);
     }
   }
@@ -565,8 +565,13 @@ void plotMultipleSamples(vector<TGraphAsymmErrors*> heff, vector<string> *histna
     ratio[i-1]->GetYaxis()->SetLabelSize(0.10);
     string title = heff[0]->GetXaxis()->GetTitle();
     ratio[i-1]->GetXaxis()->SetTitle(title.c_str());
-    ratio[i-1]->GetYaxis()->SetTitle("Ratio(SF/no SF)");
-    ratio[i-1]->GetYaxis()->SetRangeUser(0.9,1.5);
+    // setting for pp/pbpb ratio
+    ratio[i-1]->GetYaxis()->SetTitle("Ratio(PbPb/pp)");
+    if (isacc) ratio[i-1]->GetYaxis()->SetRangeUser(0.9,1.5);
+    else ratio[i-1]->GetYaxis()->SetRangeUser(0.4,1.1);
+    // setting for tnp scale factors ratio
+//    ratio[i-1]->GetYaxis()->SetTitle("Ratio(SF/no SF)");
+//    ratio[i-1]->GetYaxis()->SetRangeUser(0.9,1.5);
   }
 
   TCanvas *can = new TCanvas("can","can",600,700);
@@ -1025,7 +1030,7 @@ void drawMultiples() {
 
 void drawRatios() {
   string dir = "figs";
-  string subdir = "ratios_np_eff";
+  string subdir = "ratios_pr_eff";
   bool isacc=false;
 
   gSystem->mkdir(dir.c_str(),kTRUE);
@@ -1036,8 +1041,8 @@ void drawRatios() {
   string outname;
  
   // input files should be given in the pp -> pbpb order 
-  inputfile.push_back("files/eff/nominal/histos_npjpsi_pp.root");
-  inputfile.push_back("files/eff/nominal/histos_npjpsi_pbpb.root");
+  inputfile.push_back("files/eff/nominal/histos_jpsi_pp.root");
+  inputfile.push_back("files/eff/nominal/histos_jpsi_pbpb.root");
   //inputfile.push_back("files/acc/nominal/histos_jpsi_pp.root");
   //inputfile.push_back("files/acc/nominal/histos_jpsi_pbpb.root");
   histname.push_back("pp");

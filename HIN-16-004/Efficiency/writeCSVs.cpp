@@ -73,9 +73,9 @@ class getEffSyst{
       TProfile *peff_all;
     };
 
-    getEffSyst(string fnameSyst, bool ispbpb, bool takemax, bool is16025);
-    getEffSyst(string fname, string fnameSyst, bool ispbpb, bool takemax, bool is16025);
-    getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb, bool takemax, bool is16025);
+    getEffSyst(string fnameSyst, bool ispbpb, bool takemax, bool is16025, bool isacc=false);
+    getEffSyst(string fname, string fnameSyst, bool ispbpb, bool takemax, bool is16025, bool isacc=false);
+    getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb, bool takemax, bool is16025, bool isacc=false);
     virtual ~getEffSyst();
     void runStat(bool isToy=true);
     void runSyst();
@@ -88,7 +88,7 @@ class getEffSyst{
     // Input file
     TFile *finput, *finputSyst1, *finputSyst2;
 
-    bool ispbpb, takemax, is16025, istoy;
+    bool ispbpb, takemax, is16025, isacc, istoy;
 
     // nom is nominal
     // syst1 is used for syst with 100 toys or stat
@@ -249,31 +249,34 @@ TProfile* getEffSyst::simpleEff(TObjArray *anum, TObjArray *aden, bool iscent) {
   return tprof;
 }
 
-getEffSyst::getEffSyst(string fnameSyst, bool ispbpb_, bool takemax_, bool is16025_) {
+getEffSyst::getEffSyst(string fnameSyst, bool ispbpb_, bool takemax_, bool is16025_, bool isacc_) {
   finputSyst1 = new TFile(fnameSyst.c_str());
   finput = 0;
   finputSyst2 = 0;
   ispbpb = ispbpb_;
   takemax = takemax_;
   is16025 = is16025_;
+  isacc = isacc_;
 }
 
-getEffSyst::getEffSyst(string fname, string fnameSyst, bool ispbpb_, bool takemax_, bool is16025_) {
+getEffSyst::getEffSyst(string fname, string fnameSyst, bool ispbpb_, bool takemax_, bool is16025_, bool isacc_) {
   finput = new TFile(fname.c_str());
   finputSyst1 = new TFile(fnameSyst.c_str());
   finputSyst2 = 0;
   ispbpb = ispbpb_;
   takemax = takemax_;
   is16025 = is16025_;
+  isacc = isacc_;
 }
 
-getEffSyst::getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb_, bool takemax_, bool is16025_) {
+getEffSyst::getEffSyst(string fname, string fnameSyst, string fnameSyst2, bool ispbpb_, bool takemax_, bool is16025_, bool isacc_) {
   finput = new TFile(fname.c_str());
   finputSyst1 = new TFile(fnameSyst.c_str());
   finputSyst2 = new TFile(fnameSyst2.c_str());
   ispbpb = ispbpb_;
   takemax = takemax_;
   is16025 = is16025_;
+  isacc = isacc_;
 }
 
 getEffSyst::~getEffSyst() {
@@ -501,7 +504,7 @@ void getEffSyst::loadHisto16025(TFile *f, h16025 &h) {
   // Eff vs centrality in 4+1 |y| regions (6.5-50 GeV/c), forward & low pT region
   TH1F *hnum = (TH1F*)f->Get("hnum_cent_rap0024");
   TH1F *hden = (TH1F*)f->Get("hden_cent_rap0024");
-  if (!ispbpb) { // set all bin contents to same as the 1st bin
+  if (!ispbpb || isacc) { // set all bin contents to same as the 1st bin
     fixCentPp(hnum);
     fixCentPp(hden);
   }
@@ -511,7 +514,7 @@ void getEffSyst::loadHisto16025(TFile *f, h16025 &h) {
   for (int i=0; i<nbins_4rap; i++) {
     TH1F *hnum1 = (TH1F*)f->Get( Form("hnum_cent_rap%02.0f%02.0f",bins_4rap[i]*10,bins_4rap[i+1]*10) );
     TH1F *hden1 = (TH1F*)f->Get( Form("hden_cent_rap%02.0f%02.0f",bins_4rap[i]*10,bins_4rap[i+1]*10) );
-    if (!ispbpb) { // set all bin contents to same as the 1st bin
+    if (!ispbpb || isacc) { // set all bin contents to same as the 1st bin
       fixCentPp(hnum1);
       fixCentPp(hden1);
     }
@@ -521,7 +524,7 @@ void getEffSyst::loadHisto16025(TFile *f, h16025 &h) {
   }
   hnum = (TH1F*)f->Get("hnum_cent_rap1824_pt3065");
   hden = (TH1F*)f->Get("hden_cent_rap1824_pt3065");
-  if (!ispbpb) { // set all bin contents to same as the 1st bin
+  if (!ispbpb || isacc) { // set all bin contents to same as the 1st bin
     fixCentPp(hnum);
     fixCentPp(hden);
   }
@@ -585,7 +588,7 @@ void getEffSyst::loadHisto16004(TFile *f, h16004 &h) {
   h.hnum_centfwd = (TH1F*)f->Get("hnum_cent_rap1624"); 
   h.hden_centmid = (TH1F*)f->Get("hden_cent_rap0016"); 
   h.hden_centfwd = (TH1F*)f->Get("hden_cent_rap1624"); 
-  if (!ispbpb) { // set all bin contents to same as the 1st bin
+  if (!ispbpb || isacc) { // set all bin contents to same as the 1st bin
     fixCentPp(h.hnum_centmid);
     fixCentPp(h.hnum_centfwd);
     fixCentPp(h.hden_centmid);
@@ -836,7 +839,7 @@ void getEffSyst::writeStat(vector<string> *outname) {
   ofstream foStat(Form("%s/%s",foutdir.c_str(),foutname.c_str()), ios::out);
 
   foStat << outname->at(0) << endl;
- 
+  
   /////// relative uncertainties bin by bin
   double *effY, *effEY;
   
@@ -876,16 +879,19 @@ void getEffSyst::writeStat(vector<string> *outname) {
 
     // Eff vs pT in 3 centrality regions
     for (int i=0; i<(ispbpb?nbins_3cent:1); i++) {
-      effY = syst1_25.heff_pt_cent[i]->GetY();
-      effEY = syst1_25.heff_pt_cent[i]->GetEYhigh();
+      int idx = i;
+      if (isacc) idx = 0; //force the 0th histogram to read acceptance 
+
+      effY = syst1_25.heff_pt_cent[idx]->GetY();
+      effEY = syst1_25.heff_pt_cent[idx]->GetEYhigh();
       
-      for (int j=0; j<syst1_25.hnum_pt_cent[i]->GetNbinsX(); j++) {
-        double lowEdge = syst1_25.hnum_pt_cent[i]->GetBinLowEdge(j+1);
-        double binWidth = syst1_25.hnum_pt_cent[i]->GetBinWidth(j+1);
+      for (int j=0; j<syst1_25.hnum_pt_cent[idx]->GetNbinsX(); j++) {
+        double lowEdge = syst1_25.hnum_pt_cent[idx]->GetBinLowEdge(j+1);
+        double binWidth = syst1_25.hnum_pt_cent[idx]->GetBinWidth(j+1);
         double relSyst = TMath::Abs(effEY[j]/effY[j]);
         foStat << "0, 2.4, " ;
         foStat << lowEdge << ", " << lowEdge+binWidth << ", ";
-        if (ispbpb) foStat << bins_3cent[i]*2 << ", " << bins_3cent[i+1]*2 << ", " << relSyst << endl;
+        if (ispbpb) foStat << bins_3cent[idx]*2 << ", " << bins_3cent[idx+1]*2 << ", " << relSyst << endl;
         else foStat << "0, 200, " << relSyst << endl;
       }
     } // end of 1 line
@@ -1126,11 +1132,12 @@ void writeCSVs(bool is16025 = true) {
   dir = "stat";
   gSystem->mkdir(dir.c_str(),kTRUE);
   gSystem->mkdir(Form("%s/%s",dir.c_str(),subdir.c_str()),kTRUE);
- 
+/* 
   for (int i=0; i<2; i++) {
     bool ispbpb=false;
     bool takemax=false;
     bool isToy = false;
+    bool isacc = i==0 ? true : false;
     subdir = i==0? "acc" : "eff";
     
     vector<string> latex;
@@ -1139,7 +1146,7 @@ void writeCSVs(bool is16025 = true) {
     latex.push_back(Form("stat_%s_NJpsi_prompt_PP_%s.csv",nameTag.c_str(),subdir.c_str()));
     getEffSyst pp_pr(
         Form("files/%s/nominal/histos_jpsi_pp.root",subdir.c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pp_pr.runStat(isToy);
     pp_pr.writeStat(&latex);
     latex.clear();
@@ -1149,19 +1156,19 @@ void writeCSVs(bool is16025 = true) {
     latex.push_back(Form("stat_%s_NJpsi_nonprompt_PP_%s.csv",nameTag.c_str(),subdir.c_str()));
     getEffSyst pp_np(
         Form("files/%s/nominal/histos_npjpsi_pp.root",subdir.c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pp_np.runStat(isToy);
     pp_np.writeStat(&latex);
     latex.clear();
 
-    ispbpb = i==0? false : true;
+    ispbpb = true;
 
     latex.push_back("nominal");
     latex.push_back(Form("%s/%s/",dir.c_str(),subdir.c_str()));
     latex.push_back(Form("stat_%s_NJpsi_prompt_PbPb_%s.csv",nameTag.c_str(),subdir.c_str()));
     getEffSyst pbpb_pr(
         Form("files/%s/nominal/histos_jpsi_pbpb.root",subdir.c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pbpb_pr.runStat(isToy);
     pbpb_pr.writeStat(&latex);
     latex.clear();
@@ -1171,11 +1178,11 @@ void writeCSVs(bool is16025 = true) {
     latex.push_back(Form("stat_%s_NJpsi_nonprompt_PbPb_%s.csv",nameTag.c_str(),subdir.c_str()));
     getEffSyst pbpb_np(
         Form("files/%s/nominal/histos_npjpsi_pbpb.root",subdir.c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pbpb_np.runStat(isToy);
     pbpb_np.writeStat(&latex);
   }
-
+*/
   // treat statistical efficiencies with 100 Toys
   dir = "stat";
   subdir = "eff";
@@ -1186,6 +1193,7 @@ void writeCSVs(bool is16025 = true) {
     bool ispbpb=false;
     bool takemax=false;
     bool isToy = true;
+    bool isacc = false;
     
     vector<string> latex;
     latex.push_back(statdirsToy_name[i].c_str());
@@ -1193,7 +1201,7 @@ void writeCSVs(bool is16025 = true) {
     latex.push_back(Form("stat_%s_NJpsi_prompt_PP_%s.csv",nameTag.c_str(),statdirsToy_name[i].c_str()));
     getEffSyst pp_pr(
         Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),statdirsToy[i].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pp_pr.runStat(isToy);
     pp_pr.writeStatToy(&latex);
     latex.clear();
@@ -1203,7 +1211,7 @@ void writeCSVs(bool is16025 = true) {
     latex.push_back(Form("stat_%s_NJpsi_nonprompt_PP_%s.csv",nameTag.c_str(),statdirsToy_name[i].c_str()));
     getEffSyst pp_np(
         Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),statdirsToy[i].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pp_np.runStat(isToy);
     pp_np.writeStatToy(&latex);
     latex.clear();
@@ -1215,7 +1223,7 @@ void writeCSVs(bool is16025 = true) {
     latex.push_back(Form("stat_%s_NJpsi_prompt_PbPb_%s.csv",nameTag.c_str(),statdirsToy_name[i].c_str()));
     getEffSyst pbpb_pr(
         Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),statdirsToy[i].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pbpb_pr.runStat(isToy);
     pbpb_pr.writeStatToy(&latex);
     latex.clear();
@@ -1225,7 +1233,7 @@ void writeCSVs(bool is16025 = true) {
     latex.push_back(Form("stat_%s_NJpsi_nonprompt_PbPb_%s.csv",nameTag.c_str(),statdirsToy_name[i].c_str()));
     getEffSyst pbpb_np(
         Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),statdirsToy[i].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pbpb_np.runStat(isToy);
     pbpb_np.writeStatToy(&latex);
   }
@@ -1239,6 +1247,7 @@ void writeCSVs(bool is16025 = true) {
   for (int i=0; i<nsystdir; i++) {
     bool ispbpb=false;
     bool takemax=false;
+    bool isacc = false;
 
     vector<string> latex;
     latex.push_back(systdirs[i].c_str());
@@ -1247,7 +1256,7 @@ void writeCSVs(bool is16025 = true) {
     getEffSyst pp_pr(
         Form("files/%s/nominal/histos_jpsi_pp.root",subdir.c_str()),
         Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),systdirs[i].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pp_pr.runSyst();
     pp_pr.writeSyst(&latex);
     latex.clear();
@@ -1258,7 +1267,7 @@ void writeCSVs(bool is16025 = true) {
     getEffSyst pp_np(
         Form("files/%s/nominal/histos_npjpsi_pp.root",subdir.c_str()),
         Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),systdirs[i].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pp_np.runSyst();
     pp_np.writeSyst(&latex);
     latex.clear();
@@ -1271,7 +1280,7 @@ void writeCSVs(bool is16025 = true) {
     getEffSyst pbpb_pr(
         Form("files/%s/nominal/histos_jpsi_pbpb.root",subdir.c_str()),
         Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),systdirs[i].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pbpb_pr.runSyst();
     pbpb_pr.writeSyst(&latex);
     latex.clear();
@@ -1282,7 +1291,7 @@ void writeCSVs(bool is16025 = true) {
     getEffSyst pbpb_np(
         Form("files/%s/nominal/histos_npjpsi_pbpb.root",subdir.c_str()),
         Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),systdirs[i].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pbpb_np.runSyst();
     pbpb_np.writeSyst(&latex);
   }
@@ -1296,6 +1305,7 @@ void writeCSVs(bool is16025 = true) {
   for (int i=0; i<nsystdirMax; i=i+2) {
     bool ispbpb=false;
     bool takemax=true;
+    bool isacc = false;
 
     vector<string> latex;
     latex.push_back(systdirsMax_name[i/2].c_str());
@@ -1305,7 +1315,7 @@ void writeCSVs(bool is16025 = true) {
         Form("files/%s/nominal/histos_jpsi_pp.root",subdir.c_str()),
         Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),systdirsMax[i].c_str()),
         Form("files/%s/%s/histos_jpsi_pp.root",subdir.c_str(),systdirsMax[i+1].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pp_pr.runSyst();
     pp_pr.writeSyst(&latex);
     latex.clear();
@@ -1317,7 +1327,7 @@ void writeCSVs(bool is16025 = true) {
         Form("files/%s/nominal/histos_npjpsi_pp.root",subdir.c_str()),
         Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),systdirsMax[i].c_str()),
         Form("files/%s/%s/histos_npjpsi_pp.root",subdir.c_str(),systdirsMax[i+1].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pp_np.runSyst();
     pp_np.writeSyst(&latex);
     latex.clear();
@@ -1331,7 +1341,7 @@ void writeCSVs(bool is16025 = true) {
         Form("files/%s/nominal/histos_jpsi_pbpb.root",subdir.c_str()),
         Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),systdirsMax[i].c_str()),
         Form("files/%s/%s/histos_jpsi_pbpb.root",subdir.c_str(),systdirsMax[i+1].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pbpb_pr.runSyst();
     pbpb_pr.writeSyst(&latex);
     latex.clear();
@@ -1343,7 +1353,7 @@ void writeCSVs(bool is16025 = true) {
         Form("files/%s/nominal/histos_npjpsi_pbpb.root",subdir.c_str()),
         Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),systdirsMax[i].c_str()),
         Form("files/%s/%s/histos_npjpsi_pbpb.root",subdir.c_str(),systdirsMax[i+1].c_str()),
-        ispbpb,takemax,is16025);
+        ispbpb,takemax,is16025,isacc);
     pbpb_np.runSyst();
     pbpb_np.writeSyst(&latex);
   }

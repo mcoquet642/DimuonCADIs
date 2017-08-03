@@ -235,9 +235,6 @@ void oniaEff_TnPToyStudy::LoopVary(const char* fname, bool ispbpb, bool isprompt
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
-      if (!ispbpb && ientry>=10000000) {
-        break;
-      }
       if (jentry%100000==0)
         cout << "jentry/ientry: " << jentry << " " << ientry << endl;
 

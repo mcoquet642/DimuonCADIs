@@ -11,7 +11,9 @@
 #include <algorithm>
 #include <iostream>
 
-// define bins (Jpsi Raa binning)
+
+
+// define bins (Jpsi Raa new binning)
 const double bins_cent_rap0024[] = {0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 100};
 const int nbins_cent_rap0024 = sizeof(bins_cent_rap0024)/sizeof(double) -1;
 const double bins_cent_rap1824_pt3065[] = {0, 10, 20, 30, 40, 50, 100}; //Low pT forward
@@ -24,24 +26,25 @@ const double bins_cent_rap1218[] = {0, 10, 20, 30, 40, 50, 100};
 const int nbins_cent_rap1218 = sizeof(bins_cent_rap1218)/sizeof(double) -1;
 const double bins_cent_rap1824[] = {0, 10, 20, 30, 40, 50, 100};
 const int nbins_cent_rap1824 = sizeof(bins_cent_rap1824)/sizeof(double) -1;
-const double bins_pt_rap0024[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 30, 50};
+const double bins_pt_rap0024[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 17.5, 20, 25, 30, 35, 50};
 const int nbins_pt_rap0024 = sizeof(bins_pt_rap0024)/sizeof(double) -1;
-const double bins_pt_rap0006[] = {6.5, 8.5, 9.5, 11, 15, 50};
+const double bins_pt_rap0006[] = {6.5, 8.5, 9.5, 11, 15, 20, 30, 50};
 const int nbins_pt_rap0006 = sizeof(bins_pt_rap0006)/sizeof(double) -1;
-const double bins_pt_rap0612[] = {6.5, 8.5, 9.5, 11, 15, 50};
+const double bins_pt_rap0612[] = {6.5, 8.5, 9.5, 11, 15, 20, 30, 50};
 const int nbins_pt_rap0612 = sizeof(bins_pt_rap0612)/sizeof(double) -1;
-const double bins_pt_rap1218[] = {6.5, 7.5, 8.5, 9.5, 11, 15, 50};
+const double bins_pt_rap1218[] = {6.5, 7.5, 8.5, 9.5, 11, 15, 20, 30, 50};
 const int nbins_pt_rap1218 = sizeof(bins_pt_rap1218)/sizeof(double) -1;
-const double bins_pt_rap1824[] = {3, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 11, 15, 50};
+const double bins_pt_rap1824[] = {3, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 11, 15, 20, 30, 50};
 const int nbins_pt_rap1824 = sizeof(bins_pt_rap1824)/sizeof(double) -1;
-const double bins_pt_cent010[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 50};
+const double bins_pt_cent010[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 30, 50};
 const int nbins_pt_cent010 = sizeof(bins_pt_cent010)/sizeof(double) -1;
-const double bins_pt_cent1030[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 50};
+const double bins_pt_cent1030[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 30, 50};
 const int nbins_pt_cent1030 = sizeof(bins_pt_cent1030)/sizeof(double) -1;
-const double bins_pt_cent30100[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 50};
+const double bins_pt_cent30100[] = {6.5, 7.5, 8.5, 9.5, 11, 13, 15, 20, 30, 50};
 const int nbins_pt_cent30100 = sizeof(bins_pt_cent30100)/sizeof(double) -1;
 const double bins_rap[] = {0, 0.4, 0.8, 1.2, 1.6, 2, 2.4};
 const int nbins_rap = sizeof(bins_rap)/sizeof(double) -1;
+
 
 // Bin boundaries for efficiency histograms
 const double bins_4rap[] = {0, 0.6, 1.2, 1.8, 2.4};
@@ -199,6 +202,8 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
    
    // also store more finely binned histos
    TH1F *hcentfine = new TH1F("hcentfine","hcentfine",200,0,200);
+   TH1F *hnum_pt = new TH1F("hnum_pt",";p_{T};Entries",100,0,50);
+   TH1F *hden_pt = new TH1F("hden_pt",";p_{T};Entries",100,0,50);
    TH2F *hnum2d = new TH2F("hnum2d","hnum2d",4,0,2.4,nbins_pt_rap1824,bins_pt_rap1824);
    TH2F *hden2d = new TH2F("hden2d","hden2d",4,0,2.4,nbins_pt_rap1824,bins_pt_rap1824);
 
@@ -210,9 +215,9 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
-      if (!ispbpb && ientry>=10000000) {
-        break;
-      }
+      //if (!ispbpb && ientry>=10000000) {
+      //  break;
+      //}
       if (jentry%100000==0)
         cout << "jentry/ientry: " << jentry << " " << ientry << endl;
 
@@ -256,9 +261,10 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
       double ptweight = curve->GetBinContent(ptbin);
     
       weight = weight*ptweight;
-      
+
       hcentfine->Fill(Centrality,weight);
       hden2d->Fill(genrap,genpt,weight);
+      hden_pt->Fill(genpt,weight);
       
       if (isgenok) {
         // HIN-16-025 binning
@@ -579,6 +585,7 @@ void oniaEff::Loop(const char* fname, bool ispbpb, bool isprompt, const int tnpt
         }
 
         hnum2d->Fill(recorap,recopt,weight);
+        hnum_pt->Fill(recopt,weight);
       } // end of isacc condition - fill up numerators   
    } // event loop
   

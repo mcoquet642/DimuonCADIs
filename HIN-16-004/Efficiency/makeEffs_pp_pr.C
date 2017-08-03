@@ -57,7 +57,7 @@ void makeEffs_pp_pr(int opt=1, bool isacc=false){
      obj_jpsi_pp.LoopVary(Form("%s/histos_jpsi_pp.root",dir.c_str()),ispbpb,isprompt,obj_jpsi_pp.trg_ptWeighting);
    } else if (opt>=6 && opt<=8) {
      oniaEff_TnPToyStudy obj_jpsi_pp(tch_jpsi_pp);
-     obj_jpsi_pp.LoopVary(Form("%s/histos_jpsi_pp.root",dir.c_str()),ispbpb,isprompt,obj_jpsi_pp.trg_toy);
+     obj_jpsi_pp.LoopVary(Form("%s/histos_jpsi_pp.root",dir.c_str()),ispbpb,isprompt,opt);
    } else {
      oniaEff obj_jpsi_pp(tch_jpsi_pp);
      obj_jpsi_pp.Loop(Form("%s/histos_jpsi_pp.root",dir.c_str()),ispbpb,isprompt,opt,isacc);
