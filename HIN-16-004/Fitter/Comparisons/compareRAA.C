@@ -319,7 +319,7 @@ void compareRAA(
   }
   else if (!doprompt && compare!=1) { // this is only for np
     leg.SetHeader("Open beauty");
-    entry = leg.AddEntry((TObject*)0,"#scale[1.0]{Nonprompt J/#psi}","");
+    entry = leg.AddEntry((TObject*)0,"#scale[1.0]{J/#psi from b hadrons}","");
     entry = leg.AddEntry((TObject*)0,"","");
     entry = leg.AddEntry("bin_lowpt","#scale[0.83]{1.8 < |y| < 2.4}","p");
     entry = leg.AddEntry("bin_0","#scale[0.83]{|y| < 2.4}","p");
@@ -956,7 +956,7 @@ void compareYnSJpsi(
         entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4, 6.5 < p_{T} < 50 GeV/c}","");
       } else {
         //entry = leg1.AddEntry("bin_0_jpsi", "#scale[0.83]{Nonprompt J/#psi} #scale[0.75]{|y| < 2.4, 6.5 < p_{T} < 50 GeV/c}","p");
-        entry = leg1.AddEntry("bin_0_jpsi", "#scale[0.83]{Nonprompt J/#psi}","p");
+        entry = leg1.AddEntry("bin_0_jpsi", "#scale[0.83]{J/#psi from b hadrons}","p");
         entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4, 6.5 < p_{T} < 50 GeV/c}","");
       }
       //if (doprompt) leg.SetHeader("#scale[1.15]{Bottomonia} #scale[0.75]{|y| < 2.4, p_{T} < 30 GeV/c}, #scale[0.67]{HIN-16-023}");
@@ -979,7 +979,7 @@ void compareYnSJpsi(
         entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{|y| < 1.6, 6.5 < p_{T} < 30 GeV/c}","");
       } else {
         //entry = leg1.AddEntry("bin_0_jpsi", "#scale[0.83]{Nonprompt J/#psi} #scale[0.75]{|y| < 2.4, 6.5 < p_{T} < 50 GeV/c}","p");
-        entry = leg1.AddEntry("bin_0_jpsi", "#scale[0.83]{Nonprompt J/#psi}","p");
+        entry = leg1.AddEntry("bin_0_jpsi", "#scale[0.83]{J/#psi from b hadrons}","p");
         entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4, 6.5 < p_{T} < 50 GeV/c}","");
       }
       if (doprompt) leg.SetHeader("#scale[1.15]{Bottomonia}"); 
@@ -991,7 +991,7 @@ void compareYnSJpsi(
     } else if (drawopt==2) {
       tl.SetTextSize(0.050);
       if (doprompt) tl.DrawLatex(0.56,0.57,"Prompt J/#psi, #psi(2S)");
-      else tl.DrawLatex(0.62,0.57,"Nonprompt J/#psi");
+      else tl.DrawLatex(0.62,0.57,"J/#psi from b hadrons");
       entry = leg.AddEntry("bin_0_jpsi", "J/#psi #scale[0.8]{|y| < 2.4, 6.5 < p_{T} < 50 GeV/c}","p");
       if (doprompt) {
         entry = leg.AddEntry("bin_0_psi2s","#psi(2S) #scale[0.8]{|y| < 1.6, 6.5 < p_{T} < 30 GeV/c}","p");
@@ -1015,9 +1015,9 @@ void compareYnSJpsi(
       } else {
         //entry = leg1.AddEntry("bin_lowpt", "#scale[0.83]{Nonprompt J/#psi} #scale[0.75]{1.8 < |y| < 2.4}","p");
         //entry = leg1.AddEntry("bin_0_jpsi", "#scale[0.83]{Nonprompt J/#psi} #scale[0.75]{|y| < 2.4}","p");
-        entry = leg1.AddEntry("bin_lowpt", "#scale[0.83]{Nonprompt J/#psi}","p");
+        entry = leg1.AddEntry("bin_lowpt", "#scale[0.83]{J/#psi from b hadrons}","p");
         entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{1.8 < |y| < 2.4}","");
-        entry = leg1.AddEntry("bin_0_jpsi","#scale[0.83]{Nonprompt J/#psi}","p");
+        entry = leg1.AddEntry("bin_0_jpsi","#scale[0.83]{J/#psi from b hadrons}","p");
         entry = leg1.AddEntry((TObject*)0,"#scale[0.75]{|y| < 2.4}","");
       }
       if (doprompt) leg.SetHeader("#scale[1.15]{Bottomonia}"); 
@@ -1038,7 +1038,7 @@ void compareYnSJpsi(
         entry = leg1.AddEntry((TObject*)0,"","");
         entry = leg1.AddEntry("bin_0_psi2s","#scale[0.75]{|y| < 1.6}","p");
       } else {
-        entry = leg1.AddEntry((TObject*)0, "#scale[0.83]{Nonprompt J/#psi}","");
+        entry = leg1.AddEntry((TObject*)0, "#scale[0.83]{J/#psi from b hadrons}","");
         entry = leg1.AddEntry((TObject*)0,"","");
         entry = leg1.AddEntry("bin_lowpt","#scale[0.75]{1.8 < |y| < 2.4}","p");
         entry = leg1.AddEntry("bin_0_jpsi","#scale[0.75]{|y| < 2.4}","p");
@@ -1052,7 +1052,7 @@ void compareYnSJpsi(
     } else if (drawopt==2) {
       tl.SetTextSize(0.050);
       if (doprompt) tl.DrawLatex(0.56,0.57,"Prompt J/#psi, #psi(2S)");
-      else tl.DrawLatex(0.62,0.57,"Nonprompt J/#psi");
+      else tl.DrawLatex(0.62,0.57,"J/#psi from b hadrons");
       entry = leg.AddEntry("bin_lowpt", "J/#psi #scale[0.8]{1.8 < |y| < 2.4}","p");
       entry = leg.AddEntry("bin_0_jpsi", "J/#psi #scale[0.8]{|y| < 2.4}","p");
       if (doprompt) {
@@ -1318,7 +1318,7 @@ void extendLowPtFor14005(
   
   tl.SetTextSize(0.057); 
   if (doprompt) tl.DrawLatex(0.20,0.85,"Prompt J/#psi");
-  else tl.DrawLatex(0.20,0.85,"Nonprompt J/#psi");
+  else tl.DrawLatex(0.20,0.85,"J/#psi from b hadrons");
 
   entry = leg.AddEntry((TObject*)0, "#splitline{#sqrt[]{s_{NN}} = 2.76 TeV}{#scale[0.6]{(Eur.Phys.J. C77 (2017) no.4, 252)}}","");
   entry = leg.AddEntry((TObject*)0,"","");

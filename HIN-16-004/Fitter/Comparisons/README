@@ -16,3 +16,6 @@ compareYnSJpsi(0,0,1); compareYnSJpsi(0,1,1);
 
 5) Prompt J/psi w/ psi(2S):
 comparePsi2SJpsi(0,0); comparePsi2SJpsi(1,0);
+
+6) Draw HIN14005 with extended pT bins down to 3 GeV/c
+extendLowPtFor14005(0); extendLowPtFor14005(1);
