@@ -49,6 +49,6 @@ TString lumi_pp2015_alt  = "28.0 pb^{-1}";
 
 bool drawLogo      = false;
 
-void CMS_lumi( TPad* pad, int iPeriod=3, int iPosX=10, TString label = lumi_pp2015 );
+void CMS_lumi( TPad* pad, int iPeriod=3, int iPosX=10, TString label = lumi_pp2015 , bool writeExtraText = true);
 
 #endif // #ifndef CMS_lumi_h

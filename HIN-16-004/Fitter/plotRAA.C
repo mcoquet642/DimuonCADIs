@@ -50,6 +50,7 @@ bool  doLogPt       = false;
 bool  includeEffSyst = true;
 bool  excludeNonFitSyst = false;
 bool  plotFwdMid    = false;
+bool  isPreliminary = false;
 string nameTag_base = "_prompt";    // can put here e.g. "_prompt", "_nonprompt", ...
 
 const bool useNcoll = false; // false -> use TAA / NMB, true -> use Ncoll / lumiPbPb
@@ -367,8 +368,8 @@ void plotRAA(vector<anabin> thecats, string xaxis, string outputDir) {
   
   map<anabin, raa_input> theVars_inputs;
   
-  map<anabin, syst> syst_PP = readSyst_all("PP",poi.Data(),sTag.Data(),includeEffSyst);
-  map<anabin, syst> syst_PbPb = readSyst_all("PbPb",poi.Data(),sTag.Data(),includeEffSyst);
+  map<anabin, syst> syst_PP = readSyst_all("PP",poi.Data(),sTag.Data(),includeEffSyst,false);
+  map<anabin, syst> syst_PbPb = readSyst_all("PbPb",poi.Data(),sTag.Data(),includeEffSyst,false);
   map<anabin, syst> syst_taa_low = readSyst(Form("Systematics/csv/syst_%s_PbPb_taa_low.csv",sTag.Data()),excludeNonFitSyst);
   map<anabin, syst> syst_taa_high = readSyst(Form("Systematics/csv/syst_%s_PbPb_taa_high.csv",sTag.Data()),excludeNonFitSyst);
   map<anabin, syst> syst_Nmb = readSyst(Form("Systematics/csv/syst_%s_PbPb_Nmb.csv",sTag.Data()),excludeNonFitSyst);
@@ -728,8 +729,8 @@ void plotXS(vector<anabin> thecats, string xaxis, string outputDir) {
   
   map<anabin, raa_input> theVars_inputs;
   
-  map<anabin, syst> syst_PP = readSyst_all("PP",poi.Data(),sTag.Data(),includeEffSyst);
-  map<anabin, syst> syst_PbPb = readSyst_all("PbPb",poi.Data(),sTag.Data(),includeEffSyst);
+  map<anabin, syst> syst_PP = readSyst_all("PP",poi.Data(),sTag.Data(),includeEffSyst,includeEffSyst);
+  map<anabin, syst> syst_PbPb = readSyst_all("PbPb",poi.Data(),sTag.Data(),includeEffSyst,includeEffSyst);
   map<anabin, syst> syst_taa_low = readSyst(Form("Systematics/csv/syst_%s_PbPb_taa_low.csv",sTag.Data()),excludeNonFitSyst);
   map<anabin, syst> syst_taa_high = readSyst(Form("Systematics/csv/syst_%s_PbPb_taa_high.csv",sTag.Data()),excludeNonFitSyst);
   map<anabin, syst> syst_Nmb = readSyst(Form("Systematics/csv/syst_%s_PbPb_Nmb.csv",sTag.Data()),excludeNonFitSyst);
@@ -1044,12 +1045,12 @@ void plotBF(vector<anabin> thecats, string xaxis, string outputDir) {
   
   map<anabin, raa_input> theVars_inputs;
   
-  map<anabin, syst> syst_PP = readSyst_all("PP","BJpsi",sTag.Data(),false);
-  map<anabin, syst> syst_PbPb = readSyst_all("PbPb","BJpsi",sTag.Data(),false);
-  map<anabin, syst> systEffP_PP = readSyst_all("PP","NJpsi_prompt",sTag.Data(),true,false);
-  map<anabin, syst> systEffP_PbPb = readSyst_all("PbPb","NJpsi_prompt",sTag.Data(),true,false);
-  map<anabin, syst> systEffNP_PP = readSyst_all("PP","NJpsi_nonprompt",sTag.Data(),true,false);
-  map<anabin, syst> systEffNP_PbPb = readSyst_all("PbPb","NJpsi_nonprompt",sTag.Data(),true,false);
+  map<anabin, syst> syst_PP = readSyst_all("PP","BJpsi",sTag.Data(),false,false);
+  map<anabin, syst> syst_PbPb = readSyst_all("PbPb","BJpsi",sTag.Data(),false,false);
+  map<anabin, syst> systEffP_PP = readSyst_all("PP","NJpsi_prompt",sTag.Data(),true,true);
+  map<anabin, syst> systEffP_PbPb = readSyst_all("PbPb","NJpsi_prompt",sTag.Data(),true,true);
+  map<anabin, syst> systEffNP_PP = readSyst_all("PP","NJpsi_nonprompt",sTag.Data(),true,true);
+  map<anabin, syst> systEffNP_PbPb = readSyst_all("PbPb","NJpsi_nonprompt",sTag.Data(),true,true);
   
   vector<double> x, ex, y, ey;
   float ptmin, ptmax, ymin, ymax, centmin, centmax;
@@ -1347,7 +1348,7 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   TLegend *tleg(0x0);
   if (xaxis!="cent" && intervals2Plot == 2) tleg = new TLegend(0.44,0.50,0.76,0.62);
   else if (xaxis=="cent" && intervals2Plot == 2) tleg = new TLegend(0.19,0.16,0.51,0.28);
-  else if ((xaxis=="cent" || xaxis=="rap")  && intervals2Plot == 1 && plot14005) tleg = new TLegend(0.51,0.42,0.83,0.62);
+  else if ((xaxis=="cent" || xaxis=="rap")  && intervals2Plot == 1 && plot14005) tleg = new TLegend(0.51,0.47,0.83,0.62);
   else if (xaxis=="pt" && intervals2Plot == 1 && plot14005) tleg = new TLegend(0.19,0.49,0.51,0.64);
   else if (dononprompt && intervals2Plot == 3) tleg = new TLegend(0.56,0.47,0.88,0.62);
   else if (doprompt && intervals2Plot == 3) tleg = new TLegend(0.19,0.49,0.51,0.64);
@@ -1378,6 +1379,7 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
     theCats.push_back(thebin);
     
     // if needed, draw 14-005 first
+    TGraphErrors *tg_16004(0x0);
     if (plot14005) {
       TString name14005 = Form("/afs/cern.ch/work/m/miheejo/public/2015JpsiRAA5TeV/276TeVRaa/histRaa/makeRaa_%s.root",xaxis=="rap" ? "y" : xaxis.c_str());
       TString name14005_syst = Form("/afs/cern.ch/work/m/miheejo/public/2015JpsiRAA5TeV/276TeVRaa/histSyst/raaSystUncert_%s.root",xaxis=="rap" ? "y" : xaxis.c_str());
@@ -1395,6 +1397,7 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
           name14005 += Form("_pt%i%iy%i%i", ptlowi, pthighi, raplowi, raphighi);
         }
         TGraphErrors *tg = (TGraphErrors*) fraa->Get(name14005);
+        tg_16004 = tg;
         
         // the syst graph
         name14005 = Form("g%sJpsiSyst",dononprompt ? "NonPr" : "Pr");
@@ -1441,7 +1444,7 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
           gStyle->SetEndErrorSize(5);
           tg->Draw("P");
           
-          tleg->AddEntry(tg, "#splitline{#sqrt[]{s_{NN}} = 2.76 TeV}{#scale[0.6]{(Eur.Phys.J. C77 (2017) no.4, 252)}}", "p");
+//          tleg->AddEntry(tg, "#splitline{#sqrt[]{s_{NN}} = 2.76 TeV}{#scale[0.6]{(Eur.Phys.J. C77 (2017) no.4, 252)}}", "p");
           
           // in the case where the centrality dependence is plotted: treat the PP uncertainties as global systematics
           double x(0.), dx(0.), y(0.), dy(0.);
@@ -1642,6 +1645,24 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
       if (plot14005)
       {
         tleg->AddEntry(tg, "#sqrt[]{s_{NN}} = 5.02 TeV", "p");
+//        tleg->AddEntry(tg_16004, "#splitline{#sqrt[]{s_{NN}} = 2.76 TeV}{#scale[0.6]{Eur.Phys.J. C77 (2017) 252}}", "p");
+        tleg->AddEntry(tg_16004, "#sqrt[]{s_{NN}} = 2.76 TeV", "p");
+        
+        
+        double xp = 0.59;
+        double yp = 0.45;
+        if (xaxis == "pt")
+        {
+          xp = 0.27;
+          yp = 0.47;
+        }
+        
+        TLatex *tex = new TLatex(xp,yp,"#scale[0.6]{Eur.Phys.J. C77 (2017) 252}");
+        tex->SetNDC();
+        tex->SetTextSize(0.04);
+        tex->SetTextFont(42);
+        tex->SetLineWidth(2);
+        tex->Draw();
       }
       else
       {
@@ -1812,12 +1833,16 @@ void plotGraphRAA(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphA
   tl.SetTextSize(0.057); 
   if (doprompt) tl.DrawLatexNDC(tlx,tly,plotPsi2S ? "Prompt #psi(2S)" : "Prompt J/#psi");
   //if (doprompt) tl.DrawLatexNDC(tlx-0.08,tly,plotPsi2S ? "Prompt #psi(2S)" : "Prompt J/#psi");
-  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
-  tl.SetTextSize(0.046); 
+//  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
+  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"J/#psi from b hadrons");
+//  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"J/#psi (b hadrons)");
+//  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"J/#psi #leftarrow B");
+//  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"B #rightarrow J/#psi");
+  tl.SetTextSize(0.046);
   
   int iPos = 33;
-  if (xaxis=="cent") CMS_lumi( (TPad*) gPad, 1061, iPos, "" );
-  else CMS_lumi( (TPad*) gPad, 106, iPos, "" );
+  if (xaxis=="cent") CMS_lumi( (TPad*) gPad, 1061, iPos, "", isPreliminary );
+  else CMS_lumi( (TPad*) gPad, 106, iPos, "", isPreliminary );
   // CMS_lumi( (TPad*) gPad, 103, iPos, "" );
   
   c1->cd();
@@ -2083,7 +2108,8 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
   tl.SetTextFont(42); // consistent font for symbol and plain text
   tl.SetTextSize(0.055);
   if (doprompt) tl.DrawLatexNDC(tlx,tly,"Prompt J/#psi");
-  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
+//  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
+  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"J/#psi from b hadrons");
   tl.SetTextSize(0.046);
   
   
@@ -2092,7 +2118,8 @@ void plotGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
 //  tl.DrawLatexNDC(tlx,tly+0.1,Form("Global unc. : +%.1%f-%.1%f",dy_high,dy_low));
   
   int iPos = 33;
-  CMS_lumi( (TPad*) gPad, isPP ? 107 : 108, iPos, "" );
+  if (xaxis=="cent") CMS_lumi( (TPad*) gPad, 1061, iPos, "", isPreliminary );
+  else CMS_lumi( (TPad*) gPad, 106, iPos, "", isPreliminary );
   // CMS_lumi( (TPad*) gPad, 103, iPos, "" );
   
   c1->cd();
@@ -2331,7 +2358,8 @@ void plotCombGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs_pp, map<anabin, T
   t2.SetTextFont(42); // consistent font for symbol and plain text
   t2.SetTextSize(0.055);
   if (doprompt) tl.DrawLatexNDC(tlx,tly,"Prompt J/#psi");
-  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
+//  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"Nonprompt J/#psi");
+  if (dononprompt) tl.DrawLatexNDC(tlx,tly,"J/#psi from b hadrons");
   t2.DrawLatexNDC(tlx,tly-0.05,"J/#psi #rightarrow #mu^{+}#mu^{-}");
   tl.SetTextSize(0.046);
   t2.SetTextSize(0.046);
@@ -2356,7 +2384,8 @@ void plotCombGraphXS(map<anabin, TGraphAsymmErrors*> theGraphs_pp, map<anabin, T
   }
   
   int iPos = 33;
-  CMS_lumi( (TPad*) gPad, 1061, iPos, "" );
+  if (xaxis=="cent") CMS_lumi( (TPad*) gPad, 1061, iPos, "", isPreliminary );
+  else CMS_lumi( (TPad*) gPad, 106, iPos, "", isPreliminary );
   
   c1->cd();
   c1->Update();
@@ -2576,7 +2605,8 @@ void plotGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs, map<anabin, TGraphAs
   }
   
   int iPos = 33;
-  CMS_lumi( (TPad*) gPad, isPP ? 107 : 108, iPos, "" );
+  if (xaxis=="cent") CMS_lumi( (TPad*) gPad, 1061, iPos, "", isPreliminary );
+  else CMS_lumi( (TPad*) gPad, 106, iPos, "", isPreliminary );
   
   c1->cd();
   c1->Update();
@@ -2750,7 +2780,8 @@ void plotCombGraphBF(map<anabin, TGraphAsymmErrors*> theGraphs_pp, map<anabin, T
   }
   
   int iPos = 33;
-  CMS_lumi( (TPad*) gPad, 1061, iPos, "" );
+  if (xaxis=="cent") CMS_lumi( (TPad*) gPad, 1061, iPos, "", isPreliminary );
+  else CMS_lumi( (TPad*) gPad, 106, iPos, "", isPreliminary );
   
   c1->cd();
   c1->Update();

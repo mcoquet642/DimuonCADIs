@@ -8,7 +8,7 @@
 using namespace std;
 
 void 
-CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label )
+CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label , bool writeExtraText)
 {            
   bool outOfFrame    = false;
   if( iPosX/10==0 ) 

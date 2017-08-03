@@ -270,40 +270,77 @@ void results2tree(
             itpoi->errH = itpoi->errL;
           }
         }
-        else if (TString(itpoi->name).Contains("eff")) {
+        else if (TString(itpoi->name).Contains("eff") || TString(itpoi->name).Contains("acc")) {
           // efficiency
-          TFile *feff = TFile::Open(Form("../Efficiency/files_eff/nominal/histos_%s_%s.root",
+          TFile *feff(0x0);
+          if (TString(itpoi->name).Contains("eff")) feff = TFile::Open(Form("../Efficiency/files_eff/nominal/histos_%s_%s.root",
                                          TString(itpoi->name)=="effnp" ? "npjpsi" : "jpsi",
                                          isPP ? "pp" : "pbpb"));
-          bool isallcent = (thebin.centbin() == binI(0,200));
+          else feff = TFile::Open(Form("../Efficiency/files_acc/nominal/histos_%s_%s.root",
+                                  TString(itpoi->name)=="accnp" ? "npjpsi" : "jpsi",
+                                  isPP ? "pp" : "pbpb"));
+          
           int catmin, catmax;
+          bool isallcent = (thebin.centbin() == binI(0,200));
           bool isallrap = (thebin.rapbin() == binF(0,2.4));
           bool islowpt = (thebin.ptbin() == binF(3,6.5));
-          bool ishighpt = ((thebin.ptbin() == binF(6.5,50)) || (thebin.ptbin() == binF(6.5,30)) );
-          if (isallcent || (!isallcent && ishighpt)) {
-            catmin = thebin.rapbin().low()*10;
-            catmax = thebin.rapbin().high()*10;
-          } else {
-            catmin = thebin.centbin().low()/2;
-            catmax = thebin.centbin().high()/2;
-          }
+          bool israpFwd = (thebin.rapbin() == binF(1.8,2.4));
+          bool ishighpt = ((thebin.ptbin() == binF(6.5,50)) || (thebin.ptbin() == binF(6.5,30)) || (thebin.ptbin() == binF(3.0,30)) );
+          bool israpBin = (thebin.rapbin() == binF(0.,0.4)) || (thebin.rapbin() == binF(0.4,0.8)) || (thebin.rapbin() == binF(0.8,1.2)) || (thebin.rapbin() == binF(1.2,1.6)) || (thebin.rapbin() == binF(1.6,2.0)) || (thebin.rapbin() == binF(2.0,2.4));
+          bool israpBin4PtCent = ((thebin.rapbin() == binF(0.,0.6)) || (thebin.rapbin() == binF(0.6,1.2)) || (thebin.rapbin() == binF(1.2,1.8)) || (thebin.rapbin() == binF(1.8,2.4)) || (thebin.rapbin() == binF(0.,1.6)) || (thebin.rapbin() == binF(1.6,2.4)));
+          
+          bool isPtCentPbPb = isallrap && !ishighpt && !islowpt && ((thebin.centbin() == binI(0,20)) || (thebin.centbin() == binI(20,60)) || (thebin.centbin() == binI(60,200)));
+          bool isPtCentPP = !isPtCentPbPb && isPP && isallrap && !ishighpt && !islowpt && ((thebin.centbin() == binI(0,200)) && (thebin.ptbin() == binF(15,20) || thebin.ptbin() == binF(20,30) || thebin.ptbin() == binF(30,50)));
+          bool isPtRap = !isPtCentPbPb && !isPtCentPP && isallcent && !ishighpt && ((thebin.rapbin() == binF(1.6,2.4) && islowpt) || !islowpt) && israpBin4PtCent;
+          bool isPt = !isPtCentPbPb && !isPtCentPP && !isPtRap && isallcent && isallrap && !ishighpt && !islowpt;
+          bool isRap = !isPtCentPbPb && !isPtCentPP && !isPtRap && !isPt && isallcent && ishighpt && !isallrap && israpBin;
+          bool isCent = !isPtCentPbPb && !isPtCentPP && !isPtRap && !isPt && !isRap && isallrap && !isallcent && ishighpt;
+          bool isCentRap = !isPtCentPbPb && !isPtCentPP && !isPtRap && !isPt && !isRap && !isCent && ((!isPP && !isallcent) || isPP) && israpBin4PtCent && ishighpt;
+          bool isCentRapIntPbPb = !isPtCentPbPb && !isPtCentPP && !isPtRap && !isPt && !isRap && !isCent && !isCentRap && (!isPP && isallcent) && ishighpt && israpBin4PtCent;
+          bool isFwdLowPtCentPbPb = !isPtCentPbPb && !isPtCentPP && !isPtRap && !isPt && !isRap && !isCent && !isCentRap && !isCentRapIntPbPb && !ishighpt && islowpt && israpFwd && !isPP && !isallcent;
+          bool isFwdLowPtCentPP = !isPtCentPbPb && !isPtCentPP && !isPtRap && !isPt && !isRap && !isCent && !isCentRap && !isCentRapIntPbPb && !isFwdLowPtCentPbPb && !ishighpt && islowpt && israpFwd && isPP && isallcent;
+          bool isallInt = !isPtCentPbPb && !isPtCentPP && !isPtRap && !isPt && !isRap && !isCent && !isCentRap && !isFwdLowPtCentPbPb && !isFwdLowPtCentPP && isallcent && isallrap && ishighpt;
           
           TString hnumname, hdenname;
           TString tag1, tag2;
-          if (isallcent && ishighpt) {
+          if (isPtCentPbPb || isPtCentPP || isPtRap || isPt || isCent || isCentRap || isCentRapIntPbPb)
+          {
+            if (isPtCentPbPb || isPtCentPP) {tag2 = "cent"; tag1 = "pt";}
+            if (isPtRap || isPt) {tag2 = "rap"; tag1 = "pt";}
+            if (isCent || isCentRap || isCentRapIntPbPb) {tag2 = "rap"; tag1 = "cent";}
+            
+            if (tag2 == "cent")
+            {
+              catmin = (TString(itpoi->name).Contains("acc") || isPtCentPP) ? 0 : thebin.centbin().low()/2;
+              catmax = (TString(itpoi->name).Contains("acc") || isPtCentPP) ? 10 : thebin.centbin().high()/2;
+            }
+            else
+            {
+              catmin = thebin.rapbin().low()*10;
+              catmax = thebin.rapbin().high()*10;
+            }
+            
+            hnumname = Form("hnum_%s_%s%02i%02i", tag1.Data(), tag2.Data(), catmin, catmax);
+            hdenname = Form("hden_%s_%s%02i%02i", tag1.Data(), tag2.Data(), catmin, catmax);
+          }
+          else if (isRap || isallInt)
+          {
             tag1 = "rap";
             hnumname = "hnum_rap";
             hdenname = "hden_rap";
-          } else if (!islowpt) {
-            tag2 = (isallcent || (!isallcent && ishighpt)) ? "rap" : "cent";
-            tag1 = ishighpt ? "cent" : "pt";
-            hnumname = Form("hnum_%s_%s%02i%02i", tag1.Data(), tag2.Data(), catmin, catmax);
-            hdenname = Form("hden_%s_%s%02i%02i", tag1.Data(), tag2.Data(), catmin, catmax);
-          } else {
+          }
+          else if (isFwdLowPtCentPbPb || isFwdLowPtCentPP)
+          {
             tag1 = "cent";
             hnumname = "hnum_cent_rap1824_pt3065";
             hdenname = "hden_cent_rap1824_pt3065";
           }
+          else
+          {
+            cout << "ERROR: no histo defined for this bin:" << endl;
+            thebin.print();
+          }
+
           TH1F *hnum = (TH1F*) feff->Get(hnumname);
           TH1F *hden = (TH1F*) feff->Get(hdenname);
           if (!hnum || !hden) {
@@ -317,14 +354,16 @@ void results2tree(
           
           double numval, numerr, denval, denerr;
           int ibin = hnum->FindBin((thebin.centbin().low()+thebin.centbin().high())/4.);
-          if (tag1 == "pt") ibin = hnum->FindBin((thebin.ptbin().low()+thebin.ptbin().high())/2.);
-          if (tag1 == "rap") ibin = hnum->FindBin((thebin.rapbin().low()+thebin.rapbin().high())/2.);
+          if (tag1 == "cent" && (TString(itpoi->name).Contains("acc") || isFwdLowPtCentPP || (isCentRap && isPP))) ibin = 1;
+          else if (tag1 == "pt") ibin = hnum->FindBin((thebin.ptbin().low()+thebin.ptbin().high())/2.);
+          else if (tag1 == "rap") ibin = hnum->FindBin((thebin.rapbin().low()+thebin.rapbin().high())/2.);
+          cout << "bin: " << ibin << " ; " << hnum->GetBinCenter(ibin) << endl;
           numval = hnum->GetBinContent(ibin);
           numerr = hnum->GetBinError(ibin);
           denval = hden->GetBinContent(ibin);
           denerr = hden->GetBinError(ibin);
-          // special case of the all integrated efficiency
-          if ((isallcent && isallrap && ishighpt) || (isallcent && islowpt)) {
+          if (isallInt || isCentRapIntPbPb) {
+            cout << "Will use integrated efficiency" << endl;
             numval = hnum->IntegralAndError(1,hnum->GetNbinsX(),numerr);
             denval = hden->IntegralAndError(1,hden->GetNbinsX(),denerr);
           }
@@ -332,71 +371,10 @@ void results2tree(
           itpoi->val = efficiency;
           itpoi->errL = (numval>0 && denval>0) ? efficiency*sqrt(pow(numerr/numval,2)+pow(denerr/denval,2)) : 0;
           itpoi->errH = itpoi->errL;
-          delete feff;
-        }
-        else if (TString(itpoi->name).Contains("acc")) {
-          // efficiency
-          TFile *feff = TFile::Open(Form("../Efficiency/files_acc/nominal/histos_%s_%s.root",
-                                         TString(itpoi->name)=="accnp" ? "npjpsi" : "jpsi",
-                                         isPP ? "pp" : "pbpb"));
-          bool isallcent = (thebin.centbin() == binI(0,200));
-          int catmin, catmax;
-          bool isallrap = (thebin.rapbin() == binF(0,2.4));
-          bool islowpt = (thebin.ptbin() == binF(3,6.5));
-          bool ishighpt = ((thebin.ptbin() == binF(6.5,50)) || (thebin.ptbin() == binF(6.5,30)) );
-          if (isallcent || (!isallcent && ishighpt)) {
-            catmin = thebin.rapbin().low()*10;
-            catmax = thebin.rapbin().high()*10;
-          } else {
-            catmin = thebin.centbin().low()/2;
-            catmax = thebin.centbin().high()/2;
-          }
           
-          TString hnumname, hdenname;
-          TString tag1, tag2;
-          if (isallcent && ishighpt) {
-            tag1 = "rap";
-            hnumname = "hnum_rap";
-            hdenname = "hden_rap";
-          } else if (!islowpt) {
-            tag2 = (isallcent || (!isallcent && ishighpt)) ? "rap" : "cent";
-            tag1 = ishighpt ? "cent" : "pt";
-            hnumname = Form("hnum_%s_%s%02i%02i", tag1.Data(), tag2.Data(), catmin, catmax);
-            hdenname = Form("hden_%s_%s%02i%02i", tag1.Data(), tag2.Data(), catmin, catmax);
-          } else {
-            tag1 = "cent";
-            hnumname = "hnum_cent_rap1824_pt3065";
-            hdenname = "hden_cent_rap1824_pt3065";
-          }
-          TH1F *hnum = (TH1F*) feff->Get(hnumname);
-          TH1F *hden = (TH1F*) feff->Get(hdenname);
-          if (!hnum || !hden) {
-            thebin.print();
-            cout << hnumname << " not found!" << endl;
-            itpoi->val = 0;
-            itpoi->errL = 0;
-            itpoi->errH = itpoi->errL;
-            continue;
-          }
+          thebin.print();
+          cout << hnumname << " ; " << hdenname << (TString(itpoi->name).Contains("eff") ? " ; eff = " : " ; acc = ") << efficiency << endl;
           
-          double numval, numerr, denval, denerr;
-//          int ibin = hnum->FindBin(5.); //FIXME: temporary fix to take always the first centrality bin
-          int ibin = hnum->FindBin((thebin.centbin().low()+thebin.centbin().high())/4.);
-          if (tag1 == "pt") ibin = hnum->FindBin((thebin.ptbin().low()+thebin.ptbin().high())/2.);
-          if (tag1 == "rap") ibin = hnum->FindBin((thebin.rapbin().low()+thebin.rapbin().high())/2.);
-          numval = hnum->GetBinContent(ibin);
-          numerr = hnum->GetBinError(ibin);
-          denval = hden->GetBinContent(ibin);
-          denerr = hden->GetBinError(ibin);
-          // special case of the all integrated efficiency
-          if ((isallcent && isallrap && ishighpt) || (isallcent && islowpt)) {
-            numval = hnum->IntegralAndError(1,hnum->GetNbinsX(),numerr);
-            denval = hden->IntegralAndError(1,hden->GetNbinsX(),denerr);
-          }
-          double efficiency = (denval>0) ? numval / denval : 0;
-          itpoi->val = efficiency;
-          itpoi->errL = (numval>0 && denval>0) ? efficiency*sqrt(pow(numerr/numval,2)+pow(denerr/denval,2)) : 0;
-          itpoi->errH = itpoi->errL;
           delete feff;
         }
         else if (TString(itpoi->name)=="lumi") {
@@ -436,6 +414,7 @@ void results2tree(
         }
         if (TString(itpoi->name)=="taa") {
           itpoi->val=HI::findTaaAverage(thebin.centbin().low(),thebin.centbin().high());
+//          cout << "Taa = " << HI::findTaaAverage(thebin.centbin().low(),thebin.centbin().high()) << endl;
           itpoi->errL=HI::findTaaAverage_err_low(thebin.centbin().low(),thebin.centbin().high());
           itpoi->errH = HI::findTaaAverage_err_high(thebin.centbin().low(),thebin.centbin().high());
         }
@@ -447,7 +426,8 @@ void results2tree(
       // delete dat;
       delete ws;
       delete f;
-    } else {
+    }
+    else {
       for (vector<poi>::iterator itpoi=thePois.begin(); itpoi!=thePois.end(); itpoi++) {
         itpoi->val = 0;
         itpoi->errL = 0;
