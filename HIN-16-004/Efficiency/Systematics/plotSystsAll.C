@@ -16,11 +16,11 @@ bool bins16004=false; // If false use 16-025 bins, if true use 16-004 bins
 TString nameTag("16025"); // It can be 16025 or 16004 or...
 
 // DECLARATIONS
-void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst=true, bool plotGlobalSysts=false);
-void plotSystsAll(const char* apoiname="NJpsi_prompt", bool plotEffSyst=true, bool plotGlobalSysts=false, bool is16004=false);
+void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst=false, bool plotSigSyst=true, bool plotGlobalSysts=false);
+void plotSystsAll(const char* apoiname="NJpsi", bool plotEffSyst=false, bool plotSigSyst=true, bool plotGlobalSysts=false, bool is16004=false);
 
 
-void plotSystsAll(const char* apoiname, bool plotEffSyst, bool plotGlobalSysts, bool is16004) {
+void plotSystsAll(const char* apoiname, bool plotEffSyst, bool plotSigSyst, bool plotGlobalSysts, bool is16004) {
   spoiname = apoiname;
   if (!spoiname.CompareTo("NJpsi") && !spoiname.CompareTo("BJpsi") && !spoiname.CompareTo("NJpsi_prompt") && !spoiname.CompareTo("NJpsi_nonprompt"))
   {
@@ -32,36 +32,36 @@ void plotSystsAll(const char* apoiname, bool plotEffSyst, bool plotGlobalSysts, 
   {
     nameTag = "16025";
     //pt dependence in rapidity bins
-    plotSysts(anabin(0,0.6,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0.6,1.2,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.2,1.8,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.8,2.4,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0,2.4,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(0,0.6,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0.6,1.2,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.2,1.8,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.8,2.4,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0,2.4,6.5,50,0,200),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
     
-    plotSysts(anabin(0,0.6,6.5,50,0,200),"pt","PP",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0.6,1.2,6.5,50,0,200),"pt","PP",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.2,1.8,6.5,50,0,200),"pt","PP",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.8,2.4,6.5,50,0,200),"pt","PP",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0,2.4,6.5,50,0,200),"pt","PP",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(0,0.6,6.5,50,0,200),"pt","PP",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0.6,1.2,6.5,50,0,200),"pt","PP",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.2,1.8,6.5,50,0,200),"pt","PP",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.8,2.4,6.5,50,0,200),"pt","PP",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0,2.4,6.5,50,0,200),"pt","PP",plotEffSyst,plotSigSyst,plotGlobalSysts);
     
     //pt dependence in centrality bins
-    plotSysts(anabin(0,2.4,6.5,50,0,20),"pt","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0,2.4,6.5,50,20,60),"pt","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0,2.4,6.5,50,60,200),"pt","PbPb",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(0,2.4,6.5,50,0,20),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0,2.4,6.5,50,20,60),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0,2.4,6.5,50,60,200),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
     
     //centrality dependence in rapidity bins
-    plotSysts(anabin(0,0.6,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0.6,1.2,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.2,1.8,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.8,2.4,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0,2.4,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(0,0.6,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0.6,1.2,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.2,1.8,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.8,2.4,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0,2.4,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
     
     //centrality dependence at fwd rapidity and low pt
-    plotSysts(anabin(1.8,2.4,3,6.5,0,200),"cent","PbPb",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(1.8,2.4,3,6.5,0,200),"cent","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
     
     //rapidity dependence
-    plotSysts(anabin(0,2.4,6.5,50,0,200),"rap","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(0,2.4,6.5,50,0,200),"rap","PP",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(0,2.4,6.5,50,0,200),"rap","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(0,2.4,6.5,50,0,200),"rap","PP",plotEffSyst,plotSigSyst,plotGlobalSysts);
   }
   else
   {
@@ -69,20 +69,20 @@ void plotSystsAll(const char* apoiname, bool plotEffSyst, bool plotGlobalSysts, 
     nameTag = "16004";
     
     //pt dependence in rapidity bins
-    plotSysts(anabin(0,1.6,6.5,30,0,200),"pt","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.6,2.4,6.5,30,0,200),"pt","PbPb",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(0,1.6,6.5,30,0,200),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.6,2.4,6.5,30,0,200),"pt","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
     
-    plotSysts(anabin(0,1.6,6.5,30,0,200),"pt","PP",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.6,2.4,6.5,30,0,200),"pt","PP",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(0,1.6,6.5,30,0,200),"pt","PP",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.6,2.4,6.5,30,0,200),"pt","PP",plotEffSyst,plotSigSyst,plotGlobalSysts);
     
     //centrality dependence in rapidity bins
-    plotSysts(anabin(0,1.6,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotGlobalSysts);
-    plotSysts(anabin(1.6,2.4,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotGlobalSysts);
+    plotSysts(anabin(0,1.6,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
+    plotSysts(anabin(1.6,2.4,6.5,50,0,200),"cent","PbPb",plotEffSyst,plotSigSyst,plotGlobalSysts);
   }
   
 }
 
-void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst, bool plotGlobalSysts) {
+void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst, bool plotSigSyst, bool plotGlobalSysts) {
   float rapmin = thebin.rapbin().low();
   float rapmax = thebin.rapbin().high();
   float ptmin = thebin.ptbin().low();
@@ -95,7 +95,7 @@ void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst, bo
   vector<map<anabin, syst> > systs;
   
   // total
-  systs.push_back(readSyst_all(collTag.c_str(),spoiname.Data(),nameTag.Data(),plotEffSyst,"../"));
+  systs.push_back(readSyst_all(collTag.c_str(),spoiname.Data(),nameTag.Data(),plotEffSyst,plotSigSyst,"../"));
   tags.push_back(systs.back().begin()->second.name);
   
   // detail
@@ -116,6 +116,10 @@ void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst, bo
     tags.push_back(systs.back().begin()->second.name);
     systs.push_back(readSyst(Form("csv/stat_%s_%s_PbPb_ptWeighting.csv",nameTag.Data(),spoiname.Data())));
     tags.push_back(systs.back().begin()->second.name);
+    systs.push_back(readSyst(Form("csv/stat_%s_%s_PbPb_acc.csv",nameTag.Data(),spoiname.Data())));
+    tags.push_back(systs.back().begin()->second.name);
+    systs.push_back(readSyst(Form("csv/stat_%s_%s_PbPb_eff.csv",nameTag.Data(),spoiname.Data())));
+    tags.push_back(systs.back().begin()->second.name);
   } else {
     systs.push_back(readSyst(Form("csv/syst_%s_%s_PP_trg_binned.csv",nameTag.Data(),spoiname.Data())));
     tags.push_back(systs.back().begin()->second.name);
@@ -132,6 +136,10 @@ void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst, bo
     systs.push_back(readSyst(Form("csv/stat_%s_%s_PP_trg_stat.csv",nameTag.Data(),spoiname.Data())));
     tags.push_back(systs.back().begin()->second.name);
     systs.push_back(readSyst(Form("csv/stat_%s_%s_PP_ptWeighting.csv",nameTag.Data(),spoiname.Data())));
+    tags.push_back(systs.back().begin()->second.name);
+    systs.push_back(readSyst(Form("csv/stat_%s_%s_PP_acc.csv",nameTag.Data(),spoiname.Data())));
+    tags.push_back(systs.back().begin()->second.name);
+    systs.push_back(readSyst(Form("csv/stat_%s_%s_PP_eff.csv",nameTag.Data(),spoiname.Data())));
     tags.push_back(systs.back().begin()->second.name);
   }
   
@@ -153,7 +161,6 @@ void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst, bo
   if (bins16004) sb = allbins16004();
   else sb = allbins();
   
-
   for (unsigned int i=0; i<systs.size(); i++) {
     map<anabin, syst> thesyst = systs[i];
     vector<double> x, y, dx, dy;
@@ -162,8 +169,10 @@ void plotSysts(anabin thebin, string xaxis, string collTag, bool plotEffSyst, bo
     
     for (set<anabin>::const_iterator it=sb.begin(); it!=sb.end(); it++) {
       anabin it2 = *it;
+      
       if (!binok(thebin,xaxis,it2,false)) continue;
       if (thesyst.find(*it)==thesyst.end()) continue;
+      
       double low, high;
       if (xaxis=="pt") {
         low= it->ptbin().low();

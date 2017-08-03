@@ -93,16 +93,18 @@ map<anabin, syst> combineSyst(vector< map<anabin, syst> > theSysts, string name)
    return ans;
 };
 
-map<anabin, syst> readSyst_all(const char* collSystem, const char* poiname, const char* nameTag, bool readEffSyst, const char* prependPath, bool doPrintTex, const char* texName) {
+map<anabin, syst> readSyst_all(const char* collSystem, const char* poiname, const char* nameTag, bool readEffSyst, bool readSigSyst, const char* prependPath, bool doPrintTex, const char* texName) {
    // poiname = NJpsi or BJpsi
    TString spoiname(poiname);
    TString sprependPath(prependPath);
    TString snameTag(nameTag);
   
    vector<TString> filelist;
-
+  
    if (readEffSyst)
    {
+     filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PbPb_acc.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PbPb_eff.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PbPb_muid_stat.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PbPb_sta_stat.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PbPb_trg_stat.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
@@ -112,6 +114,8 @@ map<anabin, syst> readSyst_all(const char* collSystem, const char* poiname, cons
      filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PbPb_trg_syst.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/syst_%s_%s_PbPb_trg_binned.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      
+     filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PP_acc.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
+     filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PP_eff.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PP_muid_stat.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PP_sta_stat.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
      filelist.push_back(Form("%sSystematics/csv/stat_%s_%s_PP_trg_stat.csv",sprependPath.Data(),snameTag.Data(),spoiname.Data()));
@@ -172,7 +176,9 @@ void printTex(vector< map<anabin, syst> > theSysts, const char* texName, anabin 
    map<anabin, vector<syst> >::const_iterator itm;
    for (itm=themap.begin(); itm!=themap.end(); itm++) {
       vector<syst> v = itm->second;
-      if (v.size() != nsyst) {
+     if (v.size() != nsyst) {cout << v.size() << " ; " << nsyst << endl;
+       for (auto e : v) cout << "v Name: " << e.name << " value: " << e.value << endl;
+       for (auto e : theSysts) cout << "theSysts mapsize: " << e.size() << endl;
          cout << "Error, not all systematics have the same size. Aborting." << endl;
          file.close();
          return;
