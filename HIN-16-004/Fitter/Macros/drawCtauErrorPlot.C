@@ -18,7 +18,6 @@ void drawCtauErrorPlot(RooWorkspace& myws,   // Local workspace
                        bool isPbPb,          // Define if it is PbPb (True) or PP (False)
                        // Select the type of object to fit
                        bool incJpsi,         // Includes Jpsi model
-                       bool incPsi2S,        // Includes Psi(2S) model
                        bool incBkg,          // Includes Background model        
                        // Select the fitting options
                        bool plotPureSMC,     // Flag to indicate if we want to fit pure signal MC
@@ -63,12 +62,6 @@ void drawCtauErrorPlot(RooWorkspace& myws,   // Local workspace
     string dataName = Form("dhCTAUERR_Bkg_%s", (isPbPb?"PbPb":"PP"));
     myws.data(dataName.c_str())->plotOn(frame, Name("BKGDATA"), DataError(RooAbsData::SumW2), MarkerColor(kBlue-4), MarkerSize(0.8), Binning(bins));
     myws.pdf(pdfName.c_str())->plotOn(frame,Name("BKG"), LineStyle(1), LineColor(kBlue+1), Precision(1e-6), Range("CtauErrFullWindow") );
-  }
-  if (incPsi2S) {
-    string pdfName = Form("pdfCTAUERR_Psi2S_%s", (isPbPb?"PbPb":"PP")); 
-    string dataName = Form("dhCTAUERR_Psi2S_%s", (isPbPb?"PbPb":"PP"));
-    myws.data(dataName.c_str())->plotOn(frame, Name("PSI2SDATA"), DataError(RooAbsData::SumW2), MarkerColor(kViolet-2), MarkerSize(0.8), Binning(bins));
-    myws.pdf(pdfName.c_str())->plotOn(frame,Name("PSI2S"), LineStyle(1), LineColor(kViolet+2), Precision(1e-6), Range("CtauErrFullWindow") );
   }
   if (incJpsi) {
     string pdfName = Form("pdfCTAUERR_Jpsi_%s", (isPbPb?"PbPb":"PP")); 
@@ -141,14 +134,11 @@ void drawCtauErrorPlot(RooWorkspace& myws,   // Local workspace
 
   // Drawing the Legend
   double ymin = 0.7802;
-  if (incPsi2S && incJpsi && incSS)  { ymin = 0.7202; } 
-  if (incPsi2S && incJpsi && !incSS) { ymin = 0.7452; }
   TLegend* leg = new TLegend(0.5175, ymin, 0.7180, 0.8809); leg->SetTextSize(0.03);
   if (frame->findObject("dOS")) { leg->AddEntry(frame->findObject("dOS"), (incSS?"Opposite Charge":"Data"),"pe"); }
   if (incSS) { leg->AddEntry(frame->findObject("dSS"),"Same Charge","pe"); }
   if((incJpsi&&incBkg)&&frame->findObject("PDF")) { leg->AddEntry(frame->findObject("PDF"),"Total PDF","l"); }
   if(incJpsi && frame->findObject("JPSI")) { leg->AddEntry(frame->findObject("JPSI"),"J/#psi PDF","l"); }
-  if(incPsi2S && frame->findObject("PSI2S")) { leg->AddEntry(frame->findObject("PSI2S"),"#psi(2S) PDF","l"); }
   if(incBkg && frame->findObject("BKG")) { leg->AddEntry(frame->findObject("BKG"),"Background","l"); }
   leg->Draw("same");
 
@@ -203,7 +193,7 @@ void drawCtauErrorPlot(RooWorkspace& myws,   // Local workspace
   pline->Draw("same");
   pad2->Update();
  
-  bool SB = (incBkg&&(!incPsi2S&&!incJpsi));
+  bool SB = (incBkg&&!incJpsi);
   // Save the plot in different formats
   gSystem->mkdir(Form("%sctauErr%s/%s/plot/root/", outputDir.c_str(), (SB?"SB":""), DSTAG.c_str()), kTRUE); 
   cFig->SaveAs(Form("%sctauErr%s/%s/plot/root/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (SB?"SB":""), DSTAG.c_str(), "CTAUERR", DSTAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));

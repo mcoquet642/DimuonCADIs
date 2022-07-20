@@ -3,7 +3,7 @@
 
 #include "Utilities/initClasses.h"
 
-bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, bool incPsi2S, double binWidth);
+bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, double binWidth);
 void setCtauRecoDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries);
 bool ctauHistToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, string dsName, vector<double> range, bool useDataSet=true);
 TH1* rebinctauhist(TH1 *hist, double xmin=1e99, double xmax=-1e99);
@@ -13,7 +13,6 @@ bool buildCharmoniaCtauRecoModel(RooWorkspace& ws, map<string, string>  parIni,
                                  struct KinCuts cut,          // Variable containing all kinematic cuts
                                  string dsName,               // Name of current input dataset
                                  bool incJpsi,                // Include Jpsi model
-                                 bool incPsi2S,                // Include Psi(2S) model
                                  double  binWidth,            // Bin width
                                  double  numEntries = 300000. // Number of entries in the dataset
                                  )
@@ -29,12 +28,9 @@ bool buildCharmoniaCtauRecoModel(RooWorkspace& ws, map<string, string>  parIni,
   string pdfType = "pdfCTAU";
   string pdfName = Form("%s_%s_%s", pdfType.c_str(), incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP"));
   
-  if(!createCtauRecoTemplate(ws, dsName, pdfType, cut, incJpsi, incPsi2S, binWidth)) { cout << "[ERROR] Creating the Ctau Reco Template failed" << endl; return false; }
+  if(!createCtauRecoTemplate(ws, dsName, pdfType, cut, incJpsi, binWidth)) { cout << "[ERROR] Creating the Ctau Reco Template failed" << endl; return false; }
 
-  if (incJpsi && incPsi2S) {
-    cout << "[ERROR] User included Jpsi and Psi2S together, but can only template them separately, please fix your input settings!" << endl; return false;
-  }
-  if (!incJpsi && !incPsi2S) {
+  if (!incJpsi) {
     cout << "[ERROR] User did not include any model, please fix your input settings!" << endl; return false;
   }
   
@@ -49,7 +45,7 @@ bool buildCharmoniaCtauRecoModel(RooWorkspace& ws, map<string, string>  parIni,
 };
 
 
-bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, bool incPsi2S, double binWidth)
+bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, double binWidth)
 {
   string hType = pdfType;
   hType.replace(hType.find("pdf"), string("pdf").length(), "h");

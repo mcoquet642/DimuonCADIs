@@ -23,7 +23,6 @@ bool fitCharmoniaCtauTrueModel( RooWorkspace& myws,             // Local Workspa
                                 bool importDS      = true,      // Select if the dataset is imported in the local workspace
                                 // Select the type of object to fit
                                 bool incJpsi       = true,      // Includes Jpsi model
-                                bool incPsi2S      = true,      // Includes Psi(2S) model
                                 bool incResol      = true,      // Includes Ctau True Resolution model
                                 // Select the fitting options
                                 bool doFit         = true,      // Flag to indicate if we want to perform the fit
@@ -43,9 +42,6 @@ bool fitCharmoniaCtauTrueModel( RooWorkspace& myws,             // Local Workspa
   // Check if input dataset is MC
   bool isMC = false;
   if (DSTAG.find("MC")!=std::string::npos) {
-    if (incJpsi && incPsi2S) { 
-      cout << "[ERROR] We can only fit one type of signal using MC" << endl; return false; 
-    }
     isMC = true;
   }
   if (!isMC) { wantPureSMC=false; }
@@ -77,12 +73,12 @@ bool fitCharmoniaCtauTrueModel( RooWorkspace& myws,             // Local Workspa
   setCtauTrueGlobalParameterRange(myws, parIni, cut, label);
 
   // Build the Fit Model     
-  if (!buildCharmoniaCtauTrueModel(myws, (isPbPb ? model.PbPb : model.PP), parIni, isPbPb, incJpsi, incPsi2S, numEntries))  { return false; }
+  if (!buildCharmoniaCtauTrueModel(myws, (isPbPb ? model.PbPb : model.PP), parIni, isPbPb, incJpsi, numEntries))  { return false; }
 
   // Define pdf and plot names
   string pdfName = Form("pdfCTAUTRUE_Tot_%s", COLL.c_str());
   string plotLabel = "";
-  if (incJpsi || incPsi2S) { plotLabel = plotLabel + Form("_CtauTrue_%s", parIni[Form("Model_CtauTrue_%s", COLL.c_str())].c_str());        }
+  if (incJpsi ) { plotLabel = plotLabel + Form("_CtauTrue_%s", parIni[Form("Model_CtauTrue_%s", COLL.c_str())].c_str());        }
   if (incResol)            { plotLabel = plotLabel + Form("_CtauTrueRes_%s", parIni[Form("Model_CtauTrueRes_%s", COLL.c_str())].c_str()) ; }
   if (wantPureSMC)         { plotLabel = plotLabel + "_NoBkg"; }
 
@@ -114,7 +110,7 @@ bool fitCharmoniaCtauTrueModel( RooWorkspace& myws,             // Local Workspa
     myws.import(*fitResult, Form("fitResult_%s", pdfName.c_str()));
     // Draw the mass plot
     int nBins = min(int( round((cut.dMuon.ctauTrue.Max - cut.dMuon.ctauTrue.Min)/binWidth) ), 1000);
-    drawCtauTruePlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, incPsi2S, wantPureSMC, setLogScale, incSS, nBins);
+    drawCtauTruePlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, wantPureSMC, setLogScale, incSS, nBins);
     // Save the results
     string FileName = ""; setCtauTrueFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb);
     myws.saveSnapshot(Form("%s_parFit", pdfName.c_str()),*newpars,kTRUE);

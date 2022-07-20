@@ -9,8 +9,8 @@ using namespace RooStats;
 void setCtauErrDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries);
 bool histToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, vector<double> rangeErr);
 bool makeCtauErrPdf(RooWorkspace& ws, vector<TH1D*>& outputHist, vector<string> objectColl, vector<string> rangeColl, vector<string> cutColl, string dsName, struct KinCuts cut, double binWidth);
-bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut,  map<string,string> parIni, bool incJpsi, bool incPsi2S, double binWidth);
-bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, bool incPsi2S, double binWidth);
+bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut,  map<string,string> parIni, bool incJpsi, double binWidth);
+bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, double binWidth);
 bool addCtauErrModel(RooWorkspace& ws, string object, string pdfType, map<string,string> parIni, bool isPbPb);
 TH1* rebinhist(TH1 *hist, double xmin=1e99, double xmax=-1e99);
 void MatrixInverse2x2(TMatrixD& Inverse);
@@ -20,7 +20,6 @@ bool buildCharmoniaCtauErrModel(RooWorkspace& ws, map<string, string>  parIni,
                                 struct KinCuts cut,          // Variable containing all kinematic cuts
                                 string dsName,               // Name of current input dataset
                                 bool incJpsi,                // Include Jpsi model
-                                bool incPsi2S,               // Include Psi(2S) model
                                 double  binWidth,            // Bin width
                                 double  numEntries = 300000. // Number of entries in the dataset
                                 )
@@ -38,24 +37,26 @@ bool buildCharmoniaCtauErrModel(RooWorkspace& ws, map<string, string>  parIni,
   // C r e a t e   m o d e l 
 
   string pdfType = "pdfCTAUERR";
-  if(!createCtauErrTemplateUsingSPLOT(ws, dsName, pdfType, cut, incJpsi, incPsi2S, binWidth)) { cout << "[ERROR] Creating the Ctau Error Templates using sPLOT failed" << endl; return false; }
-  //if(!createCtauErrTemplateUsingMatrix(ws, dsName, pdfType, cut, parIni, incJpsi, incPsi2S, binWidth)) { cout << "[ERROR] Creating the Ctau Error Templates failed" << endl; return false; }
+  if(!createCtauErrTemplateUsingSPLOT(ws, dsName, pdfType, cut, incJpsi, binWidth)) { cout << "[ERROR] Creating the Ctau Error Templates using sPLOT failed" << endl; return false; }
+  //if(!createCtauErrTemplateUsingMatrix(ws, dsName, pdfType, cut, parIni, incJpsi, binWidth)) { cout << "[ERROR] Creating the Ctau Error Templates failed" << endl; return false; }
+  cout << "Template created w/ sPlot" << endl;
   if (incJpsi)  {  if(!addCtauErrModel(ws, "Jpsi", pdfType, parIni, isPbPb))  { return false; }  }
-  if (incPsi2S) {  if(!addCtauErrModel(ws, "Psi2S", pdfType, parIni, isPbPb)) { return false; }  }
   if (!isMC)    {  if(!addCtauErrModel(ws, "Bkg", pdfType, parIni, isPbPb))   { return false; }  }
 
+cout << "Models added " << endl;
   // Total PDF
   
   RooArgList pdfList;
   if (incJpsi)  { pdfList.add( *ws.pdf(Form("%sTot_Jpsi_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) );  }
-  if (incPsi2S) { pdfList.add( *ws.pdf(Form("%sTot_Psi2S_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) ); }
   if (!isMC)    { pdfList.add( *ws.pdf(Form("%sTot_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) );   }
-  if (!incJpsi && !incPsi2S && isMC) {
+  if (!incJpsi && isMC) {
     cout << "[ERROR] User did not include any model for MC, please fix your input settings!" << endl; return false;
   }
+cout << "Pdf added " << endl;
   string pdfName = Form("%s_Tot_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"));
   RooAbsPdf *themodel = new RooAddPdf(pdfName.c_str(), pdfName.c_str(), pdfList);
   ws.import(*themodel);
+cout << "Model imported " << endl;
   ws.pdf(pdfName.c_str())->setNormRange("CtauErrWindow");
   
   // save the initial values of the model we've just created
@@ -84,7 +85,7 @@ bool addCtauErrModel(RooWorkspace& ws, string object, string pdfType, map<string
 };
 
 
-bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, bool incPsi2S, double binWidth)
+bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, double binWidth)
 {
   string hType = pdfType;
   hType.replace(hType.find("pdf"), string("pdf").length(), "h");
@@ -96,7 +97,6 @@ bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdf
   string pdfMassName = Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP"));
   RooArgList yieldList;
   if (incJpsi)  { yieldList.add( *ws.var(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))) );  }
-  if (incPsi2S) { yieldList.add( *ws.var(Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))) ); }
   yieldList.add( *ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) ); // Always add background
   RooDataSet* data = (RooDataSet*)ws.data(dsName.c_str())->Clone("TMP_DATA");
   RooAbsPdf* pdf = clone(*ws.pdf(pdfMassName.c_str()));
@@ -105,9 +105,6 @@ bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdf
   ws.import(*data, Rename((dsName+"_SPLOT").c_str()));
   if (incJpsi) {
     cout <<  "[INFO] Jpsi yield -> Mass Fit: " << ws.var(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")))->getVal() << " , sWeights: " << sData.GetYieldFromSWeight(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))) << std::endl;
-  }
-  if (incPsi2S) {
-    cout <<  "[INFO] Psi2S yield -> Mass Fit: " << ws.var(Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")))->getVal() << " , sWeights: " << sData.GetYieldFromSWeight(Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))) << std::endl;
   }
   cout <<  "[INFO] Bkg yield -> Mass Fit: " << ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")))->getVal() << " , sWeights: " << sData.GetYieldFromSWeight(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) << std::endl;
   
@@ -131,18 +128,12 @@ bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdf
     if ( !histToPdf(ws, hJpsi, Form("%s_Jpsi_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
     delete hJpsi; delete dataw_Jpsi;
   }
-  if (incPsi2S) {
-    RooDataSet* dataw_Psi2S  = new RooDataSet("TMP_PSI2S_DATA","TMP_PSI2S_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("ctauErr"), *ws.var(Form("N_Psi2S_%s_sw", (isPbPb?"PbPb":"PP")))), 0, Form("N_Psi2S_%s_sw", (isPbPb?"PbPb":"PP")));
-    TH1D* hPsi2S = (TH1D*)dataw_Psi2S->createHistogram(Form("%s_Psi2S_%s_sWEIGHT", hType.c_str(), (isPbPb?"PbPb":"PP")), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
-    if ( !histToPdf(ws, hPsi2S, Form("%s_Psi2S_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
-    delete hPsi2S; delete dataw_Psi2S;
-  }
 
   return true;
 };
   
 
-bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut,  map<string,string> parIni, bool incJpsi, bool incPsi2S, double binWidth)
+bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut,  map<string,string> parIni, bool incJpsi, double binWidth)
 {
   string hType = pdfType;
   hType.replace(hType.find("pdf"), string("pdf").length(), "h");
@@ -160,9 +151,6 @@ bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pd
   // Set the range of the ctau Error
   if (isMC) {
     TH1D* hSig = (TH1D*)hTot->Clone("SIGTMP");
-    if (incJpsi != incPsi2S) {
-      if ( !histToPdf(ws, hSig, Form("%s_%s_%s", pdfType.c_str(), (incJpsi?"Jpsi":"Psi2S"), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
-    }
     delete hSig;
   }
   else {
@@ -175,26 +163,8 @@ bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pd
       if ( !makeCtauErrPdf(ws, outputHist_JPSI, objectColl, rangeColl, cutColl, dsName, cut, binWidth) ) { return false; }
       hBkg->Add(outputHist_JPSI.at(0), -1.0);
       if ( !histToPdf(ws, outputHist_JPSI.at(0), Form("%s_Jpsi_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
-      if (!incPsi2S) {
-        if ( !histToPdf(ws, hBkg/*outputHist_JPSI.at(1)*/, Form("%s_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
-      }
+      if ( !histToPdf(ws, hBkg/*outputHist_JPSI.at(1)*/, Form("%s_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
       delete outputHist_JPSI.at(0); delete outputHist_JPSI.at(1);
-    }
-    if (incPsi2S) {
-      vector<string> rangeColl; vector<string> cutColl; vector<string> objectColl;
-      rangeColl.push_back("Psi2SWindow"); cutColl.push_back(parIni["Psi2SMassRange_Cut"]);  objectColl.push_back("Psi2S");
-      rangeColl.push_back(parIni["BkgMassRange_PSI2S_Label"]); cutColl.push_back(parIni["BkgMassRange_PSI2S_Cut"]);   objectColl.push_back("Bkg");
-      vector<TH1D*> outputHist_PSI2S;
-      if ( !makeCtauErrPdf(ws, outputHist_PSI2S, objectColl, rangeColl, cutColl, dsName, cut, binWidth) ) { return false; }
-      hBkg->Add(outputHist_PSI2S.at(0), -1.0);
-      if ( !histToPdf(ws, outputHist_PSI2S.at(0), Form("%s_Psi2S_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
-      if (!incJpsi) {
-        if ( !histToPdf(ws, outputHist_PSI2S.at(1), Form("%s_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
-      }
-      delete outputHist_PSI2S.at(0); delete outputHist_PSI2S.at(1);
-    }
-    if (incPsi2S == incJpsi) {
-      if ( !histToPdf(ws, hBkg, Form("%s_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
     }
     delete hBkg;
   }
@@ -387,6 +357,7 @@ void setCtauErrDefaultParameters(map<string, string> &parIni, bool isPbPb, doubl
   if (parIni.count(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))]=="") { 
     parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
   }
+cout << "[build ctauerr] default param set" << endl;
 
   return;
 };

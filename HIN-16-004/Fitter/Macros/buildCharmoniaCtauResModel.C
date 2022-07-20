@@ -21,11 +21,9 @@ bool buildCharmoniaCtauResModel(RooWorkspace& ws, struct CharmModel model, map<s
   bool isMC = (dsName.find("MC")!=std::string::npos);
   bool incNonPrompt = (dsName.find("NOPR")!=std::string::npos);
   bool incJpsi = (dsName.find("JPSI")!=std::string::npos);
-  bool incPsi2S = (dsName.find("PSI2S")!=std::string::npos);
 
   string obj = "Bkg";
   if (incJpsi) obj = "Jpsi";
-  if (incPsi2S) obj = "Psi2S";
  
   string pdfCtauErrName = Form("pdfCTAUERR_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP"));
   if (useTotctauErrPdf) { 

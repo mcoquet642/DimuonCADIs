@@ -22,7 +22,7 @@
 Int_t           fCurrent; //!current Tree number in a TChain
 
 // Declaration of leaf types
-UInt_t          eventNb;
+/*UInt_t          eventNb;
 UInt_t          runNb;
 UInt_t          LS;
 Float_t         zVtx;
@@ -276,10 +276,120 @@ TBranch        *b_Gen_mu_size;   //!
 TBranch        *b_Gen_mu_type;   //!
 TBranch        *b_Gen_mu_charge;   //!
 TBranch        *b_Gen_mu_4mom;   //!
+*/
 
-string TreeName("hionia/myTree");
+   Float_t         fMass;
+   Float_t         fPt;
+   Float_t         fEta;
+   Float_t         fPhi;
+   Int_t           fSign;
 
-void initOniaTree(TChain *tree)
+   Float_t         fTauz;
+   Float_t         fTauzErr;
+   Float_t         fTauxy;
+   Float_t         fTauxyErr;
+
+   Float_t         fPosX;
+   Float_t         fPosY;
+   Float_t         fPosZ;
+   Float_t         fMCPosX;
+   Float_t         fMCPosY;
+   Float_t         fMCPosZ;
+
+   Float_t         fPt1;
+   Float_t         fEta1;
+   Float_t         fPhi1;
+   Int_t           fSign1;
+   Float_t         fPt2;
+   Float_t         fEta2;
+   Float_t         fPhi2;
+   Int_t           fSign2;
+   UShort_t        fMcMask1;
+   UShort_t        fMcMask2;
+   Float_t         fChi2MatchMCHMID1;
+   Float_t         fChi2MatchMCHMID2;
+   Float_t         fChi2MatchMCHMFT1;
+   Float_t         fChi2MatchMCHMFT2;
+   Float_t         fPtMC1;
+   Float_t         fEtaMC1;
+   Float_t         fPhiMC1;
+   Float_t         fEMC1;
+   Float_t         fPtMC2;
+   Float_t         fEtaMC2;
+   Float_t         fPhiMC2;
+   Float_t         fEMC2;
+   Float_t         fVx1;
+   Float_t         fVy1;
+   Float_t         fVz1;
+   Float_t         fVt1;
+   Float_t         fVx2;
+   Float_t         fVy2;
+   Float_t         fVz2;
+   Float_t         fVt2;
+
+   UInt_t           fMcDecision;
+
+
+
+   TBranch        *b_fMass;   //!
+   TBranch        *b_fPt;   //!
+   TBranch        *b_fEta;   //!
+   TBranch        *b_fPhi;   //!
+   TBranch        *b_fSign;   //!
+
+   TBranch        *b_fTauz;   //!
+   TBranch        *b_fTauzErr;   //!
+   TBranch        *b_fTauxy;   //!
+   TBranch        *b_fTauxyErr;   //!
+
+   TBranch        *b_fPosX;   //!
+   TBranch        *b_fPosY;   //!
+   TBranch        *b_fPosZ;   //!
+   TBranch        *b_fMCPosX;   //!
+   TBranch        *b_fMCPosY;   //!
+   TBranch        *b_fMCPosZ;   //!
+
+   TBranch        *b_fPt1;   //!
+   TBranch        *b_fEta1;   //!
+   TBranch        *b_fPhi1;   //!
+   TBranch        *b_fSign1;   //!
+   TBranch        *b_fPt2;   //!
+   TBranch        *b_fEta2;   //!
+   TBranch        *b_fPhi2;   //!
+   TBranch        *b_fSign2;   //!
+   TBranch        *b_fMcMask1;   //!
+   TBranch        *b_fMcMask2;   //!
+   TBranch        *b_fChi2MatchMCHMID1;   //!
+   TBranch        *b_fChi2MatchMCHMID2;   //!
+   TBranch        *b_fChi2MatchMCHMFT1;   //!
+   TBranch        *b_fChi2MatchMCHMFT2;   //!
+   TBranch        *b_fPtMC1;   //!
+   TBranch        *b_fEtaMC1;   //!
+   TBranch        *b_fPhiMC1;   //!
+   TBranch        *b_fEMC1;   //!
+   TBranch        *b_fPtMC2;   //!
+   TBranch        *b_fEtaMC2;   //!
+   TBranch        *b_fPhiMC2;   //!
+   TBranch        *b_fEMC2;   //!
+   TBranch        *b_fVx1;   //!
+   TBranch        *b_fVy1;   //!
+   TBranch        *b_fVz1;   //!
+   TBranch        *b_fVt1;   //!
+   TBranch        *b_fVx2;   //!
+   TBranch        *b_fVy2;   //!
+   TBranch        *b_fVz2;   //!
+   TBranch        *b_fVt2;   //!
+
+
+   TBranch        *b_fMcDecision;   //!
+
+
+
+
+
+//string TreeName("Dileptons");
+
+void initOniaTree(TChain *tree, string TreeName)
 {
    std::cout << "[INFO] Initializing TTree " << TreeName.c_str() << std::endl;
    // The Init() function is called when the selector needs to initialize
@@ -293,7 +403,7 @@ void initOniaTree(TChain *tree)
    TChain   *fChain;   //!pointer to the analyzed TTree or TChain
 
    // Set object pointer
-   Reco_QQ_4mom = 0;
+/*   Reco_QQ_4mom = 0;
    Reco_QQ_mupl_4mom = 0;
    Reco_QQ_mumi_4mom = 0;
    Reco_QQ_vtx = 0;
@@ -302,13 +412,69 @@ void initOniaTree(TChain *tree)
    Gen_QQ_mupl_4mom = 0;
    Gen_QQ_mumi_4mom = 0;
    Gen_mu_4mom = 0;
+*/
    // Set branch addresses and branch pointers
 
    if (!tree) return;
    fChain = tree;
 
    fCurrent = -1;
-   if (fChain->GetBranch("eventNb")) fChain->SetBranchAddress("eventNb", &eventNb, &b_eventNb);
+
+   std::cout << "[INFO] Setting Branches " << std::endl;
+ if (fChain->GetBranch("fMass"))   fChain->SetBranchAddress("fMass", &fMass, &b_fMass);
+ if (fChain->GetBranch("fPt"))   fChain->SetBranchAddress("fPt", &fPt, &b_fPt);
+ if (fChain->GetBranch("fEta"))   fChain->SetBranchAddress("fEta", &fEta, &b_fEta);
+ if (fChain->GetBranch("fPhi"))   fChain->SetBranchAddress("fPhi", &fPhi, &b_fPhi);
+ if (fChain->GetBranch("fSign"))   fChain->SetBranchAddress("fSign", &fSign, &b_fSign);
+ if (fChain->GetBranch("fTauz"))  fChain->SetBranchAddress("fTauz", &fTauz, &b_fTauz);
+ if (fChain->GetBranch("fTauzErr"))   fChain->SetBranchAddress("fTauzErr", &fTauzErr, &b_fTauzErr);
+ if (fChain->GetBranch("fTauxy"))  fChain->SetBranchAddress("fTauxy", &fTauxy, &b_fTauxy);
+ if (fChain->GetBranch("fTauxyErr"))  fChain->SetBranchAddress("fTauxyErr", &fTauxyErr, &b_fTauxyErr);
+
+ if (fChain->GetBranch("fPosX"))   fChain->SetBranchAddress("fPosX", &fPosX, &b_fPosX);
+ if (fChain->GetBranch("fPosY"))   fChain->SetBranchAddress("fPosY", &fPosY, &b_fPosY);
+ if (fChain->GetBranch("fPosZ"))   fChain->SetBranchAddress("fPosZ", &fPosZ, &b_fPosZ);
+ if (fChain->GetBranch("fMCPosX"))   fChain->SetBranchAddress("fMCPosX", &fMCPosX, &b_fMCPosX);
+ if (fChain->GetBranch("fMCPosY"))   fChain->SetBranchAddress("fMCPosY", &fMCPosY, &b_fMCPosY);
+ if (fChain->GetBranch("fMCPosZ"))   fChain->SetBranchAddress("fMCPosZ", &fMCPosZ, &b_fMCPosZ);
+
+ if (fChain->GetBranch("fPt1"))   fChain->SetBranchAddress("fPt1", &fPt1, &b_fPt1);
+ if (fChain->GetBranch("fEta1"))   fChain->SetBranchAddress("fEta1", &fEta1, &b_fEta1);
+ if (fChain->GetBranch("fPhi1"))   fChain->SetBranchAddress("fPhi1", &fPhi1, &b_fPhi1);
+ if (fChain->GetBranch("fSign1"))   fChain->SetBranchAddress("fSign1", &fSign1, &b_fSign1);
+ if (fChain->GetBranch("fPt2"))   fChain->SetBranchAddress("fPt2", &fPt2, &b_fPt2);
+ if (fChain->GetBranch("fEta2"))   fChain->SetBranchAddress("fEta2", &fEta2, &b_fEta2);
+ if (fChain->GetBranch("fPhi2"))   fChain->SetBranchAddress("fPhi2", &fPhi2, &b_fPhi2);
+ if (fChain->GetBranch("fSign2"))   fChain->SetBranchAddress("fSign2", &fSign2, &b_fSign2);
+ if (fChain->GetBranch("fMcMask1"))   fChain->SetBranchAddress("fMcMask1", &fMcMask1, &b_fMcMask1);
+ if (fChain->GetBranch("fMcMask2"))   fChain->SetBranchAddress("fMcMask2", &fMcMask2, &b_fMcMask2);
+ if (fChain->GetBranch("fChi2MatchMCHMID1"))   fChain->SetBranchAddress("fChi2MatchMCHMID1", &fChi2MatchMCHMID1, &b_fChi2MatchMCHMID1);
+ if (fChain->GetBranch("fChi2MatchMCHMID2"))   fChain->SetBranchAddress("fChi2MatchMCHMID2", &fChi2MatchMCHMID2, &b_fChi2MatchMCHMID2);
+ if (fChain->GetBranch("fChi2MatchMCHMFT1"))   fChain->SetBranchAddress("fChi2MatchMCHMFT1", &fChi2MatchMCHMFT1, &b_fChi2MatchMCHMFT1);
+ if (fChain->GetBranch("fChi2MatchMCHMFT2"))   fChain->SetBranchAddress("fChi2MatchMCHMFT2", &fChi2MatchMCHMFT2, &b_fChi2MatchMCHMFT2);
+ if (fChain->GetBranch("fPtMC1"))   fChain->SetBranchAddress("fPtMC1", &fPtMC1, &b_fPtMC1);
+ if (fChain->GetBranch("fEtaMC1"))   fChain->SetBranchAddress("fEtaMC1", &fEtaMC1, &b_fEtaMC1);
+ if (fChain->GetBranch("fPhiMC1"))   fChain->SetBranchAddress("fPhiMC1", &fPhiMC1, &b_fPhiMC1);
+ if (fChain->GetBranch("fEMC1"))   fChain->SetBranchAddress("fEMC1", &fEMC1, &b_fEMC1);
+ if (fChain->GetBranch("fPtMC2"))   fChain->SetBranchAddress("fPtMC2", &fPtMC2, &b_fPtMC2);
+ if (fChain->GetBranch("fEtaMC2"))   fChain->SetBranchAddress("fEtaMC2", &fEtaMC2, &b_fEtaMC2);
+ if (fChain->GetBranch("fPhiMC2"))   fChain->SetBranchAddress("fPhiMC2", &fPhiMC2, &b_fPhiMC2);
+ if (fChain->GetBranch("fEMC2"))   fChain->SetBranchAddress("fEMC2", &fEMC2, &b_fEMC2);
+ if (fChain->GetBranch("fVx1"))   fChain->SetBranchAddress("fVx1", &fVx1, &b_fVx1);
+ if (fChain->GetBranch("fVy1"))   fChain->SetBranchAddress("fVy1", &fVy1, &b_fVy1);
+ if (fChain->GetBranch("fVz1"))   fChain->SetBranchAddress("fVz1", &fVz1, &b_fVz1);
+ if (fChain->GetBranch("fVt1"))   fChain->SetBranchAddress("fVt1", &fVt1, &b_fVt1);
+ if (fChain->GetBranch("fVx2"))   fChain->SetBranchAddress("fVx2", &fVx2, &b_fVx2);
+ if (fChain->GetBranch("fVy2"))   fChain->SetBranchAddress("fVy2", &fVy2, &b_fVy2);
+ if (fChain->GetBranch("fVz2"))   fChain->SetBranchAddress("fVz2", &fVz2, &b_fVz2);
+ if (fChain->GetBranch("fVt2"))   fChain->SetBranchAddress("fVt2", &fVt2, &b_fVt2);
+
+ if (fChain->GetBranch("fMcDecision"))   fChain->SetBranchAddress("fMcDecision", &fMcDecision, &b_fMcDecision);
+
+
+
+
+/*   if (fChain->GetBranch("eventNb")) fChain->SetBranchAddress("eventNb", &eventNb, &b_eventNb);
    if (fChain->GetBranch("runNb")) fChain->SetBranchAddress("runNb", &runNb, &b_runNb);
    if (fChain->GetBranch("LS")) fChain->SetBranchAddress("LS", &LS, &b_LS);
    if (fChain->GetBranch("zVtx")) fChain->SetBranchAddress("zVtx", &zVtx, &b_zVtx);
@@ -434,5 +600,8 @@ void initOniaTree(TChain *tree)
    if (fChain->GetBranch("Gen_mu_type")) fChain->SetBranchAddress("Gen_mu_type", Gen_mu_type, &b_Gen_mu_type);
    if (fChain->GetBranch("Gen_mu_charge")) fChain->SetBranchAddress("Gen_mu_charge", Gen_mu_charge, &b_Gen_mu_charge);
    if (fChain->GetBranch("Gen_mu_4mom")) fChain->SetBranchAddress("Gen_mu_4mom", &Gen_mu_4mom, &b_Gen_mu_4mom);
+*/
+
+
 }
 #endif // #ifndef initOniaTree_C

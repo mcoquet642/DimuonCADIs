@@ -174,19 +174,15 @@ void makeAllMassPlots(const char* workDirName, const char* DSTag, bool paperStyl
       bool isPbPb = (it->Index("PbPb")>0);
       string plotLabel = "";
       bool incJpsi = true;//!paperStyle;
-      bool incPsi2S = true;//!paperStyle;
       if (incJpsi)  { plotLabel = plotLabel + Form("_Jpsi_%s", jpsiName);  } 
-      if (incPsi2S) { plotLabel = plotLabel + Form("_Psi2S_%s", psipName); }
       bool incBkg = true;
       bool cutCtau = true;
-      bool doSimulFit = false;
       cout << *it << " " << it->Index("PbPb") << endl;
       bool setLogScale = !paperStyle;
-      bool zoomPsi = paperStyle;
       int nBins = 46;
       bool getMeanPT = false;
 
-      drawMassPlot(*myws, outputDir, opt, cut, plotLabel, DSTag, isPbPb, incJpsi, incPsi2S, incBkg, cutCtau, doSimulFit, false, setLogScale, incSS, zoomPsi, nBins, getMeanPT, paperStyle, false);
+      drawMassPlot(*myws, outputDir, opt, cut, plotLabel, DSTag, isPbPb, incJpsi, incBkg, cutCtau, false, setLogScale, incSS, nBins, getMeanPT, paperStyle, false);
 
       delete myws;
       delete f;

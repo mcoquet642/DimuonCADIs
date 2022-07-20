@@ -18,7 +18,6 @@ void drawMassFrom2DPlot(RooWorkspace& myws,   // Local workspace
                   bool isPbPb,          // Define if it is PbPb (True) or PP (False)
                   // Select the type of object to fit
                   bool incJpsi,         // Includes Jpsi model
-                  bool incPsi2S,        // Includes Psi(2S) model
                   bool incBkg,          // Includes Background model                  
                   // Select the fitting options
                   // Select the drawing options
@@ -81,22 +80,6 @@ void drawMassFrom2DPlot(RooWorkspace& myws,   // Local workspace
                                              );
       }
     }
-    if (incPsi2S) {
-      if ( myws.pdf(Form("pdfCTAUMASS_Psi2SPR_%s", (isPbPb?"PbPb":"PP"))) ) {
-        myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("PSI2SPR"),Components(RooArgSet(*myws.pdf(Form("pdfCTAUMASS_Psi2SPR_%s", (isPbPb?"PbPb":"PP"))))),
-                                             ProjWData(RooArgSet(*myws.var("ctauErr")), *myws.data(dsOSName.c_str()), kTRUE),
-                                             Normalization(normDSTot, RooAbsReal::NumEvent),
-                                             LineColor(kRed+3), LineStyle(1), Precision(1e-4), NumCPU(32)
-                                             );
-      }
-      if ( myws.pdf(Form("pdfCTAUMASS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP"))) ) {
-        myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("PSI2SNOPR"),Components(RooArgSet(*myws.pdf(Form("pdfCTAUMASS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP"))))),
-                                             ProjWData(RooArgSet(*myws.var("ctauErr")), *myws.data(dsOSName.c_str()), kTRUE),
-                                             Normalization(normDSTot, RooAbsReal::NumEvent),
-                                             LineColor(kGreen+3), LineStyle(1), Precision(1e-4), NumCPU(32)
-                                             );
-      }      
-    } 
   }
   if (incSS) { 
     myws.data(dsSSName.c_str())->plotOn(frame, Name("dSS"), MarkerColor(kRed), LineColor(kRed), MarkerSize(1.2)); 
@@ -193,8 +176,6 @@ void drawMassFrom2DPlot(RooWorkspace& myws,   // Local workspace
 
   // Drawing the Legend
   double ymin = 0.7602;
-  if (incPsi2S && incJpsi && incSS)  { ymin = 0.7202; } 
-  if (incPsi2S && incJpsi && !incSS) { ymin = 0.7452; }
   if (paperStyle) { ymin = 0.72; }
   TLegend* leg = new TLegend(0.5175, ymin, 0.7180, 0.8809); leg->SetTextSize(0.03);
   if (frame->findObject("dOS")) { leg->AddEntry(frame->findObject("dOS"), (incSS?"Opposite Charge":"Data"),"pe"); }

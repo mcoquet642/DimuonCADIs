@@ -23,7 +23,6 @@ bool fitCharmoniaCtauRecoModel( RooWorkspace& myws,             // Local Workspa
                                 bool importDS      = true,      // Select if the dataset is imported in the local workspace
                                 // Select the type of object to fit
                                 bool incJpsi       = true,      // Includes Jpsi model
-                                bool incPsi2S      = true,      // Includes Psi(2S) model
                                 // Select the fitting options
                                 bool doCtauRecoPdf = true,      // Flag to indicate if we want to perform the fit
                                 bool wantPureSMC   = false,     // Flag to indicate if we want to fit pure signal MC
@@ -42,9 +41,6 @@ bool fitCharmoniaCtauRecoModel( RooWorkspace& myws,             // Local Workspa
   // Check if input dataset is MC
   bool isMC = false;
   if (DSTAG.find("MC")!=std::string::npos) {
-    if (incJpsi && incPsi2S) { 
-      cout << "[ERROR] We can only fit one type of signal using MC" << endl; return false; 
-    }
     isMC = true;
   }
   if (!isMC) { wantPureSMC=false; }
@@ -74,7 +70,7 @@ bool fitCharmoniaCtauRecoModel( RooWorkspace& myws,             // Local Workspa
   // Define pdf and plot names
   string pdfName = Form("pdfCTAU_%s_%s", incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP"));
   string plotLabel = "";
-  if (incJpsi || incPsi2S) { plotLabel = plotLabel + "_CtauReco";}// Form("_CtauReco_%s", parIni[Form("Model_CtauReco_%s", COLL.c_str())].c_str());        }
+  if (incJpsi) { plotLabel = plotLabel + "_CtauReco";}// Form("_CtauReco_%s", parIni[Form("Model_CtauReco_%s", COLL.c_str())].c_str());        }
   if (wantPureSMC)         { plotLabel = plotLabel + "_NoBkg"; }
 
   // check if we have already done this fit. If yes, do nothing and return true.
@@ -100,11 +96,11 @@ bool fitCharmoniaCtauRecoModel( RooWorkspace& myws,             // Local Workspa
   if (skipCtauRecoPdf==false) {
     // Create the ctau Reco Pdf
     // Build the Ctau Reco Template
-    if (!buildCharmoniaCtauRecoModel(myws, parIni, cut, dsName.c_str(), incJpsi, incPsi2S, binWidth, numEntries))  { return false; }
+    if (!buildCharmoniaCtauRecoModel(myws, parIni, cut, dsName.c_str(), incJpsi,binWidth, numEntries))  { return false; }
 
     int nBins = min(int( round((cut.dMuon.ctauTrue.Max - cut.dMuon.ctauTrue.Min)/binWidth) ), 1000);
     // Draw the ctau reco plot
-    drawCtauRecoPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, incPsi2S, wantPureSMC, setLogScale, incSS, nBins);
+    drawCtauRecoPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, wantPureSMC, setLogScale, incSS, nBins);
 
     // Save the results
     string FileName = ""; setCtauRecoFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb);

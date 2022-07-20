@@ -5,7 +5,6 @@
 #include "Utilities/initClasses.h"
 #include "Utilities/RooExtCBShape.h"
 
-void fixMassParPsi2StoJpsi(map<string, string>& parIni, bool isPbPb);
 void fixPbPbtoPP(map<string, string>& parIni);
 void setMassDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries);
 bool addSignalMassModel(RooWorkspace& ws, string object, MassModel model, map<string,string> parIni, bool isPbPb); 
@@ -15,10 +14,8 @@ bool addBackgroundMassModel(RooWorkspace& ws, string object, MassModel model, ma
 bool buildCharmoniaMassModel(RooWorkspace& ws, struct CharmModel model, map<string, string>  parIni, 
                              bool isPbPb,                 // Determine if we are working with PbPb (True) or PP (False)
                              bool doConstrFit,            // Do constrained fit
-                             bool doSimulFit,             // Do simultaneous fit
                              bool incBkg,                 // Include background model
                              bool incJpsi,                // Include Jpsi model
-                             bool incPsi2S,               // Include Psi(2S) model
                              double  numEntries = 300000. // Number of entries in the dataset
                              )
 {
@@ -26,57 +23,11 @@ bool buildCharmoniaMassModel(RooWorkspace& ws, struct CharmModel model, map<stri
   // If the initial parameters are empty, set defaul parameter values
   setMassDefaultParameters(parIni, isPbPb, numEntries);
 
-  // Fix all psi2S parameters to jpsi
-  if (incJpsi && incPsi2S) {
-    fixMassParPsi2StoJpsi(parIni, isPbPb);
-  }
-
-  // Let's define the single and double ratio variables
-  if (incPsi2S && incJpsi) {
-    if (doSimulFit && isPbPb) {
-
-      // Fix mean, alpha and n parameters in PbPb to PP values 
-      // fixPbPbtoPP(parIni);
-
-      // create parameters related to the double ratio
-      ws.factory( parIni["RFrac2Svs1S_PbPbvsPP"].c_str() );                     // Double Ratio
-      ws.factory( parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))].c_str() );    // Number of Jpsi in PbPb
-
-      // Asign NPsi2S(PbPb) = DoubleRatio(PbPb/PP) * SingleRatioPP(Psi2S/Jpsi) * NJpsi(PbPb) 
-      ws.factory(Form("RooFormulaVar::%s('@0*@1*@2',{%s,%s,%s})", "N_Psi2S_PbPb", 
-		      "RFrac2Svs1S_PbPbvsPP", 
-		      "RFrac2Svs1S_PP", 
-		      Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))
-		      )); 
-      ws.var("RFrac2Svs1S_PbPbvsPP")->setConstant(kFALSE);
-
-    } else {
-
-      // create parameters related to the double ratio
-      ws.factory( parIni[Form("RFrac2Svs1S_%s", (isPbPb?"PbPb":"PP"))].c_str() );
-      ws.factory( parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))].c_str() );
-
-      // Asign N(Psi2S) = SingleRatio(Psi2S/Jpsi) * N(Jpsi)
-      ws.factory(Form("RooFormulaVar::%s('@0*@1',{%s,%s})", Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")), 
-		      Form("RFrac2Svs1S_%s", (isPbPb?"PbPb":"PP")),
-		      Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")) 
-		      )); 
-      ws.var(Form("RFrac2Svs1S_%s", (isPbPb?"PbPb":"PP")))->setConstant(kFALSE);
-
-    }
-    
-    // As we have already declared the Number of Psi2S and Jpsi before, just use their names in their PDFs
-    parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"));
-    parIni[Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))] = Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")); 
-  }
 
   // C r e a t e   m o d e l  
 
   if (incJpsi) {
     if(!addSignalMassModel(ws, "Jpsi", model.Jpsi.Mass, parIni, isPbPb)) { cout << "[ERROR] Adding Jpsi Mass Model failed" << endl; return false; }
-  }
-  if (incPsi2S) { 
-    if (!addSignalMassModel(ws, "Psi2S", model.Psi2S.Mass, parIni, isPbPb)) { cout << "[ERROR] Adding Psi(2S) Mass Model failed" << endl; return false; }  
   }
   if (incBkg) {
     if(!addBackgroundMassModel(ws, "Bkg", model.Bkg.Mass, parIni, isPbPb)) { cout << "[ERROR] Adding Background Mass Model failed" << endl; return false; }
@@ -104,9 +55,8 @@ bool buildCharmoniaMassModel(RooWorkspace& ws, struct CharmModel model, map<stri
 
   RooArgList pdfList;
   if (incJpsi) { pdfList.add( *ws.pdf(Form("%sTot_Jpsi_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) );  }
-  if (incPsi2S){ pdfList.add( *ws.pdf(Form("%sTot_Psi2S_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) ); }
   if (incBkg)  { pdfList.add( *ws.pdf(Form("%sTot_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) );   }
-  if (!incJpsi && !incPsi2S && !incBkg) { cout << "[ERROR] User did not include any model, please fix your input settings!" << endl; return false; }
+  if (!incJpsi && !incBkg) { cout << "[ERROR] User did not include any model, please fix your input settings!" << endl; return false; }
   RooAbsPdf *themodel = new RooAddPdf(pdfName.c_str(), pdfName.c_str(), pdfList );
   ws.import(*themodel);
   ws.pdf(pdfName.c_str())->setNormRange("MassWindow");
@@ -595,6 +545,8 @@ bool addSignalMassModel(RooWorkspace& ws, string object, MassModel model, map<st
   
   std::string lb = Form("_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"));
   RooAbsPdf* pdf = NULL;
+  std::string s1="";
+  std::string s2="";
 
   // Import the Yield parameter
   if (!ws.var(Form("N_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))) { ws.factory(parIni[Form("N_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()); }
@@ -717,17 +669,32 @@ bool addSignalMassModel(RooWorkspace& ws, string object, MassModel model, map<st
              )) {
 	cout << Form("[ERROR] Initial parameters where not found for %s Extended Crystal Ball Model in %s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; return false; 
       }
+	cout << "Defined var for ext : " << Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl;
+	cout << "NB in parIni : " << parIni.count(Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) << endl;
+	cout << "Value in ParIni : " << parIni[Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() << endl;
+	cout << "Value in ParIni : " << parIni[Form("m_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() << endl;
+	cout << "Value in ParIni : " << parIni[Form("sigma1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() << endl;
+	cout << "Value in ParIni : " << parIni[Form("alpha_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() << endl;
+	cout << "Value in ParIni : " << parIni[Form("n_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() << endl;
+	cout << "Value in ParIni : " << parIni[Form("n2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() << endl;
 
       // create the variables for this model
       ws.factory( parIni[Form("m_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
       ws.factory( parIni[Form("sigma1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
       ws.factory( parIni[Form("alpha_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
       ws.factory( parIni[Form("n_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      s1="alpha2_Jpsi_PP[2.0000,0.5000,30.0000]";
+//      ws.factory(s1.c_str());
       ws.factory( parIni[Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      s2="n2_Jpsi_PP[1.8000,0.5000,10.0000]";
+//      ws.factory(s2.c_str());
       ws.factory( parIni[Form("n2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
 
+cout << "Looking for var : " << ("alpha2"+lb).c_str() << endl;
+cout << ("pdfMASS"+lb).c_str() << endl;
+
       // create the PDF
-      pdf = new RooExtCBShape(("pdfMASS"+lb).c_str(), ("pdfMASS"+lb).c_str(),
+/*      pdf = new RooExtCBShape(("pdfMASS"+lb).c_str(), ("pdfMASS"+lb).c_str(),
                               *ws.var("invMass"),
                               *ws.var(("m"+lb).c_str()),
                               *ws.var(("sigma1"+lb).c_str()),
@@ -735,8 +702,21 @@ bool addSignalMassModel(RooWorkspace& ws, string object, MassModel model, map<st
                               *ws.var(("n"+lb).c_str()),
                               *ws.var(("alpha2"+lb).c_str()),
                               *ws.var(("n2"+lb).c_str())
-                              );
-      if (pdf) { ws.import(*pdf); }
+                              );*/
+cout << "pdf created" << endl;
+//      if (pdf) { ws.import(*pdf); }
+cout << "pdf imported" << endl;
+
+      ws.factory(Form("RooExtCBShape::%s(%s, %s, %s, %s, %s, %s, %s)", Form("pdfMASS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "invMass",
+                      Form("m_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("sigma1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("alpha_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("n_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("n2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+                      ));
+
+
       ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("pdfMASSTot_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
                       Form("pdfMASS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
                       Form("N_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
@@ -759,6 +739,9 @@ bool addSignalMassModel(RooWorkspace& ws, string object, MassModel model, map<st
               )) {
           cout << Form("[ERROR] Initial parameters where not found for %s Double Crystal Ball Model in %s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; return false;
         }
+	cout << "Defined var for ext : " << Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl;
+	cout << "NB in parIni : " << parIni.count(Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) << endl;
+	cout << "Value in ParIni : " << parIni[Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() << endl;
         
       // create the variables for this model             
       ws.factory( parIni[Form("f_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
@@ -847,6 +830,57 @@ bool addSignalMassModel(RooWorkspace& ws, string object, MassModel model, map<st
 
       cout << Form("[INFO] %s Gaussian and Crystal Ball PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
 	
+    case (MassModel::NA60):  
+
+      gROOT->ProcessLine(".L ./Macros/Utilities/NA60Shape.cxx+");
+      // check that all input parameters are defined
+      if (!( 
+            parIni.count(Form("m_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("sigma1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("alpha_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("p1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("p2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("p3_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("p12_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("p22_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
+            parIni.count(Form("p32_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))
+             )) {
+	cout << Form("[ERROR] Initial parameters where not found for %s NA60 Model in %s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; return false; 
+      }
+      // create the variables for this model
+      ws.factory( parIni[Form("m_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("sigma1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("alpha_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("p1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("p2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("p3_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("p12_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("p22_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("p32_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+
+      ws.factory(Form("NA60Shape::%s(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", Form("pdfMASS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "invMass",
+                      Form("m_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("sigma1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("alpha_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("p1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("p2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("p3_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("alpha2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("p12_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("p22_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("p32_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+                      ));
+
+
+      ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("pdfMASSTot_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("pdfMASS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
+                      Form("N_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+                      ));
+
+      cout << Form("[INFO] %s NA60 PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
+      
     default :
 
       cout << "[ERROR] Selected Signal Mass Model: " << parIni[Form("Model_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))] << " has not been implemented" << endl; return false;
@@ -870,19 +904,6 @@ void fixPbPbtoPP(map<string, string>& parIni)
   //parIni["f_Psi2S_PbPb"] = Form("RooFormulaVar::%s('@0',{%s})", "f_Psi2S_PbPb", "f_Jpsi_PP");  
 };
 
-void fixMassParPsi2StoJpsi(map<string, string>& parIni, bool isPbPb)
-{
-  cout << "[INFO] Constraining Psi(2S) parameters to Jpsi using PDF Mass Ratio" << endl;
-  Double_t MassRatio = (Mass.Psi2S/Mass.JPsi);
-  parIni[Form("m_Psi2S_%s", (isPbPb?"PbPb":"PP"))]      = Form("RooFormulaVar::%s('@0*@1',{MassRatio[%.6f],%s})", Form("m_Psi2S_%s", (isPbPb?"PbPb":"PP")), MassRatio, Form("m_Jpsi_%s", (isPbPb?"PbPb":"PP") ));
-  parIni[Form("sigma1_Psi2S_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0*@1',{MassRatio,%s})", Form("sigma1_Psi2S_%s", (isPbPb?"PbPb":"PP")), Form("sigma1_Jpsi_%s", (isPbPb?"PbPb":"PP") ));
-  parIni[Form("sigma2_Psi2S_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0*@1',{MassRatio,%s})", Form("sigma2_Psi2S_%s", (isPbPb?"PbPb":"PP")), Form("sigma2_Jpsi_%s", (isPbPb?"PbPb":"PP") ));
-  parIni[Form("alpha_Psi2S_%s", (isPbPb?"PbPb":"PP"))]  = Form("RooFormulaVar::%s('@0',{%s})", Form("alpha_Psi2S_%s", (isPbPb?"PbPb":"PP")), Form("alpha_Jpsi_%s", (isPbPb?"PbPb":"PP")));
-  parIni[Form("alpha2_Psi2S_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0',{%s})", Form("alpha2_Psi2S_%s", (isPbPb?"PbPb":"PP")), Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP")));
-  parIni[Form("n_Psi2S_%s", (isPbPb?"PbPb":"PP"))]      = Form("RooFormulaVar::%s('@0',{%s})", Form("n_Psi2S_%s", (isPbPb?"PbPb":"PP")), Form("n_Jpsi_%s", (isPbPb?"PbPb":"PP")));
-  parIni[Form("n2_Psi2S_%s", (isPbPb?"PbPb":"PP"))]     = Form("RooFormulaVar::%s('@0',{%s})", Form("n2_Psi2S_%s", (isPbPb?"PbPb":"PP")), Form("n2_Jpsi_%s", (isPbPb?"PbPb":"PP")));
-  parIni[Form("f_Psi2S_%s", (isPbPb?"PbPb":"PP"))]      = Form("RooFormulaVar::%s('@0',{%s})", Form("f_Psi2S_%s", (isPbPb?"PbPb":"PP")), Form("f_Jpsi_%s", (isPbPb?"PbPb":"PP")));
-};
 
 void setMassDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries)
 {
@@ -916,7 +937,7 @@ void setMassDefaultParameters(map<string, string> &parIni, bool isPbPb, double n
     parIni[Form("m_Psi2S_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.6f,%.6f,%.6f]", Form("m_Psi2S_%s", (isPbPb?"PbPb":"PP")), Mass.Psi2S, Mass.Psi2S-0.1, Mass.Psi2S+0.1);
   }
   if (parIni.count(Form("sigma1_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("sigma1_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("sigma1_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("sigma1_Jpsi_%s", (isPbPb?"PbPb":"PP")), 0.02, 0.005, 0.07);
+    parIni[Form("sigma1_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("sigma1_Jpsi_%s", (isPbPb?"PbPb":"PP")), 0.05, 0.005, 0.2);
   }
   if (parIni.count(Form("rSigma21_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0) {
     if (parIni.count(Form("sigma2_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("sigma2_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
@@ -946,13 +967,19 @@ void setMassDefaultParameters(map<string, string> &parIni, bool isPbPb, double n
   }
   if (parIni.count(Form("alpha_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("alpha_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
     parIni[Form("alpha_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("alpha_Jpsi_%s", (isPbPb?"PbPb":"PP")), 2.0, 0.5, 30.0);
+//    parIni[Form("alpha_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("alpha_Jpsi_%s", (isPbPb?"PbPb":"PP")), -0.4, -1.0, 30.0);
   }
   if (parIni.count(Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0) {
+	cout << "alpha2 @0 case" << endl;
     parIni[Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0',{%s})", Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP")), Form("alpha_Jpsi_%s", (isPbPb?"PbPb":"PP")));
   }
   else if (parIni[Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="")
   {
+	cout << "alpha2 other" << endl;
     parIni[Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP")), 2.0, 0.5, 30.0);
+//    parIni[Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("alpha2_Jpsi_%s", (isPbPb?"PbPb":"PP")), 2.0, -1.0, 30.0);
+  }else{
+	cout << "alpha2 else" << endl;
   }
   if (parIni.count(Form("alpha_Psi2S_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("alpha_Psi2S_%s", (isPbPb?"PbPb":"PP"))]=="") {
     parIni[Form("alpha_Psi2S_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("alpha_Psi2S_%s", (isPbPb?"PbPb":"PP")), 2.0, 0.5, 30.0);
@@ -989,6 +1016,27 @@ void setMassDefaultParameters(map<string, string> &parIni, bool isPbPb, double n
   }
   if (parIni.count(Form("f_Psi2S_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("f_Psi2S_%s", (isPbPb?"PbPb":"PP"))]=="") {
     parIni[Form("f_Psi2S_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("f_Psi2S_%s", (isPbPb?"PbPb":"PP")), 0.5, 0.0, 1.0);
+  }
+
+
+  if (parIni.count(Form("p1_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("p1_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
+    parIni[Form("p1_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("p1_Jpsi_%s", (isPbPb?"PbPb":"PP")), 0.23, 0.01, 10.0);
+  }
+  if (parIni.count(Form("p2_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("p2_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
+    parIni[Form("p2_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("p2_Jpsi_%s", (isPbPb?"PbPb":"PP")), 1.2, 0.01, 10.0);
+  }
+  if (parIni.count(Form("p3_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("p3_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
+    parIni[Form("p3_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("p3_Jpsi_%s", (isPbPb?"PbPb":"PP")), 0.04, 0.01, 10.0);
+  }
+
+  if (parIni.count(Form("p12_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("p12_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
+    parIni[Form("p12_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("p12_Jpsi_%s", (isPbPb?"PbPb":"PP")), 0.18, 0.01, 10.0);
+  }
+  if (parIni.count(Form("p22_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("p22_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
+    parIni[Form("p22_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("p22_Jpsi_%s", (isPbPb?"PbPb":"PP")), 1.3, 0.01, 10.0);
+  }
+  if (parIni.count(Form("p32_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("p32_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") {
+    parIni[Form("p32_Jpsi_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("p32_Jpsi_%s", (isPbPb?"PbPb":"PP")), 0.06, 0.01, 10.0);
   }
 
   // DEFAULT BACKGROUND MASS MODEL PARAMETERS

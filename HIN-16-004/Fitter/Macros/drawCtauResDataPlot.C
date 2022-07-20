@@ -32,7 +32,6 @@ bool drawCtauResDataPlot(RooWorkspace& myws,   // Local workspace
   bool isWeighted = myws.data(dsName.c_str())->isWeighted();
   bool isMC = (DSTAG.find("MC")!=std::string::npos);
   bool incJpsi = (dsName.find("JPSI")!=std::string::npos);
-  bool incPsi2S = (dsName.find("PSI2S")!=std::string::npos);
   bool incNonPrompt = (DSTAG.find("NOPR")!=std::string::npos);
   vector<double> range; range.push_back(cut.dMuon.ctauN.Min); range.push_back(cut.dMuon.ctauN.Max);
 
@@ -41,7 +40,6 @@ bool drawCtauResDataPlot(RooWorkspace& myws,   // Local workspace
   string pdfTotName  = Form("%s_Tot_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"));
   string obj = "Bkg";
   if (incJpsi) obj = "Jpsi";
-  if (incPsi2S) obj = "Psi2S";
  
   double minRange = -10.0;
   double maxRange = 10.0;

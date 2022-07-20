@@ -25,7 +25,6 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
                                bool importDS       = true,     // Select if the dataset is imported in the local workspace
                                // Select the type of object to fit
                                bool incJpsi        = true,     // Includes Jpsi model
-                               bool incPsi2S       = true,     // Includes Psi(2S) model
                                bool incBkg         = true,     // Includes Background model
                                // Select the fitting options
                                bool doCtauErrPdf   = true,     // Flag to indicate if we want to make the ctau Error Pdf
@@ -45,15 +44,12 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
   // Check if input dataset is MC
   bool isMC = false;
   if (DSTAG.find("MC")!=std::string::npos) {
-    if (incJpsi && incPsi2S) { 
-      cout << "[ERROR] We can only fit one type of signal using MC" << endl; return false; 
-    }
     isMC = true;
   }
   wantPureSMC = (isMC && wantPureSMC);
-  bool cutSideBand = (incBkg && (!incPsi2S && !incJpsi));
+  bool cutSideBand = (incBkg && !incJpsi);
 
-  setMassCutParameters(cut, incJpsi, incPsi2S, isMC);
+  setMassCutParameters(cut, incJpsi, isMC);
   setCtauErrCutParameters(cut);
   
   string pdfType = "pdfCTAUERR";
@@ -64,7 +60,6 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
   string plotLabel = "";
   pdfNames.push_back(Form("%sTot_Tot_%s", pdfType.c_str(), COLL.c_str()));
   if (incJpsi)  { plotLabel = plotLabel + "_Jpsi";   pdfNames.push_back(Form("%s_Jpsi_%s", pdfType.c_str(), COLL.c_str()));  }
-  if (incPsi2S) { plotLabel = plotLabel + "_Psi2S";  pdfNames.push_back(Form("%s_Psi2S_%s", pdfType.c_str(), COLL.c_str())); }
   if (!isMC)    { plotLabel = plotLabel + "_Bkg";    pdfNames.push_back(Form("%s_Bkg_%s", pdfType.c_str(), COLL.c_str()));   }
   if (wantPureSMC) { plotLabel = plotLabel + "_NoBkg"; }
 
@@ -105,7 +100,7 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
   // Set global parameters
   setCtauErrGlobalParameterRange(myws, parIni, cut, label, binWidth["CTAUERRFORCUT"]);
 
-  if (!isMC && (incJpsi || incPsi2S)) { 
+  if (!isMC && incJpsi) { 
     // Setting extra input information needed by each fitter
     string iMassFitDir = inputFitDir["MASS"];
     double ibWidth = binWidth["MASS"];
@@ -113,17 +108,15 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
     bool doMassFit = false;
     bool importDS = false;
     bool getMeanPT = false;
-    bool zoomPsi = false;
     const char* applyCorr = "";
-    bool doSimulFit = false;
     bool cutCtau = false;
     bool doConstrFit = false;
 
     if ( !fitCharmoniaMassModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                  DSTAG, isPbPb, importDS,
-                                 incJpsi, incPsi2S, true, 
-                                 doMassFit, cutCtau, doConstrFit, doSimulFit, wantPureSMC, applyCorr, loadMassFitResult, iMassFitDir, numCores, 
-                                 setLogScale, incSS, zoomPsi, ibWidth, getMeanPT
+                                 incJpsi, true, 
+                                 doMassFit, cutCtau, doConstrFit, wantPureSMC, applyCorr, loadMassFitResult, iMassFitDir, numCores, 
+                                 setLogScale, incSS, ibWidth, getMeanPT
                                  ) 
          ) { return false; }
     // Let's set all mass parameters to constant except the yields
@@ -138,14 +131,14 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
   if (skipCtauErrPdf==false) {
     // Create the ctau Error Pdf
     // Build the Ctau Error Template
-    if (!buildCharmoniaCtauErrModel(myws, parIni, cut, dsName, incJpsi, incPsi2S, binWidth["CTAUERR"], numEntries))  { return false; }
+    if (!buildCharmoniaCtauErrModel(myws, parIni, cut, dsName, incJpsi, binWidth["CTAUERR"], numEntries))  { return false; }
     string pdfName = Form("%s_Tot_%s", pdfType.c_str(), COLL.c_str());
     bool isWeighted = myws.data(dsName.c_str())->isWeighted();
     //RooFitResult* fitResult = myws.pdf(pdfName.c_str())->fitTo(*myws.data(dsName.c_str()), Extended(kTRUE), SumW2Error(isWeighted), Range("CtauErrWindow"), NumCPU(numCores), Save());
     //fitResult->Print("v");
     //myws.import(*fitResult, Form("fitResult_%s", pdfName.c_str()));
     // Draw the mass plot
-    drawCtauErrorPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, incPsi2S, incBkg, wantPureSMC, setLogScale, incSS, binWidth["CTAUERR"]);
+    drawCtauErrorPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, incBkg, wantPureSMC, setLogScale, incSS, binWidth["CTAUERR"]);
     // Save the results
     string FileName = ""; setCtauErrFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb, cutSideBand);
     RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(*(myws.var("ctauErr")));

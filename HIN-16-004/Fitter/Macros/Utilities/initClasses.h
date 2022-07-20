@@ -168,9 +168,10 @@ enum class MassModel
     ExpChebychev4=17,
     ExpChebychev5=18,
     ExpChebychev6=19,
-    Exponential=20
+    Exponential=20,
+    NA60=21
 };
-map< string , MassModel > MassModelDictionary = {
+/*map< string , MassModel > MassModelDictionary = {
   {"InvalidModel",            MassModel::InvalidModel},
   {"SingleGaussian",          MassModel::SingleGaussian},
   {"DoubleGaussian",          MassModel::DoubleGaussian},
@@ -193,7 +194,7 @@ map< string , MassModel > MassModelDictionary = {
   {"ExpChebychev6",           MassModel::ExpChebychev6},
   {"Exponential",             MassModel::Exponential}
 };
-
+*/
 
 enum class CtauModel 
 {     
@@ -334,6 +335,8 @@ bool isCompatibleDataset(const RooDataSet& ds, const RooDataSet& ref, bool check
   TIterator* parIt = listVar->createIterator();
   for (RooRealVar* it = (RooRealVar*)parIt->Next(); it!=NULL; it = (RooRealVar*)parIt->Next() ) {
     string name = it->GetName();
+    cout << "Checking var " << name << endl;
+//	if (name=="ctauErr") {continue;}
     if ( ds.get()->find(it->GetName()) == NULL ) { cout << "[ERROR] DataSet " << ds.GetName() << " does not contain the variable " << it->GetName() << " !" << endl; return false; }
     if (checkRange) {
       if ( it->getMin() != ((RooRealVar*)ds.get()->find(it->GetName()))->getMin() ) { cout << "[ERROR] " << it->GetName() << " Min Range disaggrement : "
@@ -393,6 +396,7 @@ bool isFitAlreadyFound(RooArgSet *newpars, string FileName, string pdfName)
 
 bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bool isPbPb, bool loadNumberOfEvents, bool updateN)
 {
+  cout << "Loading revious fit" << endl;
   if (gSystem->AccessPathName(FileName.c_str())) {
     cout << "[INFO] File " << FileName << " was not found!" << endl;
     return false; // File was not found
@@ -514,26 +518,30 @@ bool loadCtauErrRange(string FileName, struct KinCuts& cut)
     cout << "[ERROR] File " << FileName << " was not found!" << endl;
     return false; // File was not found
   }
+	cout << "File accessed" << endl;
   TFile *file = new TFile(FileName.c_str());
+	cout << "File created " << FileName << endl;
   if (!file) return false;
-  RooWorkspace *ws = (RooWorkspace*) file->Get("workspace");
-  if (!ws) {
+  RooWorkspace *wksp = (RooWorkspace*) file->Get("workspace");
+  cout << "Ws created" << endl;
+  if (!wksp) {
     cout << "[ERROR] Workspace was not found in: " << FileName << endl;
     file->Close(); delete file;
     return false;
   }
 
-  if (ws->var("ctauErr")) {
-    cut.dMuon.ctauErr.Min = ws->var("ctauErr")->getMin();
-    cut.dMuon.ctauErr.Max = ws->var("ctauErr")->getMax();
+  if (wksp->var("ctauErr")) {
+	cout << "var accessed" << endl;
+    cut.dMuon.ctauErr.Min = wksp->var("ctauErr")->getMin();
+    cut.dMuon.ctauErr.Max = wksp->var("ctauErr")->getMax();
   } else {
     cout << Form("[ERROR] ctauErr was not found!") << endl;
-    delete ws;
+    delete wksp;
     file->Close(); delete file;
     return false;
   }
 
-  delete ws;
+  delete wksp;
   file->Close(); delete file;
   return true;
 };
@@ -541,6 +549,7 @@ bool loadCtauErrRange(string FileName, struct KinCuts& cut)
 
 bool loadYields(RooWorkspace& myws, string FileName, string dsName, string pdfName)
 {
+  cout << "Load yields" << endl;
   if (gSystem->AccessPathName(FileName.c_str())) {
     cout << "[INFO] File " << FileName << " was not found!" << endl;
     return false; // File was not found
@@ -619,6 +628,7 @@ bool loadSPlotDS(RooWorkspace& myws, string FileName, string dsName)
 
 int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCuts cut, string label, bool cutSideBand=false)
 {
+  cout << "Import data set" << endl;
   string indMuonMass    = Form("(%.6f < invMass && invMass < %.6f)",       cut.dMuon.M.Min,       cut.dMuon.M.Max);
   if (cutSideBand) {
     indMuonMass =  indMuonMass + "&&" + "((2.0 < invMass && invMass < 2.8) || (3.3 < invMass && invMass < 3.5) || (3.9 < invMass && invMass < 5.0))";
@@ -643,6 +653,7 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
     cout << "[ERROR] The dataset " <<  Form("dOS_%s", label.c_str()) << " was not found!" << endl;
     return -1;
   }
+  strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt;
   cout << "[INFO] Importing local RooDataSet with cuts: " << strCut << endl;
   RooDataSet* dataOS = (RooDataSet*)inputWS.data(Form("dOS_%s", label.c_str()))->reduce(strCut.c_str());
   if (dataOS->sumEntries()==0){ 

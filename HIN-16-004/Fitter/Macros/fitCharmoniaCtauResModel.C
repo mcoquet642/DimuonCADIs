@@ -12,6 +12,41 @@ void setCtauResFileName(string& FileName, string outputDir, string TAG, string p
 void setCtauResGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, string label, double binWidth);
 bool setCtauResModel( struct OniaModel& model, map<string, string>&  parIni, bool isPbPb);
 
+/*bool loadCtauErrRange2(string FileName, struct KinCuts& cut)
+{
+  if (gSystem->AccessPathName(FileName.c_str())) {
+    cout << "[ERROR] File " << FileName << " was not found!" << endl;
+    return false; // File was not found
+  }
+        cout << "File accessed" << endl;
+  TFile *file = new TFile(FileName.c_str());
+        cout << "File created " << FileName << endl;
+  if (!file) return false;
+  RooWorkspace *wksp = (RooWorkspace*) file->Get("workspace");
+  cout << "Ws created" << endl;
+  if (!wksp) {
+    cout << "[ERROR] Workspace was not found in: " << FileName << endl;
+    file->Close(); delete file;
+    return false;
+  }
+
+  if (wksp->var("ctauErr")) {
+        cout << "var accessed" << endl;
+    cut.dMuon.ctauErr.Min = wksp->var("ctauErr")->getMin();
+    cut.dMuon.ctauErr.Max = wksp->var("ctauErr")->getMax();
+  } else {
+    cout << Form("[ERROR] ctauErr was not found!") << endl;
+    delete wksp;
+    file->Close(); delete file;
+    return false;
+  }
+
+  delete wksp;
+  file->Close(); delete file;
+  return true;
+};*/
+
+
 
 bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspace
                                const RooWorkspace& inputWorkspace,   // Workspace with all the input RooDatasets
@@ -25,7 +60,6 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
                                bool importDS      = true,      // Select if the dataset is imported in the local workspace
                                // Select the type of object to fit
                                bool incJpsi       = true,      // Includes Jpsi model
-                               bool incPsi2S      = true,      // Includes Psi(2S) model
                                // Select the fitting options
                                bool useTotctauErrPdf = false,  // If yes use the total ctauErr PDF instead of Jpsi and bkg ones
                                bool doFit         = true,      // Flag to indicate if we want to perform the fit
@@ -45,16 +79,13 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
   // Check if input dataset is MC
   bool isMC = false;
   if (DSTAG.find("MC")!=std::string::npos) {
-    if (incJpsi && incPsi2S) { 
-      cout << "[ERROR] We can only fit one type of signal using MC" << endl; return false; 
-    }
     isMC = true;
   }
   if (!isMC)  { cout << "[ERROR] The ctau resolution fit can only be performed in MC!" << endl; return false; }
   bool incNonPrompt = (DSTAG.find("NOPR")!=std::string::npos);
 
   string COLL = (isPbPb ? "PbPb" : "PP" );
-  bool usePerEventError = true;
+  bool usePerEventError = false;
   bool incBkg = false;
 
   if (importDS) {
@@ -67,7 +98,6 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
       bool incJpsi = true;
       bool fitSideBand = false;
       if (incJpsi)  { plotLabel = plotLabel + "_Jpsi";     }
-      if (incPsi2S) { plotLabel = plotLabel + "_Psi2S";    }
       plotLabel = plotLabel + "_Bkg";
       setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), "DATA", plotLabel, cut, isPbPb, fitSideBand);
       bool foundFit = false;
@@ -117,7 +147,7 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
   
       if ( !fitCharmoniaCtauErrModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                       DSTAG, isPbPb, importDS, 
-                                      incJpsi, incPsi2S, incBkg, 
+                                      incJpsi, incBkg, 
                                       doCtauErrFit, wantPureSMC, loadCtauErrFitResult, inputFitDir, numCores, 
                                       setLogScale, incSS, binWidth
                                       ) 
@@ -136,7 +166,7 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
 
   // Define pdf and plot names
   string plotLabel = "";
-  if (incJpsi || incPsi2S) { plotLabel = plotLabel + Form("_CtauRes_%s", parIni[Form("Model_CtauRes_%s", COLL.c_str())].c_str()); }
+  if (incJpsi) { plotLabel = plotLabel + Form("_CtauRes_%s", parIni[Form("Model_CtauRes_%s", COLL.c_str())].c_str()); }
   if (wantPureSMC)         { plotLabel = plotLabel + "_NoBkg"; }
 
   // check if we have already done this fit. If yes, do nothing and return true.
@@ -179,6 +209,19 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
 
 bool setCtauResModel( struct OniaModel& model, map<string, string>&  parIni, bool isPbPb)
 {
+map< string , CtauModel > CtauModelDictionary = {
+  {"InvalidModel",             CtauModel::InvalidModel},
+  {"QuadrupleGaussianResolution", CtauModel::QuadrupleGaussianResolution},
+  {"TripleGaussianResolution", CtauModel::TripleGaussianResolution},
+  {"DoubleGaussianResolution", CtauModel::DoubleGaussianResolution},
+  {"SingleGaussianResolution", CtauModel::SingleGaussianResolution},
+  {"TripleDecay",              CtauModel::TripleDecay},
+  {"QuadrupleDecay",           CtauModel::QuadrupleDecay},
+  {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
+  {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
+  {"Delta",                    CtauModel::Delta}
+};
+
   if (isPbPb) {
     if (parIni.count("Model_CtauRes_PbPb")>0) {
       model.PbPb.CtauRes = CtauModelDictionary[parIni["Model_CtauRes_PbPb"]];

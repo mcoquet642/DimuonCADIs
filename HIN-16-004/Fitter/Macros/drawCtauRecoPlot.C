@@ -16,7 +16,6 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
                       bool isPbPb,          // Define if it is PbPb (True) or PP (False)
                       // Select the type of object to fit
                       bool incJpsi,         // Includes Jpsi model
-                      bool incPsi2S,        // Includes Psi(2S) model
                       bool plotPureSMC,     // Flag to indicate if we want to fit pure signal MC
                       // Select the drawing options
                       bool setLogScale,     // Draw plot with log scale
@@ -115,8 +114,6 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
 
   // Drawing the Legend
   double ymin = 0.7802;
-  if (incPsi2S && incJpsi && incSS)  { ymin = 0.7202; } 
-  if (incPsi2S && incJpsi && !incSS) { ymin = 0.7452; }
   const char* dataName = isMC ? "MC data" : "Data";
   TLegend* leg = new TLegend(0.5175, ymin, 0.7180, 0.8809); leg->SetTextSize(0.03);
   if (frame->findObject("dOS")) { leg->AddEntry(frame->findObject("dOS"), (incSS?"Opposite Charge":dataName),"pe"); }

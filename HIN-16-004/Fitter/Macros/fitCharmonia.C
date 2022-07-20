@@ -26,7 +26,6 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
                    bool fitCtauTrue  = false,      // Fit ctau truth MC distribution
                    bool fitCtauReco  = false,      // Fit ctau reco MC distribution
                    bool incJpsi      = true,       // Includes Jpsi model
-                   bool incPsi2S     = true,       // Includes Psi(2S) model
                    bool incBkg       = true,       // Includes Background model
                    bool incPrompt    = true,       // Includes Prompt ctau model
                    bool incNonPrompt = false,      // Includes NonPrompt ctau model
@@ -38,7 +37,6 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
                    bool useCtauRecoPdf = false,     // If yes use the ctauReco PDF (template) instead of ctauTrue one
                    bool cutCtau      = false,      // Apply prompt ctau cuts
                    bool doConstrFit   = false,     // Do constrained fit
-                   bool doSimulFit   = false,      // Do simultaneous fit
                    bool wantPureSMC  = false,      // Flag to indicate if we want to fit pure signal MC
                    map<string, string> inputFitDir={},// User-defined Location of the fit results
                    const char* applyCorr ="",      // Flag to indicate if we want corrected dataset and which correction
@@ -46,7 +44,6 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
                    // Select the drawing options
                    bool setLogScale  = true,       // Draw plot with log scale
                    bool incSS        = false,      // Include Same Sign data
-                   bool zoomPsi      = false,      // Zoom Psi(2S) peak on extra pad
                    map<string, double> binWidth={},// Bin width used for plotting
                    bool getMeanPT    = false       // Compute the mean PT (NEED TO FIX)
 		   )  
@@ -100,12 +97,13 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
     bool loadFitResult = false;
     bool doFit = true;
     bool importDS = true;
+    cout << "Fitting ONLY mass !" << endl;
 
     if ( !fitCharmoniaMassModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                  DSTAG, isPbPb, importDS,
-                                 incJpsi, incPsi2S, incBkg, 
-                                 doFit, cutCtau, doConstrFit, doSimulFit, wantPureSMC, applyCorr, loadFitResult, iFitDir, numCores,
-                                 setLogScale, incSS, zoomPsi, ibWidth, getMeanPT 
+                                 incJpsi, incBkg, 
+                                 doFit, cutCtau, doConstrFit, wantPureSMC, applyCorr, loadFitResult, iFitDir, numCores,
+                                 setLogScale, incSS, ibWidth, getMeanPT 
                                  ) 
          ) { return false; }
   }
@@ -122,7 +120,7 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
 
     if ( !fitCharmoniaCtauTrueModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                      DSTAG, isPbPb, importDS, 
-                                     incJpsi, incPsi2S, incResol, 
+                                     incJpsi, incResol, 
                                      doFit, wantPureSMC, loadFitResult, iFitDir, numCores, 
                                      setLogScale, incSS, ibWidth
                                      ) 
@@ -140,7 +138,7 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
     
     if ( !fitCharmoniaCtauRecoModel( myws, inputWorkspace, cut, parIni, opt, outputDir,
                                     DSTAG, isPbPb, importDS,
-                                    incJpsi, incPsi2S,
+                                    incJpsi, 
                                     doCtauRecoPdf, wantPureSMC, loadFitResult, iFitDir, numCores,
                                     setLogScale, incSS, ibWidth
                                     )
@@ -156,7 +154,7 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
 
     if ( !fitCharmoniaCtauErrModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                     DSTAG, isPbPb, importDS, 
-                                    incJpsi, incPsi2S, incBkg, 
+                                    incJpsi, incBkg, 
                                     doFit, wantPureSMC, loadFitResult, inputFitDir, numCores, 
                                     setLogScale, incSS, binWidth
                                     ) 
@@ -170,10 +168,10 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
     bool doFit = true;
     bool importDS = true;    
     bool useSPlot = true;
-
+    cout << "Fit ctau model" << endl;
     if ( !fitCharmoniaCtauModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                  DSTAG, isPbPb, importDS, 
-                                 incJpsi, incPsi2S, incBkg, incPrompt, incNonPrompt, useTotctauErrPdf, usectauBkgTemplate,
+                                 incJpsi, incBkg, incPrompt, incNonPrompt, useTotctauErrPdf, usectauBkgTemplate,
                                  useSPlot, doFit, wantPureSMC, loadFitResult, inputFitDir, numCores, 
                                  setLogScale, incSS, binWidth
                                  ) 
@@ -189,7 +187,7 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
 
     if ( !fitCharmoniaCtauResModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                     DSTAG, isPbPb, importDS, 
-                                    incJpsi, incPsi2S, useTotctauErrPdf,
+                                    incJpsi, useTotctauErrPdf,
                                     doFit, wantPureSMC, loadFitResult, inputFitDir, numCores, 
                                     setLogScale, incSS, binWidth
                                     ) 
@@ -199,6 +197,7 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
   if (fitRes && !doCtauErrPDF && !fitCtauTrue && !fitMass && !fitCtau && !fitCtauReco && !isMC) {
     
     // Setting extra input information needed by each fitter
+    cout << "Fit ctauRes model" << endl;
     bool loadFitResult = false;
     bool doFit = true;
     bool importDS = true;    
@@ -206,7 +205,7 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
 
     if ( !fitCharmoniaCtauResDataModel( myws, inputWorkspace, cut, parIni, opt, outputDir,
                                         DSTAG, isPbPb, importDS,
-                                        incJpsi, incPsi2S, incBkg, useSPlot, useTotctauErrPdf,
+                                        incJpsi, incBkg, useSPlot, useTotctauErrPdf,
                                         doFit, loadFitResult, inputFitDir, numCores,
                                         setLogScale, incSS, binWidth
                                         )
@@ -217,9 +216,10 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
 
     // Setting extra input information needed by each fitter
    
+    cout << "Fit ctau-mass model" << endl;
     if ( !fitCharmoniaCtauMassModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                      DSTAG, isPbPb,
-                                     incJpsi, incPsi2S, useTotctauErrPdf, usectauBkgTemplate, useCtauRecoPdf,
+                                     incJpsi, useTotctauErrPdf, usectauBkgTemplate, useCtauRecoPdf,
                                      inputFitDir, numCores,
                                      setLogScale, incSS, binWidth
                                      ) 

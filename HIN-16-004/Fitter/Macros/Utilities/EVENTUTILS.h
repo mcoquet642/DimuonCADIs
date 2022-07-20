@@ -459,7 +459,7 @@ namespace PP {
 namespace RecoQQ {
   void iniBranches(TChain* fChain)
   {
-    if (fChain->GetBranch("HLTriggers")) fChain->SetBranchStatus("HLTriggers",1);
+/*    if (fChain->GetBranch("HLTriggers")) fChain->SetBranchStatus("HLTriggers",1);
     if (fChain->GetBranch("Reco_QQ_trig")) fChain->SetBranchStatus("Reco_QQ_trig",1);
     if (fChain->GetBranch("Reco_QQ_VtxProb")) fChain->SetBranchStatus("Reco_QQ_VtxProb",1);
     if (fChain->GetBranch("Reco_QQ_mupl_isGoodMuon")) fChain->SetBranchStatus("Reco_QQ_mupl_isGoodMuon",1);
@@ -481,14 +481,26 @@ namespace RecoQQ {
     if (fChain->GetBranch("Reco_QQ_mumi_normChi2_inner")) fChain->SetBranchStatus("Reco_QQ_mumi_normChi2_inner",1);
     if (fChain->GetBranch("Reco_QQ_mupl_TrkMuArb")) fChain->SetBranchStatus("Reco_QQ_mupl_TrkMuArb",1);
     if (fChain->GetBranch("Reco_QQ_mumi_TrkMuArb")) fChain->SetBranchStatus("Reco_QQ_mumi_TrkMuArb",1);
+*/
+ if (fChain->GetBranch("fMass"))   fChain->SetBranchAddress("fMass", &fMass, &b_fMass);
+ if (fChain->GetBranch("fPt"))   fChain->SetBranchAddress("fPt", &fPt, &b_fPt);
+ if (fChain->GetBranch("fEta"))   fChain->SetBranchAddress("fEta", &fEta, &b_fEta);
+ if (fChain->GetBranch("fPhi"))   fChain->SetBranchAddress("fPhi", &fPhi, &b_fPhi);
+ if (fChain->GetBranch("fSign"))   fChain->SetBranchAddress("fSign", &fSign, &b_fSign);
+ if (fChain->GetBranch("fTauz"))   fChain->SetBranchAddress("fTauz", &fTauz, &b_fTauz);
+ if (fChain->GetBranch("fTauzErr"))   fChain->SetBranchAddress("fTauzErr", &fTauzErr, &b_fTauzErr);
+ if (fChain->GetBranch("fTauxy"))  fChain->SetBranchAddress("fTauxy", &fTauxy, &b_fTauxy);
+ if (fChain->GetBranch("fTauxyErr"))  fChain->SetBranchAddress("fTauxyErr", &fTauxyErr, &b_fTauxyErr);
+
+
     
   }
   
   Bool_t isTriggerMatch (Int_t iRecoQQ, Int_t TriggerBit)
   {
     Bool_t cond = true;
-    cond = cond && ( (HLTriggers&((ULong64_t)pow(2, TriggerBit))) == ((ULong64_t)pow(2, TriggerBit)) );
-    cond = cond && ( (Reco_QQ_trig[iRecoQQ]&((ULong64_t)pow(2, TriggerBit))) == ((ULong64_t)pow(2, TriggerBit)) );
+//    cond = cond && ( (HLTriggers&((ULong64_t)pow(2, TriggerBit))) == ((ULong64_t)pow(2, TriggerBit)) );
+//    cond = cond && ( (Reco_QQ_trig[iRecoQQ]&((ULong64_t)pow(2, TriggerBit))) == ((ULong64_t)pow(2, TriggerBit)) );
     return cond;
   };
   
@@ -502,9 +514,11 @@ namespace RecoQQ {
   
   Bool_t areMuonsInAcceptance2011 (Int_t iRecoQQ)
   {
-    TLorentzVector *RecoQQmupl = (TLorentzVector*) Reco_QQ_mupl_4mom->At(iRecoQQ);
+    /*TLorentzVector *RecoQQmupl = (TLorentzVector*) Reco_QQ_mupl_4mom->At(iRecoQQ);
     TLorentzVector *RecoQQmumi = (TLorentzVector*) Reco_QQ_mumi_4mom->At(iRecoQQ);
-    return ( isGlobalMuonInAccept2011(RecoQQmupl) && isGlobalMuonInAccept2011(RecoQQmumi) );
+    return ( isGlobalMuonInAccept2011(RecoQQmupl) && isGlobalMuonInAccept2011(RecoQQmumi) );*/
+    float eta = (float) fEta;
+    return (eta<=3.6 && eta>=2.45);
   };
   
   Bool_t isGlobalMuonInAccept2015 (TLorentzVector* Muon)
@@ -517,9 +531,11 @@ namespace RecoQQ {
   
   Bool_t areMuonsInAcceptance2015 (Int_t iRecoQQ)
   {
-    TLorentzVector *RecoQQmupl = (TLorentzVector*) Reco_QQ_mupl_4mom->At(iRecoQQ);
+ /*   TLorentzVector *RecoQQmupl = (TLorentzVector*) Reco_QQ_mupl_4mom->At(iRecoQQ);
     TLorentzVector *RecoQQmumi = (TLorentzVector*) Reco_QQ_mumi_4mom->At(iRecoQQ);
-    return ( isGlobalMuonInAccept2015(RecoQQmupl) && isGlobalMuonInAccept2015(RecoQQmumi) );
+    return ( isGlobalMuonInAccept2015(RecoQQmupl) && isGlobalMuonInAccept2015(RecoQQmumi) )*/;
+    float eta = (float) fEta;
+    return (eta<=3.6 && eta>=2.45);
   };
   
   Bool_t passQualityCuts2015 (Int_t iRecoQQ)
@@ -527,7 +543,7 @@ namespace RecoQQ {
     Bool_t cond = true;
     
     // cond = cond && (Reco_QQ_mumi_highPurity[iRecoQQ]);
-    cond = cond && (Reco_QQ_mumi_isGoodMuon[iRecoQQ]==1);
+/*    cond = cond && (Reco_QQ_mumi_isGoodMuon[iRecoQQ]==1);
     cond = cond && (Reco_QQ_mumi_nTrkWMea[iRecoQQ] > 5);
     cond = cond && (Reco_QQ_mumi_nPixWMea[iRecoQQ] > 0);
     cond = cond && (fabs(Reco_QQ_mumi_dxy[iRecoQQ]) < 0.3);
@@ -541,7 +557,7 @@ namespace RecoQQ {
     cond = cond && (fabs(Reco_QQ_mupl_dz[iRecoQQ]) < 20.);
     
     cond = cond && (Reco_QQ_VtxProb[iRecoQQ] > 0.01);
-    
+  */  
     return cond;
   };
   
@@ -549,7 +565,7 @@ namespace RecoQQ {
   {
     Bool_t cond = true;
     
-    cond = cond && (Reco_QQ_mumi_nTrkHits[iRecoQQ] > 10);
+/*    cond = cond && (Reco_QQ_mumi_nTrkHits[iRecoQQ] > 10);
     cond = cond && (Reco_QQ_mumi_normChi2_global[iRecoQQ] < 20.0);
     cond = cond && (Reco_QQ_mumi_normChi2_inner[iRecoQQ] < 4.0);
     cond = cond && (Reco_QQ_mumi_TrkMuArb[iRecoQQ]==1);
@@ -566,7 +582,7 @@ namespace RecoQQ {
     cond = cond && (fabs(Reco_QQ_mupl_dz[iRecoQQ]) < 15.0);
     
     cond = cond && (Reco_QQ_VtxProb[iRecoQQ] > 0.01);
-    
+ */   
     return cond;
   };
   

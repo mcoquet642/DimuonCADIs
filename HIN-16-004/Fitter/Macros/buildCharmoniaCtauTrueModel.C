@@ -11,7 +11,6 @@ bool addSignalCtauTrueModel(RooWorkspace& ws, string object, CtauModel model, ma
 bool buildCharmoniaCtauTrueModel(RooWorkspace& ws, struct CharmModel model, map<string, string>  parIni, 
                                  bool isPbPb,                 // Determine if we are working with PbPb (True) or PP (False)
                                  bool incJpsi,                // Include Jpsi model
-                                 bool incPsi2S,                // Include Psi(2S) model
                                  double  numEntries = 300000. // Number of entries in the dataset
                                  )
 {
@@ -25,10 +24,6 @@ bool buildCharmoniaCtauTrueModel(RooWorkspace& ws, struct CharmModel model, map<
     if(!defineCtauTrueResolModel(ws, "JpsiNoPR", model.CtauTrueRes, parIni, isPbPb)) { cout << "[ERROR] Defining the Ctau Truth Resolution Model failed" << endl; return false; }
     if(!addSignalCtauTrueModel(ws, "JpsiNoPR", model.CtauTrue, parIni, isPbPb)) { cout << "[ERROR] Adding Non-Prompt Jpsi Ctau Truth Model failed" << endl; return false; }
   }
-  if (incPsi2S) {
-    if(!defineCtauTrueResolModel(ws, "Psi2SNoPR", model.CtauTrueRes, parIni, isPbPb)) { cout << "[ERROR] Defining the Ctau Truth Resolution Model failed" << endl; return false; }
-    if(!addSignalCtauTrueModel(ws, "Psi2SNoPR", model.CtauTrue, parIni, isPbPb)) { cout << "[ERROR] Adding Non-Prompt Psi2S Ctau Truth Model failed" << endl; return false; }
-  }
 
   // Total PDF
   string pdfType = "pdfCTAUTRUE";
@@ -36,11 +31,7 @@ bool buildCharmoniaCtauTrueModel(RooWorkspace& ws, struct CharmModel model, map<
 
   RooArgList pdfList;
   if (incJpsi) { pdfList.add( *ws.pdf(Form("%sTot_JpsiNoPR_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) );  }
-  if (incPsi2S){ pdfList.add( *ws.pdf(Form("%sTot_Psi2SNoPR_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) ); }
-  if (incJpsi && incPsi2S) {
-    cout << "[ERROR] User included Jpsi and Psi2S together, but can only fit them separately, please fix your input settings!" << endl; return false;
-  }
-  if (!incJpsi && !incPsi2S) {
+  if (!incJpsi) {
     cout << "[ERROR] User did not include any model, please fix your input settings!" << endl; return false;
   }
   RooAbsPdf *themodel = new RooAddPdf(pdfName.c_str(), pdfName.c_str(), pdfList);
