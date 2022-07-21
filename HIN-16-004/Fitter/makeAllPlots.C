@@ -28,9 +28,7 @@ void makeAllPlots(const char* nominalDir, const char* systDirsSig, const char* s
    // first, systematics
    if (doSysts) {
       results2syst(allDirsSig.c_str(), "syst_PP_fit_sig.csv", "Sig. shape (PP)", 1, "PP");
-      results2syst(allDirsSig.c_str(), "syst_PbPb_fit_sig.csv", "Sig. shape (PbPb)", 1, "PbPb");
       results2syst(allDirsBkg.c_str(), "syst_PP_fit_bkg.csv", "Bkg. shape (PP)", 1, "PP");
-      results2syst(allDirsBkg.c_str(), "syst_PbPb_fit_bkg.csv", "Bkg. shape (PbPb)", 1, "PbPb");
    }
 
    // print the systematics table
@@ -66,22 +64,10 @@ void makeAllPlots(const char* nominalDir, const char* systDirsSig, const char* s
       if (printSysts) {
          plotFiles(allDirs.c_str(), "RFrac2Svs1S", "pt", 0, 1.6, 6.5, 30, 0, 200, "PP");
          plotFiles(allDirs.c_str(), "RFrac2Svs1S", "pt", 1.6, 2.4, 3, 30, 0, 200, "PP");
-         plotFiles(allDirs.c_str(), "RFrac2Svs1S", "pt", 0, 1.6, 6.5, 30, 0, 200, "PbPb");
-         plotFiles(allDirs.c_str(), "RFrac2Svs1S", "pt", 1.6, 2.4, 3, 30, 0, 200, "PbPb");
-         plotFiles(allDirs.c_str(), "RFrac2Svs1S", "cent", 0, 1.6, 6.5, 30, 0, 200, "PbPb");
-         plotFiles(allDirs.c_str(), "RFrac2Svs1S", "cent", 1.6, 2.4, 3, 30, 0, 200, "PbPb");
          plotFiles(allDirs.c_str(), "normchi2", "pt", 0, 1.6, 6.5, 30, 0, 200, "PP",false);
          plotFiles(allDirs.c_str(), "normchi2", "pt", 1.6, 2.4, 3, 30, 0, 200, "PP",false);
-         plotFiles(allDirs.c_str(), "normchi2", "pt", 0, 1.6, 6.5, 30, 0, 200, "PbPb",false);
-         plotFiles(allDirs.c_str(), "normchi2", "pt", 1.6, 2.4, 3, 30, 0, 200, "PbPb",false);
-         plotFiles(allDirs.c_str(), "normchi2", "cent", 0, 1.6, 6.5, 30, 0, 200, "PbPb",false);
-         plotFiles(allDirs.c_str(), "normchi2", "cent", 1.6, 2.4, 3, 30, 0, 200, "PbPb",false);
          plotFiles(allDirs.c_str(), "chi2prob", "pt", 0, 1.6, 6.5, 30, 0, 200, "PP",false);
          plotFiles(allDirs.c_str(), "chi2prob", "pt", 1.6, 2.4, 3, 30, 0, 200, "PP",false);
-         plotFiles(allDirs.c_str(), "chi2prob", "pt", 0, 1.6, 6.5, 30, 0, 200, "PbPb",false);
-         plotFiles(allDirs.c_str(), "chi2prob", "pt", 1.6, 2.4, 3, 30, 0, 200, "PbPb",false);
-         plotFiles(allDirs.c_str(), "chi2prob", "cent", 0, 1.6, 6.5, 30, 0, 200, "PbPb",false);
-         plotFiles(allDirs.c_str(), "chi2prob", "cent", 1.6, 2.4, 3, 30, 0, 200, "PbPb",false);
       }
    }
 
@@ -171,7 +157,6 @@ void makeAllMassPlots(const char* workDirName, const char* DSTag, bool paperStyl
       cut.dMuon.Pt.Max = thebin.ptbin().high();
       cut.dMuon.AbsRap.Min = thebin.rapbin().low();
       cut.dMuon.AbsRap.Max = thebin.rapbin().high();
-      bool isPbPb = (it->Index("PbPb")>0);
       string plotLabel = "";
       bool incJpsi = true;//!paperStyle;
       if (incJpsi)  { plotLabel = plotLabel + Form("_Jpsi_%s", jpsiName);  } 
@@ -182,7 +167,7 @@ void makeAllMassPlots(const char* workDirName, const char* DSTag, bool paperStyl
       int nBins = 46;
       bool getMeanPT = false;
 
-      drawMassPlot(*myws, outputDir, opt, cut, plotLabel, DSTag, isPbPb, incJpsi, incBkg, cutCtau, false, setLogScale, incSS, nBins, getMeanPT, paperStyle, false);
+      drawMassPlot(*myws, outputDir, opt, cut, plotLabel, DSTag, incJpsi, incBkg, cutCtau, false, setLogScale, incSS, nBins, getMeanPT, paperStyle, false);
 
       delete myws;
       delete f;

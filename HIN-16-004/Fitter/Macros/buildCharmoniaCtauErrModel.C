@@ -6,12 +6,12 @@
 
 using namespace RooStats;
 
-void setCtauErrDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries);
+void setCtauErrDefaultParameters(map<string, string> &parIni, double numEntries);
 bool histToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, vector<double> rangeErr);
 bool makeCtauErrPdf(RooWorkspace& ws, vector<TH1D*>& outputHist, vector<string> objectColl, vector<string> rangeColl, vector<string> cutColl, string dsName, struct KinCuts cut, double binWidth);
 bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut,  map<string,string> parIni, bool incJpsi, double binWidth);
 bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, double binWidth);
-bool addCtauErrModel(RooWorkspace& ws, string object, string pdfType, map<string,string> parIni, bool isPbPb);
+bool addCtauErrModel(RooWorkspace& ws, string object, string pdfType, map<string,string> parIni);
 TH1* rebinhist(TH1 *hist, double xmin=1e99, double xmax=-1e99);
 void MatrixInverse2x2(TMatrixD& Inverse);
 
@@ -28,11 +28,9 @@ bool buildCharmoniaCtauErrModel(RooWorkspace& ws, map<string, string>  parIni,
 
   bool isMC = false;
   if (dsName.find("MC")!=std::string::npos) { isMC = true; }
-  bool isPbPb = false;
-  if (dsName.find("PbPb")!=std::string::npos) { isPbPb = true; }
 
   // If the initial parameters are empty, set defaul parameter values
-  setCtauErrDefaultParameters(parIni, isPbPb, numEntries);
+  setCtauErrDefaultParameters(parIni, numEntries);
 
   // C r e a t e   m o d e l 
 
@@ -40,20 +38,20 @@ bool buildCharmoniaCtauErrModel(RooWorkspace& ws, map<string, string>  parIni,
   if(!createCtauErrTemplateUsingSPLOT(ws, dsName, pdfType, cut, incJpsi, binWidth)) { cout << "[ERROR] Creating the Ctau Error Templates using sPLOT failed" << endl; return false; }
   //if(!createCtauErrTemplateUsingMatrix(ws, dsName, pdfType, cut, parIni, incJpsi, binWidth)) { cout << "[ERROR] Creating the Ctau Error Templates failed" << endl; return false; }
   cout << "Template created w/ sPlot" << endl;
-  if (incJpsi)  {  if(!addCtauErrModel(ws, "Jpsi", pdfType, parIni, isPbPb))  { return false; }  }
-  if (!isMC)    {  if(!addCtauErrModel(ws, "Bkg", pdfType, parIni, isPbPb))   { return false; }  }
+  if (incJpsi)  {  if(!addCtauErrModel(ws, "Jpsi", pdfType, parIni))  { return false; }  }
+  if (!isMC)    {  if(!addCtauErrModel(ws, "Bkg", pdfType, parIni))   { return false; }  }
 
 cout << "Models added " << endl;
   // Total PDF
   
   RooArgList pdfList;
-  if (incJpsi)  { pdfList.add( *ws.pdf(Form("%sTot_Jpsi_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) );  }
-  if (!isMC)    { pdfList.add( *ws.pdf(Form("%sTot_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"))) );   }
+  if (incJpsi)  { pdfList.add( *ws.pdf(Form("%sTot_Jpsi_PP", pdfType.c_str())) );  }
+  if (!isMC)    { pdfList.add( *ws.pdf(Form("%sTot_Bkg_PP", pdfType.c_str())) );   }
   if (!incJpsi && isMC) {
     cout << "[ERROR] User did not include any model for MC, please fix your input settings!" << endl; return false;
   }
 cout << "Pdf added " << endl;
-  string pdfName = Form("%s_Tot_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"));
+  string pdfName = Form("%s_Tot_PP", pdfType.c_str());
   RooAbsPdf *themodel = new RooAddPdf(pdfName.c_str(), pdfName.c_str(), pdfList);
   ws.import(*themodel);
 cout << "Model imported " << endl;
@@ -67,18 +65,18 @@ cout << "Model imported " << endl;
 };
 
 
-bool addCtauErrModel(RooWorkspace& ws, string object, string pdfType, map<string,string> parIni, bool isPbPb)
+bool addCtauErrModel(RooWorkspace& ws, string object, string pdfType, map<string,string> parIni)
 {
-  if (ws.pdf(Form("%sTot_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")))) { 
+  if (ws.pdf(Form("%sTot_%s_PP", pdfType.c_str(), object.c_str()))) { 
     cout << Form("[ERROR] The %s Extended Ctau Error Model has already been implemented!", object.c_str()) << endl;
     return false; 
   }
 
-  if (!ws.var(Form("N_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))){ ws.factory( parIni[Form("N_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() ); } 
+  if (!ws.var(Form("N_%s_PP", object.c_str()))){ ws.factory( parIni[Form("N_%s_PP", object.c_str())].c_str() ); } 
   // create the Extended PDF
-  ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),
-                  Form("%s_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),
-                  Form("N_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+  ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_%s_PP", pdfType.c_str(), object.c_str()),
+                  Form("%s_%s_PP", pdfType.c_str(), object.c_str()),
+                  Form("N_%s_PP", object.c_str())
                   ));
 
   return true;
@@ -90,42 +88,40 @@ bool createCtauErrTemplateUsingSPLOT(RooWorkspace& ws, string dsName, string pdf
   string hType = pdfType;
   hType.replace(hType.find("pdf"), string("pdf").length(), "h");
 
-  bool isPbPb = false;
-  if (dsName.find("PbPb")!=std::string::npos) { isPbPb = true; }
   if (dsName.find("MC")!=std::string::npos)   { cout << "[ERROR] sPlot can only be run on data!" << endl; return false;  }  // Only accept data
 
-  string pdfMassName = Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP"));
+  string pdfMassName = "pdfMASS_Tot_PP";
   RooArgList yieldList;
-  if (incJpsi)  { yieldList.add( *ws.var(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))) );  }
-  yieldList.add( *ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) ); // Always add background
+  if (incJpsi)  { yieldList.add( *ws.var("N_Jpsi_PP") );  }
+  yieldList.add( *ws.var("N_Bkg_PP") ); // Always add background
   RooDataSet* data = (RooDataSet*)ws.data(dsName.c_str())->Clone("TMP_DATA");
   RooAbsPdf* pdf = clone(*ws.pdf(pdfMassName.c_str()));
 
   RooStats::SPlot sData = RooStats::SPlot("sData","An SPlot", *data, pdf, yieldList);
   ws.import(*data, Rename((dsName+"_SPLOT").c_str()));
   if (incJpsi) {
-    cout <<  "[INFO] Jpsi yield -> Mass Fit: " << ws.var(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")))->getVal() << " , sWeights: " << sData.GetYieldFromSWeight(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))) << std::endl;
+    cout <<  "[INFO] Jpsi yield -> Mass Fit: " << ws.var("N_Jpsi_PP")->getVal() << " , sWeights: " << sData.GetYieldFromSWeight("N_Jpsi_PP") << std::endl;
   }
-  cout <<  "[INFO] Bkg yield -> Mass Fit: " << ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")))->getVal() << " , sWeights: " << sData.GetYieldFromSWeight(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) << std::endl;
+  cout <<  "[INFO] Bkg yield -> Mass Fit: " << ws.var("N_Bkg_PP")->getVal() << " , sWeights: " << sData.GetYieldFromSWeight("N_Bkg_PP") << std::endl;
   
   // create weighted data sets
   double ctauErrMax = cut.dMuon.ctauErr.Max, ctauErrMin = cut.dMuon.ctauErr.Min;
   vector<double> rangeErr; rangeErr.push_back(cut.dMuon.ctauErr.Min); rangeErr.push_back(cut.dMuon.ctauErr.Max);
   int nBins = min(int( round((ctauErrMax - ctauErrMin)/binWidth) ), 1000);
 
-  TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_Tot_%s", hType.c_str(), (isPbPb?"PbPb":"PP")), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
-  if ( !histToPdf(ws, hTot, Form("%sTot_Tot_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
+  TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_Tot_PP", hType.c_str()), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
+  if ( !histToPdf(ws, hTot, Form("%sTot_Tot_PP", pdfType.c_str()), rangeErr)) { return false; }
   hTot->Delete();
 
-  RooDataSet* dataw_Bkg  = new RooDataSet("TMP_BKG_DATA","TMP_BKG_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("ctauErr"), *ws.var(Form("N_Bkg_%s_sw", (isPbPb?"PbPb":"PP")))), 0, Form("N_Bkg_%s_sw", (isPbPb?"PbPb":"PP")));
-  TH1D* hBkg = (TH1D*)dataw_Bkg->createHistogram(Form("%s_Bkg_%s_sWEIGHT", hType.c_str(), (isPbPb?"PbPb":"PP")), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
-  if ( !histToPdf(ws, hBkg, Form("%s_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
+  RooDataSet* dataw_Bkg  = new RooDataSet("TMP_BKG_DATA","TMP_BKG_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("ctauErr"), *ws.var("N_Bkg_PP_sw")), 0, "N_Bkg_PP_sw");
+  TH1D* hBkg = (TH1D*)dataw_Bkg->createHistogram(Form("%s_Bkg_PP_sWEIGHT", hType.c_str()), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
+  if ( !histToPdf(ws, hBkg, Form("%s_Bkg_PP", pdfType.c_str()), rangeErr)) { return false; }
   delete hBkg; delete dataw_Bkg;
   
   if (incJpsi) {
-    RooDataSet* dataw_Jpsi  = new RooDataSet("TMP_JPSI_DATA","TMP_JPSI_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("ctauErr"), *ws.var(Form("N_Jpsi_%s_sw", (isPbPb?"PbPb":"PP")))), 0, Form("N_Jpsi_%s_sw", (isPbPb?"PbPb":"PP")));
-    TH1D* hJpsi = (TH1D*)dataw_Jpsi->createHistogram(Form("%s_Jpsi_%s_sWEIGHT", hType.c_str(), (isPbPb?"PbPb":"PP")), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
-    if ( !histToPdf(ws, hJpsi, Form("%s_Jpsi_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
+    RooDataSet* dataw_Jpsi  = new RooDataSet("TMP_JPSI_DATA","TMP_JPSI_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("ctauErr"), *ws.var("N_Jpsi_PP_sw")), 0, "N_Jpsi_PP_sw");
+    TH1D* hJpsi = (TH1D*)dataw_Jpsi->createHistogram(Form("%s_Jpsi_PP_sWEIGHT", hType.c_str()), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
+    if ( !histToPdf(ws, hJpsi, Form("%s_Jpsi_PP", pdfType.c_str()), rangeErr)) { return false; }
     delete hJpsi; delete dataw_Jpsi;
   }
 
@@ -138,14 +134,12 @@ bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pd
   string hType = pdfType;
   hType.replace(hType.find("pdf"), string("pdf").length(), "h");
 
-  bool isPbPb = false;
-  if (dsName.find("PbPb")!=std::string::npos) { isPbPb = true; }
   bool isMC = false;
   if (dsName.find("MC")!=std::string::npos) { isMC = true; }
 
   double ctauErrMax = cut.dMuon.ctauErr.Max, ctauErrMin = cut.dMuon.ctauErr.Min;
   int nBins = min(int( round((ctauErrMax - ctauErrMin)/binWidth) ), 1000);
-  TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_Tot_%s", hType.c_str(), (isPbPb?"PbPb":"PP")), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
+  TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_Tot_PP", hType.c_str()), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
   vector<double> rangeErr; rangeErr.push_back(cut.dMuon.ctauErr.Min); rangeErr.push_back(cut.dMuon.ctauErr.Max);
 
   // Set the range of the ctau Error
@@ -162,13 +156,13 @@ bool createCtauErrTemplateUsingMatrix(RooWorkspace& ws, string dsName, string pd
       vector<TH1D*> outputHist_JPSI;
       if ( !makeCtauErrPdf(ws, outputHist_JPSI, objectColl, rangeColl, cutColl, dsName, cut, binWidth) ) { return false; }
       hBkg->Add(outputHist_JPSI.at(0), -1.0);
-      if ( !histToPdf(ws, outputHist_JPSI.at(0), Form("%s_Jpsi_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
-      if ( !histToPdf(ws, hBkg/*outputHist_JPSI.at(1)*/, Form("%s_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
+      if ( !histToPdf(ws, outputHist_JPSI.at(0), Form("%s_Jpsi_PP", pdfType.c_str()), rangeErr)) { return false; }
+      if ( !histToPdf(ws, hBkg/*outputHist_JPSI.at(1)*/, Form("%s_Bkg_PP", pdfType.c_str()), rangeErr)) { return false; }
       delete outputHist_JPSI.at(0); delete outputHist_JPSI.at(1);
     }
     delete hBkg;
   }
-  if ( !histToPdf(ws, hTot, Form("%sTot_Tot_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), rangeErr)) { return false; }
+  if ( !histToPdf(ws, hTot, Form("%sTot_Tot_PP", pdfType.c_str()), rangeErr)) { return false; }
   hTot->Delete();
 
   return true;
@@ -184,22 +178,20 @@ bool makeCtauErrPdf(RooWorkspace& ws, vector<TH1D*>& outputHist, vector<string> 
   double ctauErrMax = cut.dMuon.ctauErr.Max, ctauErrMin = cut.dMuon.ctauErr.Min;
   int nBins = min(int( round((ctauErrMax - ctauErrMin)/binWidth) ), 1000);
 
-  bool isPbPb = false;
-  if (dsName.find("PbPb")!=std::string::npos) { isPbPb = true; }
 
   // Extract the PDFs and the Number of events for each physics object
   vector<Double_t>    N;
   vector<RooAbsPdf*>  pdfMass;
   for (unsigned int i=0; i<objectColl.size(); i++) {
-    if (!ws.pdf(Form("pdfMASS_%s_%s", objectColl.at(i).c_str(), (isPbPb?"PbPb":"PP")))) {
+    if (!ws.pdf(Form("pdfMASS_%s_PP", objectColl.at(i).c_str()))) {
       cout << Form("[ERROR] Mass PDF for %s is missing!", objectColl.at(i).c_str()) << endl; return false;
     } else {
-      pdfMass.push_back(ws.pdf(Form("pdfMASS_%s_%s", objectColl.at(i).c_str(), (isPbPb?"PbPb":"PP"))));
+      pdfMass.push_back(ws.pdf(Form("pdfMASS_%s_PP", objectColl.at(i).c_str())));
     }
-    if (ws.var(Form("N_%s_%s", objectColl.at(i).c_str(), (isPbPb?"PbPb":"PP")))) { 
-      N.push_back(ws.var(Form("N_%s_%s", objectColl.at(i).c_str(), (isPbPb?"PbPb":"PP")))->getValV());
-    } else if (ws.function(Form("N_%s_%s", objectColl.at(i).c_str(), (isPbPb?"PbPb":"PP")))) {
-      N.push_back(ws.function(Form("N_%s_%s", objectColl.at(i).c_str(), (isPbPb?"PbPb":"PP")))->getValV());
+    if (ws.var(Form("N_%s_PP", objectColl.at(i).c_str()))) { 
+      N.push_back(ws.var(Form("N_%s_PP", objectColl.at(i).c_str()))->getValV());
+    } else if (ws.function(Form("N_%s_PP", objectColl.at(i).c_str()))) {
+      N.push_back(ws.function(Form("N_%s_PP", objectColl.at(i).c_str()))->getValV());
     } else {
      cout << Form("[ERROR] N parameter for %s is missing!", objectColl.at(i).c_str()) << endl; return false;
     } 
@@ -209,7 +201,7 @@ bool makeCtauErrPdf(RooWorkspace& ws, vector<TH1D*>& outputHist, vector<string> 
   vector<TH1*> histCtauErr;
   for (unsigned int j=0; j<rangeColl.size(); j++) {
     RooDataSet* data = (RooDataSet*)ws.data(dsName.c_str())->reduce(*ws.var("ctauErr"), cutColl.at(j).c_str());
-    histCtauErr.push_back( (TH1*)data->createHistogram(Form("hCtauErr_Range_%s_%s", rangeColl.at(j).c_str(), (isPbPb?"PbPb":"PP")), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax)) );
+    histCtauErr.push_back( (TH1*)data->createHistogram(Form("hCtauErr_Range_%s_PP", rangeColl.at(j).c_str()), *ws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax)) );
     histCtauErr.at(j)->Scale(1/histCtauErr.at(j)->GetEntries());
     delete data;
   }
@@ -250,7 +242,7 @@ bool makeCtauErrPdf(RooWorkspace& ws, vector<TH1D*>& outputHist, vector<string> 
 
   // Get the ctau error histrograms for each physics object
   for (unsigned int j=0; j<objectColl.size(); j++) {
-    outputHist.push_back(new TH1D(Form("h_%s_%s", objectColl.at(j).c_str(), (isPbPb?"PbPb":"PP")), "", nBins, ctauErrMin, ctauErrMax));
+    outputHist.push_back(new TH1D(Form("h_%s_PP", objectColl.at(j).c_str()), "", nBins, ctauErrMin, ctauErrMax));
     for (unsigned int i=0; i<rangeColl.size(); i++) {
       outputHist.at(j)->Add(histCtauErr.at(i), InvMatrix(j, i));
     }
@@ -290,8 +282,6 @@ bool histToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, vector<double> rang
   if (fabs(dataHist->sumEntries()-hClean->GetSumOfWeights())>0.001) { cout << "[ERROR] DataHist used to create " << pdfName << "  " << " is invalid!  " << endl; return false; } 
   ws.import(*dataHist);
 
-  bool isPbPb=false;
-  if (pdfName.find("PbPb")!=std::string::npos) isPbPb=true;
   RooHistPdf* pdf = new RooHistPdf(pdfName.c_str(), pdfName.c_str(), *ws.var("ctauErr"), *((RooDataHist*)ws.data(dataName.c_str())));
   //RooKeysPdf* pdf = new RooKeysPdf(pdfName.c_str(), pdfName.c_str(), *ws.var("ctauErr"), *((RooDataSet*)ws.data(dataName.c_str())),RooKeysPdf::NoMirror, isPbPb?0.4:0.4);
   if (pdf==NULL) { cout << "[ERROR] RooKeysPDF " << pdfName << " is NULL!" << endl; return false; } 
@@ -342,20 +332,17 @@ TH1* rebinhist(TH1 *hist, double xmin, double xmax)
 };
 
 
-void setCtauErrDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries)
+void setCtauErrDefaultParameters(map<string, string> &parIni, double numEntries)
 {
 
   cout << "[INFO] Setting user undefined initial parameters to their default values" << endl;
 
   // DEFAULT RANGE OF NUMBER OF EVENTS
-  if (parIni.count(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
+  if (parIni.count("N_Jpsi_PP")==0 || parIni["N_Jpsi_PP"]=="") { 
+    parIni["N_Jpsi_PP"]  = Form("%s[%.12f,%.12f,%.12f]", "N_Jpsi_PP", numEntries, 0.0, numEntries*2.0);
   }
-  if (parIni.count(Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
-  }
-  if (parIni.count(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
+  if (parIni.count("N_Bkg_PP")==0 || parIni["N_Bkg_PP"]=="") { 
+    parIni["N_Bkg_PP"]  = Form("%s[%.12f,%.12f,%.12f]", "N_Bkg_PP", numEntries, 0.0, numEntries*2.0);
   }
 cout << "[build ctauerr] default param set" << endl;
 

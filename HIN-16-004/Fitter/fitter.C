@@ -3,7 +3,7 @@
 #include "Macros/tree2DataSet.C"
 #include "Macros/fitCharmonia.C"
 
-bool checkSettings(bool fitData, bool fitMC, bool fitPbPb, bool fitPP, bool fitMass, bool fitCtau, bool fitCtauTrue, bool fitCtauReco, bool fitRes, bool doCtauErrPDF, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt, bool cutCtau, bool doConstrFit, bool wantPureSMC, const char* applyCorr, bool setLogScale, bool incSS, int numCores);
+bool checkSettings(bool fitData, bool fitMC, bool fitMass, bool fitCtau, bool fitCtauTrue, bool fitCtauReco, bool fitRes, bool doCtauErrPDF, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt, bool cutCtau, bool doConstrFit, bool wantPureSMC, const char* applyCorr, bool setLogScale, bool incSS, int numCores);
 
 bool parseFile(string FileName, vector< map<string, string> >& data);
 bool parseString(string input, string delimiter, vector<double>& output);
@@ -13,8 +13,8 @@ void findSubDir(vector<string>& dirlist, string dirname);
 bool existDir(string dir);
 bool readFile(string FileName, vector< vector<string> >& content, const int nCol=-1, int nRow=-1);
 bool getInputFileNames(const string InputTrees, map<string, vector<string> >& InputFileCollection);
-bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, string>& parIni, bool isPbPb, bool doConstrFit);
-bool addParameters(string InputFile,  vector< struct KinCuts >& cutVector, vector< map<string, string> >&  parIniVector, bool isPbPb, bool doConstrFit);
+bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, string>& parIni, bool doConstrFit);
+bool addParameters(string InputFile,  vector< struct KinCuts >& cutVector, vector< map<string, string> >&  parIniVector, bool doConstrFit);
 
 
 void fitter(
@@ -25,8 +25,6 @@ void fitter(
             // Select the type of datasets to fit
             bool fitData      = true,        // Fits Data datasets
             bool fitMC        = false,         // Fits MC datasets
-            bool fitPbPb      = true,         // Fits PbPb datasets
-            bool fitPP        = true,        // Fits PP datasets
             bool fitMass      = true,       // Fits invariant mass distribution
             bool fitCtau      = true,       // Fits ctau distribution
             bool fitCtauTrue  = false,         // Fits ctau true MC distribution
@@ -150,7 +148,7 @@ void fitter(
   inputFitDir["CTAUSB"] = ""; inputInitialFilesDir["CTAUSB"] = "";
   
 
-  if (!checkSettings(fitData, fitMC, fitPbPb, fitPP, fitMass, fitCtau, fitCtauTrue, fitCtauReco, fitRes, doCtauErrPDF, incJpsi, incBkg, incPrompt, incNonPrompt, cutCtau, doConstrFit, wantPureSMC, applyCorr, setLogScale, incSS, numCores)) { return; }
+  if (!checkSettings(fitData, fitMC, fitMass, fitCtau, fitCtauTrue, fitCtauReco, fitRes, doCtauErrPDF, incJpsi, incBkg, incPrompt, incNonPrompt, cutCtau, doConstrFit, wantPureSMC, applyCorr, setLogScale, incSS, numCores)) { return; }
 
   map< string, vector<string> > DIR;
   if(!iniWorkEnv(DIR, workDirName)){ return; }
@@ -212,34 +210,26 @@ void fitter(
     // If we have data, check if the user wants to fit data
     bool checkData = (fitCtau && fitMC && (existDir(inputFitDirs[inputFitDirs.size()-1]["CTAUERR"]+"ctauErr/")==false) );
     if ( (FILETAG.find("DATA")!=std::string::npos) && (fitData==true || checkData==true) ) {
-      if ( (FILETAG.find("PP")!=std::string::npos)   && !fitPP   ) continue; // If we find PP, check if the user wants PP
-      if ( (FILETAG.find("PbPb")!=std::string::npos) && !fitPbPb ) continue; // If we find PbPb, check if the user wants PbPb
       string dir = DIR["dataset"][0];
       cout << "[INFO] DIR : " << dir << endl;
       
-      bool isPbPb = false, isPeriPD = false;
-      if (FILETAG.find("PbPb")!=std::string::npos) { isPbPb = true; }
+      bool isPeriPD = false;
       if (InputFileNames[0].find("HIOniaPeripheral30100")!=std::string::npos) { isPeriPD = true; }
-      
-      if (isPbPb && usePeriPD && !isPeriPD){
-        cout << "[ERROR] Requested to use Peripheral PD but InputTress.txt does not contain the corresponding trees" << endl;
-        return;
-      }
       
       if (useExtDS==true && usePeriPD==true  && inputDataSet["PERIPHERAL"]!="" && (existDir(inputDataSet["PERIPHERAL"])==true)) { dir = inputDataSet["PERIPHERAL"]; }
       if (useExtDS==true && usePeriPD==false && inputDataSet["DOUBLEMUON"]!="" && (existDir(inputDataSet["DOUBLEMUON"])==true)) { dir = inputDataSet["DOUBLEMUON"]; }
       if(strcmp(applyCorr,"")){
-        OutputFileName = dir + "DATASET_" + FILETAG + "_" + string(applyCorr) + (isPbPb?(isPeriPD?"_PERI":"_CENT"):"") + ".root";
+        OutputFileName = dir + "DATASET_" + FILETAG + "_" + string(applyCorr) + ".root";
         if(gSystem->AccessPathName(OutputFileName.c_str())) { OutputFileName = DIR["dataset"][0] + "DATASET_" + FILETAG + "_" + string(applyCorr) + ".root"; }
       cout << "[INFO] Outputfile : " << OutputFileName << endl;
         if(!tree2DataSet(Workspace[Form("%s_%s",DSTAG.c_str(),applyCorr)], InputFileNames, FILETAG, OutputFileName)){ return; }
       }
       else {
-        OutputFileName = dir + "DATASET_" + FILETAG + (isPbPb?(isPeriPD?"_PERI":"_CENT"):"") + ".root";
-        if(gSystem->AccessPathName(OutputFileName.c_str())) { OutputFileName = DIR["dataset"][0] + "DATASET_" + FILETAG + (isPbPb?(isPeriPD?"_PERI":"_CENT"):"") + ".root"; }
+        OutputFileName = dir + "DATASET_" + FILETAG  + ".root";
+        if(gSystem->AccessPathName(OutputFileName.c_str())) { OutputFileName = DIR["dataset"][0] + "DATASET_" + FILETAG + ".root"; }
       cout << "[INFO] Outputfile : " << OutputFileName << endl;
         string NAMETAG = DSTAG;
-        if (checkData) { NAMETAG = string("MC")+(incJpsi?"JPSI":"PSI2S")+(incNonPrompt?"NOPR":"PR")+"_"+(fitPP?"PP":"PbPb"); }
+        if (checkData) { NAMETAG = string("MC")+(incJpsi?"JPSI":"PSI2S")+(incNonPrompt?"NOPR":"PR")+"_PP"; }
       cout << "[INFO] NAMETAG : " << NAMETAG << endl;
         if(!tree2DataSet(Workspace[NAMETAG], InputFileNames, FILETAG, OutputFileName)){ return; }
       }
@@ -248,8 +238,6 @@ void fitter(
     
     // If we find MC, check if the user wants to fit MC
     if ( (FILETAG.find("MC")!=std::string::npos) && fitMC==true  ) {
-      if ( (FILETAG.find("PP")!=std::string::npos)    && !fitPP     ) continue; // If we find PP, check if the user wants PP
-      if ( (FILETAG.find("PbPb")!=std::string::npos)  && !fitPbPb   ) continue; // If we find PbPb, check if the user wants PbPb
       if ( (FILETAG.find("JPSI")!=std::string::npos)  && !incJpsi   ) continue; // If we find Jpsi MC, check if the user wants to include Jpsi
       if ( (FILETAG.find("NOPR")!=std::string::npos) ) { if (!incNonPrompt) continue; } // If we find Non-Prompt MC, check if the user wants to include Non-Prompt
       else if ( (FILETAG.find("PR")!=std::string::npos) && !incPrompt ) continue; // If we find Prompt MC, check if the user wants to include Prompt
@@ -297,7 +285,7 @@ void fitter(
      }
     }
   };
-  map<string, bool> COLMAP = {{"PbPb", fitPbPb}, {"PP", fitPP}};
+  map<string, bool> COLMAP = {{"PP", true}};
  
   typedef map<string, map<string, bool>>::iterator var_type;
   typedef map<string, bool>::iterator it_type;
@@ -322,7 +310,7 @@ void fitter(
               if (VAR->first=="CTAU" && PAR->first=="JPSI" && inputInitialFilesDirs[j]["CTAU"]!=""    ) { dir = inputInitialFilesDirs[j]["CTAU"];     }
               string name3 = name2 + COL->first + ".csv";
               InputFile = (dir + name3);
-              if (!addParameters(InputFile, cutVector, parIniVector, true, doConstrFit)) { return; }
+              if (!addParameters(InputFile, cutVector, parIniVector, doConstrFit)) { return; }
             }
           }
         }
@@ -366,13 +354,11 @@ void fitter(
               if ( DSTAG.Contains("MCJPSIPR")    ) { incJpsi = true;  incPrompt = true;  incNonPrompt = false; }
               if ( DSTAG.Contains("MCJPSINOPR")  ) { incJpsi = true;  incPrompt = false; incNonPrompt = true;  }
               
-              bool isPbPb = true, proceed = false;
-              if (fitPbPb && DSTAG.Contains("PbPb")) { isPbPb = true;  proceed = true; }
-              if (fitPP   && DSTAG.Contains("PP"))   { isPbPb = false; proceed = true; cout << "Fitting charmonia pp" << endl;}
+              bool proceed = false;
+              if (DSTAG.Contains("PP"))   { proceed = true; cout << "Fitting charmonia pp" << endl;}
               if (proceed && !fitCharmonia( Workspace[wsName.Data()], cutVectors[j].at(i), parIniVectors[j].at(i), outputDir,
                                             // Select the type of datasets to fit
                                             DSTAG.Data(),
-                                            isPbPb,          // In this case we are fitting PbPb
                                             // Select the type of object to fit
                                             fitMass,         // Fit mass distribution
                                             fitCtau,         // Fit ctau distribution
@@ -413,7 +399,7 @@ void fitter(
 };
   
 
-bool addParameters(string InputFile,  vector< struct KinCuts >& cutVector, vector< map<string, string> >&  parIniVector, bool isPbPb, bool doConstrFit)
+bool addParameters(string InputFile,  vector< struct KinCuts >& cutVector, vector< map<string, string> >&  parIniVector, bool doConstrFit)
 {
   vector< map<string, string> >  data;
   if(!parseFile(InputFile, data)) { return false; }
@@ -421,7 +407,7 @@ bool addParameters(string InputFile,  vector< struct KinCuts >& cutVector, vecto
   if (cutVector.size()==0) {
     for(vector< map<string, string> >::iterator row=data.begin(); row!=data.end(); ++row) {
       struct KinCuts cut; map<string, string> parIni;
-      if(!setParameters(*row, cut, parIni, isPbPb, doConstrFit)) { return false; }
+      if(!setParameters(*row, cut, parIni, doConstrFit)) { return false; }
       cutVector.push_back(cut);  parIniVector.push_back(parIni);
     }
   }
@@ -429,8 +415,8 @@ bool addParameters(string InputFile,  vector< struct KinCuts >& cutVector, vecto
     if (data.size()!=cutVector.size()) { cout << "[ERROR] The initial parameters in file " << InputFile << " are not consistent with previous files!" << endl; return false; }
     for (unsigned int i=0; i<data.size(); i++) {
       struct KinCuts cut;
-      if (!setParameters(data.at(i), cut, parIniVector.at(i), isPbPb, doConstrFit)) { return false; };
-      if (!isEqualKinCuts(cut, cutVector.at(i), isPbPb)) { cout << "[ERROR] The bins in file " << InputFile << " are not consistent with previous files!" << endl; return false; }
+      if (!setParameters(data.at(i), cut, parIniVector.at(i), doConstrFit)) { return false; };
+      if (!isEqualKinCuts(cut, cutVector.at(i))) { cout << "[ERROR] The bins in file " << InputFile << " are not consistent with previous files!" << endl; return false; }
     }
   }
 
@@ -438,7 +424,7 @@ bool addParameters(string InputFile,  vector< struct KinCuts >& cutVector, vecto
 };
 
 
-bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, string>& parIni, bool isPbPb, bool doConstrFit)
+bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, string>& parIni, bool doConstrFit)
 {
 
   // set initial parameters
@@ -494,20 +480,6 @@ bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, str
       }  
       cut.dMuon.Pt.Min = v.at(0); 
       cut.dMuon.Pt.Max = v.at(1);
-    } 
-    else if (label=="cent"){
-      if (isPbPb) {
-        if (col->second=="" || col->second.find("-")==std::string::npos) {
-          cout << "[ERROR] Input column 'cent' has invalid value: " << col->second << endl; return false;
-        }
-        std::vector<double> v;
-        if(!parseString(col->second, "-", v)) { return false; }
-        if (v.size()!=2) {
-          cout << "[ERROR] Input column 'cent' has incorrect number of values, it should have 2 values but has: " << v.size() << endl; return false;
-        }
-        cut.Centrality.Start = (int) (2.0*v.at(0));
-        cut.Centrality.End = (int) (2.0*v.at(1));
-      }
     } 
     else if (label=="mass"){
       if (col->second=="" || col->second.find("-")==std::string::npos) {
@@ -810,7 +782,7 @@ bool existDir(string dir)
 };
 
 
-bool checkSettings(bool fitData, bool fitMC, bool fitPbPb, bool fitPP, bool fitMass, bool fitCtau, bool fitCtauTrue, bool fitCtauReco, bool fitRes, bool doCtauErrPDF, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt, bool cutCtau, bool doConstrFit, bool wantPureSMC, const char* applyCorr, bool setLogScale, bool incSS, int numCores)
+bool checkSettings(bool fitData, bool fitMC, bool fitMass, bool fitCtau, bool fitCtauTrue, bool fitCtauReco, bool fitRes, bool doCtauErrPDF, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt, bool cutCtau, bool doConstrFit, bool wantPureSMC, const char* applyCorr, bool setLogScale, bool incSS, int numCores)
 { 
   cout << "[INFO] Checking user settings " << endl;
 
@@ -837,9 +809,6 @@ bool checkSettings(bool fitData, bool fitMC, bool fitPbPb, bool fitPP, bool fitM
   }
   if (fitMC && (!incPrompt && !incNonPrompt)) {
     cout << "[ERROR] No MC datasets were included, please include either Prompt or Non-Prompt MC!" << endl; return false;
-  }
-  if (!fitPbPb && !fitPP) {
-    cout << "[ERROR] No datasets were selected, please select either PbPb or PP!" << endl; return false;
   }
   if (!incJpsi && !incBkg) {
     cout << "[ERROR] No models were included for fitting, please include either Jpsi, Psi2S or Bkg" << endl; return false;

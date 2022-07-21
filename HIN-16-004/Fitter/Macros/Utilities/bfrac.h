@@ -32,21 +32,19 @@ RooRealVar bfrac (const char* pr_fits, // name of the prompt fits directory
       anabin bin,                  // bin to be considered
       TString obs                  // name of the observable (eg Bfrac_PbPb or N_Psi2S_NPrompt_PP)
       ) {
-   bool isPbPb = (obs.Index("_PbPb") != kNPOS);
-   bool is2S = (obs.Index("_Psi2S") != kNPOS);
    bool doN = (obs.Index("N_") != kNPOS);
    bool doRfrac = (obs.Index("RFrac2Svs1S_") != kNPOS); 
    bool doNonPrompt = (obs.Index("_NPrompt") != kNPOS);
 
    RooRealVar bfrac("bfrac","bfrac",0);
 
-   const char* token = isPbPb ? "PbPb" : "PP";
+   const char* token = "PP";
    vector<TString> files_pr = fileList(pr_fits, token);
    vector<TString> files_npr = fileList(npr_fits, token);
 
    // fix the centrality if needed
    bin.setcentbin(binI(bin.centbin().low(),abs(bin.centbin().high())));
-   if (!isPbPb) bin.setcentbin(binI(0,200));
+   bin.setcentbin(binI(0,200));
 
    vector<TString>::const_iterator it;
    TString file_pr, file_npr;
@@ -83,19 +81,19 @@ RooRealVar bfrac (const char* pr_fits, // name of the prompt fits directory
    TFile *fnpr = TFile::Open(file_npr); if (!fnpr || !fnpr->IsOpen()) return bfrac;
    RooWorkspace *wspr = (RooWorkspace*) fpr->Get("workspace"); if (!wspr) return bfrac;
    RooWorkspace *wsnpr = (RooWorkspace*) fnpr->Get("workspace"); if (!wsnpr) return bfrac;
-   RooRealVar Njpsipr_var(*wspr->var(Form("N_Jpsi_%s", isPbPb ? "PbPb" : "PP"))); Njpsipr_var.SetName("Njpsipr_var");
+   RooRealVar Njpsipr_var(*wspr->var("N_Jpsi_PP")); Njpsipr_var.SetName("Njpsipr_var");
    RooRealVar Njpsipr("Njpsipr","",Njpsipr_var.getVal());
-   RooRealVar Njpsinpr_var(*wsnpr->var(Form("N_Jpsi_%s", isPbPb ? "PbPb" : "PP"))); Njpsinpr_var.SetName("Njpsinpr_var");
+   RooRealVar Njpsinpr_var(*wsnpr->var("N_Jpsi_PP")); Njpsinpr_var.SetName("Njpsinpr_var");
    RooRealVar Njpsinpr("Njpsinpr","",Njpsinpr_var.getVal());
    // the number of psi' is a RooFormula, so we have to build it and compute its uncertainty
-   RooRealVar rfracpr_var(*wspr->var(Form("RFrac2Svs1S_%s", isPbPb ? "PbPb" : "PP"))); rfracpr_var.SetName("rfracpr_var");
+   RooRealVar rfracpr_var(*wspr->var("RFrac2Svs1S_PP")); rfracpr_var.SetName("rfracpr_var");
    RooRealVar rfracpr("rfracpr","",rfracpr_var.getVal());
-   RooRealVar rfracnpr_var(*wsnpr->var(Form("RFrac2Svs1S_%s", isPbPb ? "PbPb" : "PP"))); rfracnpr_var.SetName("rfracnpr_var");
+   RooRealVar rfracnpr_var(*wsnpr->var(Form("RFrac2Svs1S_%s", "PP"))); rfracnpr_var.SetName("rfracnpr_var");
    RooRealVar rfracnpr("rfracnpr","",rfracnpr_var.getVal());
-   RooFitResult *frpr = (RooFitResult*) wspr->obj(Form("fitResult_pdfMASS_Tot_%s", isPbPb ? "PbPb" : "PP"));
-   RooFitResult *frnpr = (RooFitResult*) wsnpr->obj(Form("fitResult_pdfMASS_Tot_%s", isPbPb ? "PbPb" : "PP"));
-   double corrpr = frpr->correlation(Form("N_Jpsi_%s", isPbPb ? "PbPb" : "PP"), Form("RFrac2Svs1S_%s", isPbPb ? "PbPb" : "PP"));
-   double corrnpr = frnpr->correlation(Form("N_Jpsi_%s", isPbPb ? "PbPb" : "PP"), Form("RFrac2Svs1S_%s", isPbPb ? "PbPb" : "PP"));
+   RooFitResult *frpr = (RooFitResult*) wspr->obj(Form("fitResult_pdfMASS_Tot_%s", "PP"));
+   RooFitResult *frnpr = (RooFitResult*) wsnpr->obj(Form("fitResult_pdfMASS_Tot_%s", "PP"));
+   double corrpr = frpr->correlation(Form("N_Jpsi_%s", "PP"), Form("RFrac2Svs1S_%s", "PP"));
+   double corrnpr = frnpr->correlation(Form("N_Jpsi_%s", "PP"), Form("RFrac2Svs1S_%s", "PP"));
    double valpr = Njpsipr.getVal() * rfracpr.getVal();
    double valnpr = Njpsinpr.getVal() * rfracnpr.getVal();
    // cf https://en.wikipedia.org/wiki/Propagation_of_uncertainty#Example_formulas
@@ -116,9 +114,9 @@ RooRealVar bfrac (const char* pr_fits, // name of the prompt fits directory
    RooRealVar rfracnpr_err("Nrfracnpr_err","rfracnpr_err",rfracnpr_var.getError());
 
    // then efficiencies
-   TString feffjpsipr("../Efficiency/files/histos_"); feffjpsipr += "jpsi_"; feffjpsipr += isPbPb ? "pbpb.root" : "pp.root";
-   TString feffpsippr("../Efficiency/files/histos_"); feffpsippr += "psi2s_"; feffpsippr += isPbPb ? "pbpb.root" : "pp.root";
-   TString feffnpr("../Efficiency/files/histos_npjpsi_"); feffnpr += isPbPb ? "pbpb.root" : "pp.root";
+   TString feffjpsipr("../Efficiency/files/histos_"); feffjpsipr += "jpsi_"; feffjpsipr += "pp.root";
+   TString feffpsippr("../Efficiency/files/histos_"); feffpsippr += "psi2s_"; feffpsippr += "pp.root";
+   TString feffnpr("../Efficiency/files/histos_npjpsi_"); feffnpr += "pp.root";
    TString numname("hnumptdepcut_"); numname += (bin.centbin() == binI(0,200)) ? "pt" : "cent"; numname += (bin.rapbin() == binF(0,1.6)) ? "mid" : "fwd";
    TString denname("hnum_"); denname += (bin.centbin() == binI(0,200)) ? "pt" : "cent"; denname += (bin.rapbin() == binF(0,1.6)) ? "mid" : "fwd";
    TFile *tfeffjpsipr = TFile::Open(feffjpsipr);
@@ -196,28 +194,22 @@ RooRealVar bfrac (const char* pr_fits, // name of the prompt fits directory
    RooMultiVarGaussian Nmultipr_pdf("Nmultipr_pdf","",RooArgList(Njpsipr_var,rfracpr_var),RooArgList(Njpsipr,rfracpr),TMatrixDSym(2,elempr));
    RooMultiVarGaussian Nmultinpr_pdf("Nmultinpr_pdf","",RooArgList(Njpsinpr_var,rfracnpr_var),RooArgList(Njpsinpr,rfracnpr),TMatrixDSym(2,elemnpr));
    RooAbsPdf *numjpsipr_pdf=NULL; 
-   numjpsipr_pdf = isPbPb ? 
-      (RooAbsPdf*) new RooGaussian("numjpsipr_pdf","",numjpsipr_var,numjpsipr,numjpsipr_err) : 
+   numjpsipr_pdf = 
       (RooAbsPdf*) new RooPoisson("numjpsipr_pdf","",numjpsipr_var,numjpsipr);
    RooAbsPdf *numpsippr_pdf=NULL; 
-   numpsippr_pdf = isPbPb ? 
-      (RooAbsPdf*) new RooGaussian("numpsippr_pdf","",numpsippr_var,numpsippr,numpsippr_err) : 
+   numpsippr_pdf = 
       (RooAbsPdf*) new RooPoisson("numpsippr_pdf","",numpsippr_var,numpsippr);
    RooAbsPdf *numnpr_pdf=NULL; 
-   numnpr_pdf = isPbPb ? 
-      (RooAbsPdf*) new RooGaussian("numnpr_pdf","",numnpr_var,numnpr,numnpr_err) : 
+   numnpr_pdf =  
       (RooAbsPdf*) new RooPoisson("numnpr_pdf","",numnpr_var,numnpr);
    RooAbsPdf *failjpsipr_pdf=NULL; 
-   failjpsipr_pdf = isPbPb ? 
-      (RooAbsPdf*) new RooGaussian("failjpsipr_pdf","",failjpsipr_var,failjpsipr,failjpsipr_err) : 
+   failjpsipr_pdf =  
       (RooAbsPdf*) new RooPoisson("failjpsipr_pdf","",failjpsipr_var,failjpsipr);
    RooAbsPdf *failpsippr_pdf=NULL; 
-   failpsippr_pdf = isPbPb ? 
-      (RooAbsPdf*) new RooGaussian("failpsippr_pdf","",failpsippr_var,failpsippr,failpsippr_err) : 
+   failpsippr_pdf =  
       (RooAbsPdf*) new RooPoisson("failpsippr_pdf","",failpsippr_var,failpsippr);
    RooAbsPdf *failnpr_pdf=NULL; 
-   failnpr_pdf = isPbPb ? 
-      (RooAbsPdf*) new RooGaussian("failnpr_pdf","",failnpr_var,failnpr,failnpr_err) : 
+   failnpr_pdf =  
       (RooAbsPdf*) new RooPoisson("failnpr_pdf","",failnpr_var,failnpr);
 
    // variable list

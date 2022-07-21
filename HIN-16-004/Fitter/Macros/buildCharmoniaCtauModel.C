@@ -3,10 +3,10 @@
 
 #include "Utilities/initClasses.h"
 
-void setCtauDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries);
-bool defineCtauResolModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni, bool isPbPb); 
-bool addSignalCtauModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni, bool isPbPb); 
-bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni, bool isPbPb);
+void setCtauDefaultParameters(map<string, string> &parIni, double numEntries);
+bool defineCtauResolModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni); 
+bool addSignalCtauModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni); 
+bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni);
 bool createCtauBkgTemplate(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, double binWidth);
 bool ctauBkgHistToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, string dsName, vector<double> range, bool useDataSet=true);
 TH1* rebinctauBkghist(RooWorkspace& ws, TH1 *hist, double xmin=1e99, double xmax=-1e99);
@@ -14,7 +14,6 @@ void findRangeFromPlot(vector<double>& range, struct KinCuts cut, double binWidt
 
 bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<string, string>  parIni, string dsName,
                              struct KinCuts cut,          // Variable containing all kinematic cuts
-                             bool isPbPb,                 // Determine if we are working with PbPb (True) or PP (False)
                              bool incBkg,                 // Include background model
                              bool incJpsi,                // Include Jpsi model
                              bool incPrompt,              // Include Prompt models
@@ -26,14 +25,14 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
                              )
 {
   // If the initial parameters are empty, set defaul parameter values
-  setCtauDefaultParameters(parIni, isPbPb, numEntries);
+  setCtauDefaultParameters(parIni, numEntries);
   
   // Fix all psi2S parameters to jpsi
 
   // C r e a t e   m o d e l 
 
   bool fitMass = false;
-  if ( ws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP"))) && incBkg && incJpsi) { fitMass = true; } 
+  if ( ws.pdf(Form("pdfMASS_Tot_%s", "PP")) && incBkg && incJpsi) { fitMass = true; } 
 
   string pdfName     = "pdfCTAU";
   if (fitMass) { pdfName = "pdfCTAUMASS"; }
@@ -42,182 +41,182 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
   
   
   if (incJpsi) {
-    if(!defineCtauResolModel(ws, "Jpsi", model.CtauRes, parIni, isPbPb)) { cout << "[ERROR] Defining the Prompt Ctau Resolution Model failed" << endl; return false; }
+    if(!defineCtauResolModel(ws, "Jpsi", model.CtauRes, parIni)) { cout << "[ERROR] Defining the Prompt Ctau Resolution Model failed" << endl; return false; }
     if (incPrompt) {
-      if(!addSignalCtauModel(ws, "JpsiPR", model.Jpsi.Ctau.Prompt, parIni, isPbPb)) { cout << "[ERROR] Adding Prompt Jpsi Ctau Model failed" << endl; return false; }
+      if(!addSignalCtauModel(ws, "JpsiPR", model.Jpsi.Ctau.Prompt, parIni)) { cout << "[ERROR] Adding Prompt Jpsi Ctau Model failed" << endl; return false; }
     }
     if (incNonPrompt) {
-      if(!addSignalCtauModel(ws, "JpsiNoPR", model.Jpsi.Ctau.NonPrompt, parIni, isPbPb)) { cout << "[ERROR] Adding NonPrompt Jpsi Ctau Model failed" << endl; return false; }
+      if(!addSignalCtauModel(ws, "JpsiNoPR", model.Jpsi.Ctau.NonPrompt, parIni)) { cout << "[ERROR] Adding NonPrompt Jpsi Ctau Model failed" << endl; return false; }
     }
     if (incPrompt && !incNonPrompt) {
       if (incCtauErrPDF) {
-        RooProdPdf pdfJpsi(Form("pdfCTAU_JpsiPR_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), (isPbPb?"PbPb":"PP"))),
-                       Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiPR_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+        RooProdPdf pdfJpsi(Form("pdfCTAU_JpsiPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), "PP")),
+                       Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                        ); 
         ws.import(pdfJpsi);
       } else {
-        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_JpsiPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUCOND_JpsiPR_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_JpsiPR_%s", "PP"),
+                        Form("pdfCTAUCOND_JpsiPR_%s", "PP")
                         ));
       }
-      if ( ws.pdf(Form("pdfMASS_Jpsi_%s", (isPbPb?"PbPb":"PP"))) ){
-        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_JpsiPR_%s", (isPbPb?"PbPb":"PP")),
-                       Form("%s_JpsiPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                       Form("pdfMASS_Jpsi_%s",(isPbPb?"PbPb":"PP"))
+      if ( ws.pdf(Form("pdfMASS_Jpsi_%s", "PP")) ){
+        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_JpsiPR_%s", "PP"),
+                       Form("%s_JpsiPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                       Form("pdfMASS_Jpsi_%s","PP")
                        ));
       }
-      ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_JpsiPR_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                      Form("%s_JpsiPR_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                      Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_JpsiPR_%s", pdfName.c_str(), "PP"),
+                      Form("%s_JpsiPR_%s", pdfName.c_str(), "PP"),
+                      Form("N_Jpsi_%s", "PP")
                       ));
     }
     if (!incPrompt && incNonPrompt) {
       if (incCtauErrPDF) {
-        RooProdPdf pdfJpsi(Form("pdfCTAU_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), (isPbPb?"PbPb":"PP"))),
-                       Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiNoPR_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+        RooProdPdf pdfJpsi(Form("pdfCTAU_JpsiNoPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), "PP")),
+                       Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiNoPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                        ); 
         ws.import(pdfJpsi);
       } else {
-        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUCOND_JpsiNoPR_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_JpsiNoPR_%s", "PP"),
+                        Form("pdfCTAUCOND_JpsiNoPR_%s", "PP")
                         ));
       }
-      if ( ws.pdf(Form("pdfMASS_Jpsi_%s", (isPbPb?"PbPb":"PP"))) ){
-        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")),
-                         Form("%s_JpsiNoPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                         Form("pdfMASS_Jpsi_%s",(isPbPb?"PbPb":"PP"))
+      if ( ws.pdf(Form("pdfMASS_Jpsi_%s", "PP")) ){
+        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_JpsiNoPR_%s", "PP"),
+                         Form("%s_JpsiNoPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                         Form("pdfMASS_Jpsi_%s","PP")
                          ));
       }
-      ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_JpsiNoPR_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                      Form("%s_JpsiNoPR_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                      Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_JpsiNoPR_%s", pdfName.c_str(), "PP"),
+                      Form("%s_JpsiNoPR_%s", pdfName.c_str(), "PP"),
+                      Form("N_Jpsi_%s", "PP")
                       ));
     }
     if (incPrompt && incNonPrompt) {
       if (incCtauErrPDF) {
-        RooProdPdf pdfJpsiPR(Form("pdfCTAU_JpsiPR_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), (isPbPb?"PbPb":"PP"))),
-                             Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiPR_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+        RooProdPdf pdfJpsiPR(Form("pdfCTAU_JpsiPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), "PP")),
+                             Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                              );
         ws.import(pdfJpsiPR);
-        if (!ws.pdf(Form("pdfCTAU_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")))) {
-          RooProdPdf pdfJpsiNoPR(Form("pdfCTAU_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), (isPbPb?"PbPb":"PP"))),
-                                 Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiNoPR_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+        if (!ws.pdf(Form("pdfCTAU_JpsiNoPR_%s", "PP"))) {
+          RooProdPdf pdfJpsiNoPR(Form("pdfCTAU_JpsiNoPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), "PP")),
+                                 Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiNoPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                                  ); 
           ws.import(pdfJpsiNoPR);
         }
       } else {
-        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_JpsiPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUCOND_JpsiPR_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_JpsiPR_%s", "PP"),
+                        Form("pdfCTAUCOND_JpsiPR_%s", "PP")
                         ));
-        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUCOND_JpsiPR_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_JpsiNoPR_%s", "PP"),
+                        Form("pdfCTAUCOND_JpsiPR_%s", "PP")
                         ));
       }
-      ws.factory( parIni[Form("b_Jpsi_%s", (isPbPb?"PbPb":"PP"))].c_str() );
+      ws.factory( parIni[Form("b_Jpsi_%s", "PP")].c_str() );
 //      if (incCtauErrPDF) {
-        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU_Jpsi_%s", (isPbPb?"PbPb":"PP")),
-                        Form("b_Jpsi_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAU_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAU_JpsiPR_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU_Jpsi_%s", "PP"),
+                        Form("b_Jpsi_%s", "PP"),
+                        Form("pdfCTAU_JpsiNoPR_%s", "PP"),
+                        Form("pdfCTAU_JpsiPR_%s", "PP")
                         ));
 /*      } else {
-        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_Jpsi_%s", (isPbPb?"PbPb":"PP")),
-                        Form("b_Jpsi_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUCOND_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUCOND_JpsiPR_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_Jpsi_%s", "PP"),
+                        Form("b_Jpsi_%s", "PP"),
+                        Form("pdfCTAUCOND_JpsiNoPR_%s", "PP"),
+                        Form("pdfCTAUCOND_JpsiPR_%s", "PP")
                         ));
       }*/
-      if ( ws.pdf(Form("pdfMASS_Jpsi_%s", (isPbPb?"PbPb":"PP"))) ){
-        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_JpsiPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("%s_JpsiPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                        Form("pdfMASS_Jpsi_%s",(isPbPb?"PbPb":"PP"))
+      if ( ws.pdf(Form("pdfMASS_Jpsi_%s", "PP")) ){
+        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_JpsiPR_%s", "PP"),
+                        Form("%s_JpsiPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                        Form("pdfMASS_Jpsi_%s","PP")
                         ));
-        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("%s_JpsiNoPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                        Form("pdfMASS_Jpsi_%s",(isPbPb?"PbPb":"PP"))
+        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_JpsiNoPR_%s", "PP"),
+                        Form("%s_JpsiNoPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                        Form("pdfMASS_Jpsi_%s","PP")
                         ));
-        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUMASS_Jpsi_%s", (isPbPb?"PbPb":"PP")),
-                        Form("b_Jpsi_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUMASS_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUMASS_JpsiPR_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUMASS_Jpsi_%s", "PP"),
+                        Form("b_Jpsi_%s", "PP"),
+                        Form("pdfCTAUMASS_JpsiNoPR_%s", "PP"),
+                        Form("pdfCTAUMASS_JpsiPR_%s", "PP")
                         ));
       }
-      ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_Jpsi_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                      Form("%s_Jpsi_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                      Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_Jpsi_%s", pdfName.c_str(), "PP"),
+                      Form("%s_Jpsi_%s", pdfName.c_str(), "PP"),
+                      Form("N_Jpsi_%s", "PP")
                       ));
     }
   }
   if (incBkg) {
     if (!usectauBkgTemplate)
     {
-      if(!defineCtauResolModel(ws, "Bkg", model.CtauRes, parIni, isPbPb)) { cout << "[ERROR] Defining the Prompt Ctau Resolution Model failed" << endl; return false; }
+      if(!defineCtauResolModel(ws, "Bkg", model.CtauRes, parIni)) { cout << "[ERROR] Defining the Prompt Ctau Resolution Model failed" << endl; return false; }
       if (incPrompt) {
-        if(!addBackgroundCtauModel(ws, "BkgPR", model.Bkg.Ctau.Prompt, parIni, isPbPb)) { cout << "[ERROR] Adding Prompt Bkg Ctau Model failed" << endl; return false; }
+        if(!addBackgroundCtauModel(ws, "BkgPR", model.Bkg.Ctau.Prompt, parIni)) { cout << "[ERROR] Adding Prompt Bkg Ctau Model failed" << endl; return false; }
       }
       if (incNonPrompt) {
-        if(!addBackgroundCtauModel(ws, "BkgNoPR", model.Bkg.Ctau.NonPrompt, parIni, isPbPb)) { cout << "[ERROR] Adding NonPrompt Bkg Ctau Model failed" << endl; return false; }
+        if(!addBackgroundCtauModel(ws, "BkgNoPR", model.Bkg.Ctau.NonPrompt, parIni)) { cout << "[ERROR] Adding NonPrompt Bkg Ctau Model failed" << endl; return false; }
       }
       if (incPrompt && !incNonPrompt) {
         if (incCtauErrPDF) {
-          RooProdPdf pdf(Form("pdfCTAU_BkgPR_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), (isPbPb?"PbPb":"PP"))),
-                         Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgPR_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+          RooProdPdf pdf(Form("pdfCTAU_BkgPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), "PP")),
+                         Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                          );
           ws.import(pdf);
         }
-        if ( ws.pdf(Form("pdfMASS_Bkg_%s", (isPbPb?"PbPb":"PP"))) ){
-          ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgPR_%s", (isPbPb?"PbPb":"PP")),
-                          Form("%s_BkgPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                          Form("pdfMASS_Bkg_%s",(isPbPb?"PbPb":"PP"))
+        if ( ws.pdf(Form("pdfMASS_Bkg_%s", "PP")) ){
+          ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgPR_%s", "PP"),
+                          Form("%s_BkgPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                          Form("pdfMASS_Bkg_%s","PP")
                           ));
         }
-        ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_BkgPR_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("%s_BkgPR_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_BkgPR_%s", pdfName.c_str(), "PP"),
+                        Form("%s_BkgPR_%s", pdfName.c_str(), "PP"),
+                        Form("N_Bkg_%s", "PP")
                         ));
       }
       if (!incPrompt && incNonPrompt) {
         if (incCtauErrPDF) {
-          RooProdPdf pdf(Form("pdfCTAU_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), (isPbPb?"PbPb":"PP"))),
-                         Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+          RooProdPdf pdf(Form("pdfCTAU_BkgNoPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), "PP")),
+                         Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgNoPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                          );
           ws.import(pdf);
         }
-        if ( ws.pdf(Form("pdfMASS_Bkg_%s", (isPbPb?"PbPb":"PP"))) ){
-          ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")),
-                          Form("%s_BkgNoPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                          Form("pdfMASS_Bkg_%s",(isPbPb?"PbPb":"PP"))
+        if ( ws.pdf(Form("pdfMASS_Bkg_%s", "PP")) ){
+          ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgNoPR_%s", "PP"),
+                          Form("%s_BkgNoPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                          Form("pdfMASS_Bkg_%s","PP")
                           ));
         }
-        ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_BkgNoPR_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("%s_BkgNoPR_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_BkgNoPR_%s", pdfName.c_str(), "PP"),
+                        Form("%s_BkgNoPR_%s", pdfName.c_str(), "PP"),
+                        Form("N_Bkg_%s", "PP")
                         ));
       }
       if (incPrompt && incNonPrompt) {
         if (incCtauErrPDF) {
-          if ( !ws.pdf(Form("pdfCTAUERR_Bkg_%s", (isPbPb?"PbPb":"PP"))) ) { return false; }
-          RooProdPdf pdfPR(Form("pdfCTAU_BkgPR_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), (isPbPb?"PbPb":"PP"))),
-                           Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgPR_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+          if ( !ws.pdf(Form("pdfCTAUERR_Bkg_%s", "PP")) ) { return false; }
+          RooProdPdf pdfPR(Form("pdfCTAU_BkgPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), "PP")),
+                           Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                            );
           ws.import(pdfPR);
-          RooProdPdf pdfNoPR(Form("pdfCTAU_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), (isPbPb?"PbPb":"PP"))),
-                             Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+          RooProdPdf pdfNoPR(Form("pdfCTAU_BkgNoPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), "PP")),
+                             Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgNoPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                              );
           ws.import(pdfNoPR);
         }
-        ws.factory( parIni[Form("b_Bkg_%s", (isPbPb?"PbPb":"PP"))].c_str() );
+        ws.factory( parIni[Form("b_Bkg_%s", "PP")].c_str() );
         if (incCtauErrPDF) {
-          ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU_Bkg_%s", (isPbPb?"PbPb":"PP")),
-                          Form("b_Bkg_%s", (isPbPb?"PbPb":"PP")),
-                          Form("pdfCTAU_BkgNoPR_%s", (isPbPb?"PbPb":"PP")),
-                          Form("pdfCTAU_BkgPR_%s", (isPbPb?"PbPb":"PP"))
+          ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU_Bkg_%s", "PP"),
+                          Form("b_Bkg_%s", "PP"),
+                          Form("pdfCTAU_BkgNoPR_%s", "PP"),
+                          Form("pdfCTAU_BkgPR_%s", "PP")
                           ));
         } else {
-          ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_Bkg_%s", (isPbPb?"PbPb":"PP")),
-                          Form("b_Bkg_%s", (isPbPb?"PbPb":"PP")),
-                          Form("pdfCTAUCOND_BkgNoPR_%s", (isPbPb?"PbPb":"PP")),
-                          Form("pdfCTAUCOND_BkgPR_%s", (isPbPb?"PbPb":"PP"))
+          ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_Bkg_%s", "PP"),
+                          Form("b_Bkg_%s", "PP"),
+                          Form("pdfCTAUCOND_BkgNoPR_%s", "PP"),
+                          Form("pdfCTAUCOND_BkgPR_%s", "PP")
                           ));
         }
       }
@@ -228,43 +227,43 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
         if (incPrompt && incNonPrompt ) { if( !createCtauBkgTemplate(ws, dsName, "pdfCTAUCOND", cut, incJpsi, binWidth)) {cout << "[ERROR] Creating the Bkg Ctau Template failed" << endl; return false;}}
         else {cout << "[ERROR] To create the Bkg Ctau Template we need to activate prompt and nonpromt Jpsi" << endl; return false;}
       }
-      if ( !ws.pdf(Form("pdfCTAUERR_Bkg_%s", (isPbPb?"PbPb":"PP"))) ) { return false; }
-      RooProdPdf pdf(Form("pdfCTAU_Bkg_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), (isPbPb?"PbPb":"PP"))),
-                     Conditional( *ws.pdf(Form("pdfCTAUCOND_Bkg_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+      if ( !ws.pdf(Form("pdfCTAUERR_Bkg_%s", "PP")) ) { return false; }
+      RooProdPdf pdf(Form("pdfCTAU_Bkg_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), "PP")),
+                     Conditional( *ws.pdf(Form("pdfCTAUCOND_Bkg_%s", "PP")), RooArgList(*ws.var("ctau")) )
                        );
       ws.import(pdf);
     }
-    if ( fitMass && ws.pdf(Form("pdfMASS_Bkg_%s", (isPbPb?"PbPb":"PP"))) ){
+    if ( fitMass && ws.pdf(Form("pdfMASS_Bkg_%s", "PP")) ){
       if (!usectauBkgTemplate) {
-        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("%s_BkgPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                        Form("pdfMASS_Bkg_%s",(isPbPb?"PbPb":"PP"))
+        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgPR_%s", "PP"),
+                        Form("%s_BkgPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                        Form("pdfMASS_Bkg_%s","PP")
                         ));
-        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("%s_BkgNoPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                        Form("pdfMASS_Bkg_%s",(isPbPb?"PbPb":"PP"))
+        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgNoPR_%s", "PP"),
+                        Form("%s_BkgNoPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                        Form("pdfMASS_Bkg_%s","PP")
                         ));
-        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUMASS_Bkg_%s", (isPbPb?"PbPb":"PP")),
-                        Form("b_Bkg_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUMASS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUMASS_BkgPR_%s", (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUMASS_Bkg_%s", "PP"),
+                        Form("b_Bkg_%s", "PP"),
+                        Form("pdfCTAUMASS_BkgNoPR_%s", "PP"),
+                        Form("pdfCTAUMASS_BkgPR_%s", "PP")
                         ));
       } 
       else {
-        RooProdPdf pdf(Form("pdfCTAU_Bkg_%s", (isPbPb?"PbPb":"PP")), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), (isPbPb?"PbPb":"PP"))),
-                       Conditional( *ws.pdf(Form("pdfCTAUCOND_Bkg_%s", (isPbPb?"PbPb":"PP"))), RooArgList(*ws.var("ctau")) )
+        RooProdPdf pdf(Form("pdfCTAU_Bkg_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), "PP")),
+                       Conditional( *ws.pdf(Form("pdfCTAUCOND_Bkg_%s", "PP")), RooArgList(*ws.var("ctau")) )
                        );
         ws.import(pdf);
-        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_Bkg_%s", (isPbPb?"PbPb":"PP")),
-                        Form("%s_Bkg_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), (isPbPb?"PbPb":"PP")),
-                        Form("pdfMASS_Bkg_%s",(isPbPb?"PbPb":"PP"))
+        ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_Bkg_%s", "PP"),
+                        Form("%s_Bkg_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
+                        Form("pdfMASS_Bkg_%s","PP")
                         ));
       }
     }
-    if ( !ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) ){ ws.factory( parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))].c_str() ); } 
-    ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_Bkg_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                    Form("%s_Bkg_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")),
-                    Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))
+    if ( !ws.var(Form("N_Bkg_%s", "PP")) ){ ws.factory( parIni[Form("N_Bkg_%s", "PP")].c_str() ); } 
+    ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_Bkg_%s", pdfName.c_str(), "PP"),
+                    Form("%s_Bkg_%s", pdfName.c_str(), "PP"),
+                    Form("N_Bkg_%s", "PP")
                     ));
   }
   
@@ -275,37 +274,37 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
   if (incPrompt  && !incNonPrompt) { tag = "PR"; }
   if (!incPrompt && incNonPrompt)  { tag = "NoPR";   }
 
-  cout << "Name of total pdf var : " << Form("%s_Jpsi%s_%s", pdfName.c_str(), tag.c_str(), (isPbPb?"PbPb":"PP")) << endl;
+  cout << "Name of total pdf var : " << Form("%s_Jpsi%s_%s", pdfName.c_str(), tag.c_str(), "PP") << endl;
 
   if (incJpsi && incBkg) {
-    themodel = new RooAddPdf(Form("%s_Tot_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")), Form("%s_Tot_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")), 
+    themodel = new RooAddPdf(Form("%s_Tot_%s", pdfName.c_str(), "PP"), Form("%s_Tot_%s", pdfName.c_str(), "PP"), 
                              RooArgList( 
-                                        *ws.pdf(Form("%s_Jpsi%s_%s", pdfName.c_str(), tag.c_str(), (isPbPb?"PbPb":"PP"))), 
-                                        *ws.pdf(Form("%s_Bkg%s_%s", pdfName.c_str(), tag.c_str(), (isPbPb?"PbPb":"PP")))
+                                        *ws.pdf(Form("%s_Jpsi%s_%s", pdfName.c_str(), tag.c_str(), "PP")), 
+                                        *ws.pdf(Form("%s_Bkg%s_%s", pdfName.c_str(), tag.c_str(), "PP"))
                                          ),
                              RooArgList( 
-                                        *ws.var(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))), 
-                                        *ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")))
+                                        *ws.var(Form("N_Jpsi_%s", "PP")), 
+                                        *ws.var(Form("N_Bkg_%s", "PP"))
                                          )
                              );
   }
   if (incJpsi && !incBkg) {
-    themodel = new RooAddPdf(Form("%s_Tot_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")), Form("%s_Tot_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")), 
+    themodel = new RooAddPdf(Form("%s_Tot_%s", pdfName.c_str(), "PP"), Form("%s_Tot_%s", pdfName.c_str(), "PP"), 
                              RooArgList( 
-                                        *ws.pdf(Form("%s_Jpsi%s_%s", pdfName.c_str(), tag.c_str(), (isPbPb?"PbPb":"PP")))
+                                        *ws.pdf(Form("%s_Jpsi%s_%s", pdfName.c_str(), tag.c_str(), "PP"))
                                          ),
                              RooArgList( 
-                                        *ws.var(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")))
+                                        *ws.var(Form("N_Jpsi_%s", "PP"))
                                          )
                              );
   }
   if (!incJpsi && incBkg) {
-    themodel = new RooAddPdf(Form("%s_Tot_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")), Form("%s_Tot_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")), 
+    themodel = new RooAddPdf(Form("%s_Tot_%s", pdfName.c_str(), "PP"), Form("%s_Tot_%s", pdfName.c_str(), "PP"), 
                              RooArgList( 
-                                        *ws.pdf(Form("%s_Bkg%s_%s", pdfName.c_str(), tag.c_str(), (isPbPb?"PbPb":"PP")))
+                                        *ws.pdf(Form("%s_Bkg%s_%s", pdfName.c_str(), tag.c_str(), "PP"))
                                          ),
                              RooArgList( 
-                                        *ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")))
+                                        *ws.var(Form("N_Bkg_%s", "PP"))
                                          )
                              );
   }
@@ -313,19 +312,19 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
     cout << "[ERROR] User did not include any model, please fix your input settings!" << endl; return false;
   }
   ws.import(*themodel);
-  //ws.pdf(Form("%s_Tot_%s", pdfName.c_str(), (isPbPb?"PbPb":"PP")))->setNormRange("CtauWindow");
+  //ws.pdf(Form("%s_Tot_%s", pdfName.c_str(), "PP"))->setNormRange("CtauWindow");
   
   return true;
 };
 
 
-bool defineCtauResolModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni, bool isPbPb)
+bool defineCtauResolModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni)
 { 
-  if (ws.pdf(Form("pdfCTAURES_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))) { 
+  if (ws.pdf(Form("pdfCTAURES_%s_%s", object.c_str(), "PP"))) { 
     cout << Form("[WARNING] The %s Ctau Resolution Model has already been implemented!", object.c_str()) << endl;
     return true;
   }
-  if (ws.pdf(Form("pdfCTAU_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))) { 
+  if (ws.pdf(Form("pdfCTAU_%s_%s", object.c_str(), "PP"))) { 
     cout << Form("[WARNING] The %s Ctau Model has already been implemented!", object.c_str()) << endl;
     return true; 
   }
@@ -340,197 +339,197 @@ bool defineCtauResolModel(RooWorkspace& ws, string object, CtauModel model, map<
     {
     case (CtauModel::SingleGaussianResolution):  
       if (!( 
-            parIni.count(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))) 
+            parIni.count(Form("ctau1_CtauRes_%s", "PP")) &&
+            parIni.count(Form("s1_CtauRes_%s", "PP")) 
              )) {
- 	cout << Form("[ERROR] Initial parameters where not found for Single Gaussian Ctau Resolution Model in %s", (isPbPb?"PbPb":"PP")) << endl; return false; 
+ 	cout << Form("[ERROR] Initial parameters where not found for Single Gaussian Ctau Resolution Model in %s", "PP") << endl; return false; 
       }
 
       // create the variables for this model  
       if (!ws.var("One")) { ws.factory("One[1.0]"); }
-      if (!ws.var(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() );  }
-      if (!ws.var(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP")))) { ws.factory( parIni[Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
+      if (!ws.var(Form("ctau1_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("ctau1_CtauRes_%s", "PP")].c_str() );  }
+      if (!ws.var(Form("s1_CtauRes_%s", "PP"))) { ws.factory( parIni[Form("s1_CtauRes_%s", "PP")].c_str() ); }
 
       // create the PDF
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP")),
- 		      Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau1_CtauRes_%s", "PP"),
+ 		      Form("s1_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
       
-      cout << Form("[INFO] %s Single Gaussian Ctau Resolution PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
+      cout << Form("[INFO] %s Single Gaussian Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl; break;
 
     case (CtauModel::DoubleGaussianResolution):  
 
       if (!( 
-            parIni.count(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))) 
+            parIni.count(Form("ctau1_CtauRes_%s", "PP")) && 
+            parIni.count(Form("s1_CtauRes_%s", "PP")) && 
+            parIni.count(Form("ctau2_CtauRes_%s", "PP")) && 
+            parIni.count(Form("s2_CtauRes_%s", "PP")) && 
+            parIni.count(Form("f_CtauRes_%s", "PP")) 
              )) { 
- 	cout << Form("[ERROR] Initial parameters where not found for Double Gaussian Ctau Resolution Model in %s", (isPbPb?"PbPb":"PP")) << endl; return false; 
+ 	cout << Form("[ERROR] Initial parameters where not found for Double Gaussian Ctau Resolution Model in %s", "PP") << endl; return false; 
       }
       
       // create the variables for this model  
       if (!ws.var("One")) { ws.factory("One[1.0]"); }
-      if (!ws.var(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))))       { ws.factory( parIni[Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() );      }
+      if (!ws.var(Form("ctau1_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau1_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s1_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s1_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau2_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau2_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s2_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s2_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("f_CtauRes_%s", "PP")))       { ws.factory( parIni[Form("f_CtauRes_%s", "PP")].c_str() );      }
       
       // create the two PDFs
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP")),
- 		      Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau1_CtauRes_%s", "PP"),
+ 		      Form("s1_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP")), 
- 		      Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau2_CtauRes_%s", "PP"), 
+ 		      Form("s2_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
 
       // combine the two PDFs
-      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),  
- 		      Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f_CtauRes_%s", "PP")
  		      ));
 
-      cout << Form("[INFO] %s Double Gaussian Ctau Resolution PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
+      cout << Form("[INFO] %s Double Gaussian Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl; break;
 
 
     case (CtauModel::TripleGaussianResolution):  
 
       if (!( 
-            parIni.count(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP")))
+            parIni.count(Form("ctau1_CtauRes_%s", "PP")) && 
+            parIni.count(Form("s1_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("s2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau3_CtauRes_%s", "PP")) &&
+            parIni.count(Form("s3_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f2_CtauRes_%s", "PP"))
              )) { 
- 	cout << Form("[ERROR] Initial parameters where not found for Triple Gaussian Ctau Resolution Model in %s", (isPbPb?"PbPb":"PP")) << endl; return false; 
+ 	cout << Form("[ERROR] Initial parameters where not found for Triple Gaussian Ctau Resolution Model in %s", "PP") << endl; return false; 
       }
       
       // create the variables for this model  
       if (!ws.var("One")) { ws.factory("One[1.0]"); }
-      if (!ws.var(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))))       { ws.factory( parIni[Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() );      }
-      if (!ws.var(Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))))      { ws.factory( parIni[Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() );     }
+      if (!ws.var(Form("ctau1_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau1_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s1_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s1_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau2_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau2_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s2_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s2_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau3_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau3_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s3_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s3_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("f_CtauRes_%s", "PP")))       { ws.factory( parIni[Form("f_CtauRes_%s", "PP")].c_str() );      }
+      if (!ws.var(Form("f2_CtauRes_%s", "PP")))      { ws.factory( parIni[Form("f2_CtauRes_%s", "PP")].c_str() );     }
       
       // create the three PDFs
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP")),
- 		      Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau1_CtauRes_%s", "PP"),
+ 		      Form("s1_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP")), 
- 		      Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau2_CtauRes_%s", "PP"), 
+ 		      Form("s2_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP")), 
- 		      Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau3_CtauRes_%s", "PP"), 
+ 		      Form("s3_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
 
       // combine the two PDFs
-      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s23_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),  
- 		      Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s23_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f2_CtauRes_%s", "PP")
  		      ));
-      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s23_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),  
- 		      Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s23_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f_CtauRes_%s", "PP")
  		      ));
 
-      cout << Form("[INFO] %s Triple Gaussian Ctau Resolution PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
+      cout << Form("[INFO] %s Triple Gaussian Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl; break;
 
     case (CtauModel::QuadrupleGaussianResolution):  
 
       if (!( 
-            parIni.count(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))) &&
-            parIni.count(Form("f3_CtauRes_%s", (isPbPb?"PbPb":"PP")))
+            parIni.count(Form("ctau1_CtauRes_%s", "PP")) && 
+            parIni.count(Form("s1_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("s2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau3_CtauRes_%s", "PP")) &&
+            parIni.count(Form("s3_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau4_CtauRes_%s", "PP")) &&
+            parIni.count(Form("s4_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f3_CtauRes_%s", "PP"))
              )) { 
- 	cout << Form("[ERROR] Initial parameters where not found for Triple Gaussian Ctau Resolution Model in %s", (isPbPb?"PbPb":"PP")) << endl; return false; 
+ 	cout << Form("[ERROR] Initial parameters where not found for Triple Gaussian Ctau Resolution Model in %s", "PP") << endl; return false; 
       }
       
       // create the variables for this model  
       if (!ws.var("One")) { ws.factory("One[1.0]"); }
-      if (!ws.var(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP"))))   { ws.factory( parIni[Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str()  ); }
-      if (!ws.var(Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP"))))  { ws.factory( parIni[Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() ); }
-      if (!ws.var(Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))))       { ws.factory( parIni[Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() );      }
-      if (!ws.var(Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))))      { ws.factory( parIni[Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() );     }
-      if (!ws.var(Form("f3_CtauRes_%s", (isPbPb?"PbPb":"PP"))))      { ws.factory( parIni[Form("f3_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str() );     }
+      if (!ws.var(Form("ctau1_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau1_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s1_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s1_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau2_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau2_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s2_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s2_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau3_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau3_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s3_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s3_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau4_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau4_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s4_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s4_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("f_CtauRes_%s", "PP")))       { ws.factory( parIni[Form("f_CtauRes_%s", "PP")].c_str() );      }
+      if (!ws.var(Form("f2_CtauRes_%s", "PP")))      { ws.factory( parIni[Form("f2_CtauRes_%s", "PP")].c_str() );     }
+      if (!ws.var(Form("f3_CtauRes_%s", "PP")))      { ws.factory( parIni[Form("f3_CtauRes_%s", "PP")].c_str() );     }
       
       // create the four PDFs
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP")),
- 		      Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau1_CtauRes_%s", "PP"),
+ 		      Form("s1_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP")), 
- 		      Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau2_CtauRes_%s", "PP"), 
+ 		      Form("s2_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP")), 
- 		      Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau3_CtauRes_%s", "PP"), 
+ 		      Form("s3_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
-      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s4_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), varName.c_str(),
- 		      Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP")), 
- 		      Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP")),
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s4_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau4_CtauRes_%s", "PP"), 
+ 		      Form("s4_CtauRes_%s", "PP"),
                       (usePerEventError?"ctauErr":"One")
  		      ));
 
       // combine the two PDFs
-      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s34_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s4_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),  
- 		      Form("f3_CtauRes_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s34_%s_%s", pdfType.c_str(), object.c_str(), "PP"),
+ 		      Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s4_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f3_CtauRes_%s", "PP")
  		      ));
-      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s234_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s34_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),  
- 		      Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s234_%s_%s", pdfType.c_str(), object.c_str(), "PP"),
+ 		      Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s34_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f2_CtauRes_%s", "PP")
  		      ));
-      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("%s234_%s_%s", pdfType.c_str(), object.c_str(), (isPbPb?"PbPb":"PP")),  
- 		      Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), "PP"),
+ 		      Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s234_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f_CtauRes_%s", "PP")
  		      ));
 
-      cout << Form("[INFO] %s Quadruple Gaussian Ctau Resolution PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
+      cout << Form("[INFO] %s Quadruple Gaussian Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl; break;
   
     default :
 
@@ -543,13 +542,13 @@ bool defineCtauResolModel(RooWorkspace& ws, string object, CtauModel model, map<
 };
 
 
-bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni, bool isPbPb) 
+bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni) 
 {
-  if (ws.pdf(Form("pdfCTAU_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))) { 
+  if (ws.pdf(Form("pdfCTAU_%s_%s", object.c_str(), "PP"))) { 
     cout << Form("[WARNING] The %s Background Ctau Model has already been implemented!", object.c_str()) << endl;
     return true; 
   }
-  if (ws.pdf(Form("pdfCTAUCOND_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))) { 
+  if (ws.pdf(Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"))) { 
     cout << Form("[INFO] The %s Background Ctau Conditional Model has already been implemented!", object.c_str()) << endl;
     return true; 
   }
@@ -564,128 +563,128 @@ bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, ma
     {  
     case (CtauModel::TripleDecay): 
       if (!( 
-            parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) && 
-            parIni.count(Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) 
+            parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), "PP")) && 
+            parIni.count(Form("lambdaDF_%s_%s", object.c_str(), "PP")) && 
+            parIni.count(Form("lambdaDDS_%s_%s", object.c_str(), "PP")) && 
+            parIni.count(Form("fDFSS_%s_%s", object.c_str(), "PP")) && 
+            parIni.count(Form("fDLIV_%s_%s", object.c_str(), "PP")) 
              )) { 
- 	cout << Form("[ERROR] Initial parameters where not found for %s Background Triple Decay Ctau Model in %s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; return false; 
+ 	cout << Form("[ERROR] Initial parameters where not found for %s Background Triple Decay Ctau Model in %s", object.c_str(), "PP") << endl; return false; 
       }
       
       // create the variables for this model 
-      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))) ){ 
-        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))].c_str() ); 
+      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), "PP")) ){ 
+        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), "PP")].c_str() ); 
       } 
-      ws.factory( parIni[Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() ); 
-      ws.factory( parIni[Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()  );
-      ws.factory( parIni[Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() ); 
-      ws.factory( parIni[Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()     ); 
-      ws.factory( parIni[Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()     );
+      ws.factory( parIni[Form("lambdaDSS_%s_%s", object.c_str(), "PP")].c_str() ); 
+      ws.factory( parIni[Form("lambdaDF_%s_%s", object.c_str(), "PP")].c_str()  );
+      ws.factory( parIni[Form("lambdaDDS_%s_%s", object.c_str(), "PP")].c_str() ); 
+      ws.factory( parIni[Form("fDFSS_%s_%s", object.c_str(), "PP")].c_str()     ); 
+      ws.factory( parIni[Form("fDLIV_%s_%s", object.c_str(), "PP")].c_str()     );
 
       // create the three PDFs
-      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau", 
- 		      Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS_%s_%s", object.c_str(), "PP"), "ctau", 
+ 		      Form("lambdaDSS_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
  		      ));
-      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::Flipped)", Form("pdfCTAUDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau", 
- 		      Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::Flipped)", Form("pdfCTAUDF_%s_%s", object.c_str(), "PP"), "ctau", 
+ 		      Form("lambdaDF_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
  		      ));
-      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::DoubleSided)", Form("pdfCTAUDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau", 
- 		      Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::DoubleSided)", Form("pdfCTAUDDS_%s_%s", object.c_str(), "PP"), "ctau", 
+ 		      Form("lambdaDDS_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
  		      ));
 
       // combine the three PDFs
-      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAUDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAUDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU1_%s_%s", object.c_str(), "PP"), 
+ 		      Form("fDFSS_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAUDSS_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAUDF_%s_%s", object.c_str(), "PP")
  		      ));
-      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAU1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAUDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"), 
+ 		      Form("fDLIV_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAU1_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAUDDS_%s_%s", object.c_str(), "PP")
  		      ));
  
-      cout << Form("[INFO] %s Background Triple Decay Ctau PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
+      cout << Form("[INFO] %s Background Triple Decay Ctau PDF in %s included", object.c_str(), "PP") << endl; break;
         
         
       case (CtauModel::QuadrupleDecay):
         if (!(
-              parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
-              parIni.count(Form("lambdaDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
-              parIni.count(Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
-              parIni.count(Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
-              parIni.count(Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
-              parIni.count(Form("fDFSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) &&
-              parIni.count(Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))
+              parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), "PP")) &&
+              parIni.count(Form("lambdaDSS2_%s_%s", object.c_str(), "PP")) &&
+              parIni.count(Form("lambdaDF_%s_%s", object.c_str(), "PP")) &&
+              parIni.count(Form("lambdaDDS_%s_%s", object.c_str(), "PP")) &&
+              parIni.count(Form("fDFSS_%s_%s", object.c_str(), "PP")) &&
+              parIni.count(Form("fDFSS2_%s_%s", object.c_str(), "PP")) &&
+              parIni.count(Form("fDLIV_%s_%s", object.c_str(), "PP"))
               )) {
-          cout << Form("[ERROR] Initial parameters where not found for %s Background Quadruple Decay Ctau Model in %s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; return false;
+          cout << Form("[ERROR] Initial parameters where not found for %s Background Quadruple Decay Ctau Model in %s", object.c_str(), "PP") << endl; return false;
         }
         
         // create the variables for this model
-        if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))) ){
-          ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
+        if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), "PP")) ){
+          ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), "PP")].c_str() );
         }
-        ws.factory( parIni[Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
-        ws.factory( parIni[Form("lambdaDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
-        ws.factory( parIni[Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()  );
-        ws.factory( parIni[Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() );
-        ws.factory( parIni[Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()     );
-        ws.factory( parIni[Form("fDFSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()     );
-        ws.factory( parIni[Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str()     );
+        ws.factory( parIni[Form("lambdaDSS_%s_%s", object.c_str(), "PP")].c_str() );
+        ws.factory( parIni[Form("lambdaDSS2_%s_%s", object.c_str(), "PP")].c_str() );
+        ws.factory( parIni[Form("lambdaDF_%s_%s", object.c_str(), "PP")].c_str()  );
+        ws.factory( parIni[Form("lambdaDDS_%s_%s", object.c_str(), "PP")].c_str() );
+        ws.factory( parIni[Form("fDFSS_%s_%s", object.c_str(), "PP")].c_str()     );
+        ws.factory( parIni[Form("fDFSS2_%s_%s", object.c_str(), "PP")].c_str()     );
+        ws.factory( parIni[Form("fDLIV_%s_%s", object.c_str(), "PP")].c_str()     );
         
         // create the four PDFs
-        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau",
-                        Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS_%s_%s", object.c_str(), "PP"), "ctau",
+                        Form("lambdaDSS_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
                         ));
-        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau",
-                        Form("lambdaDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS2_%s_%s", object.c_str(), "PP"), "ctau",
+                        Form("lambdaDSS2_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
                         ));
-        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::Flipped)", Form("pdfCTAUDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau",
-                        Form("lambdaDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::Flipped)", Form("pdfCTAUDF_%s_%s", object.c_str(), "PP"), "ctau",
+                        Form("lambdaDF_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
                         ));
-        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::DoubleSided)", Form("pdfCTAUDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau",
-                        Form("lambdaDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::DoubleSided)", Form("pdfCTAUDDS_%s_%s", object.c_str(), "PP"), "ctau",
+                        Form("lambdaDDS_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
                         ));
         
         // combine the three PDFs
-        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("fDFSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUDSS2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU2_%s_%s", object.c_str(), "PP"),
+                        Form("fDFSS2_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAUDSS2_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAUDSS_%s_%s", object.c_str(), "PP")
                         ));
-        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("fDFSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAU2_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUDF_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU1_%s_%s", object.c_str(), "PP"),
+                        Form("fDFSS_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAU2_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAUDF_%s_%s", object.c_str(), "PP")
                         ));
-        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("fDLIV_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAU1_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
-                        Form("pdfCTAUDDS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))
+        ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"),
+                        Form("fDLIV_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAU1_%s_%s", object.c_str(), "PP"),
+                        Form("pdfCTAUDDS_%s_%s", object.c_str(), "PP")
                         ));
         
-        cout << Form("[INFO] %s Background Quadruple Decay Ctau PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break;
+        cout << Form("[INFO] %s Background Quadruple Decay Ctau PDF in %s included", object.c_str(), "PP") << endl; break;
  
     case (CtauModel::Delta): 
       
-      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))) ){ 
-        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))].c_str() ); 
+      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), "PP")) ){ 
+        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), "PP")].c_str() ); 
       }
 
       // create the PDF
-      ws.factory(Form("SUM::%s(%s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), 
- 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("SUM::%s(%s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"), 
+ 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
  		      ));
 
-      cout << Form("[INFO] %s Background Delta Ctau PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break; 
+      cout << Form("[INFO] %s Background Delta Ctau PDF in %s included", object.c_str(), "PP") << endl; break; 
       
     default :
 
@@ -697,13 +696,13 @@ bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, ma
 };
 
 
-bool addSignalCtauModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni, bool isPbPb) 
+bool addSignalCtauModel(RooWorkspace& ws, string object, CtauModel model, map<string,string> parIni) 
 {
-  if (ws.pdf(Form("pdfCTAU_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))) { 
+  if (ws.pdf(Form("pdfCTAU_%s_%s", object.c_str(), "PP"))) { 
     cout << Form("[WARNING] The %s Signal Ctau Model has already been implemented!", object.c_str()) << endl;
     return true; 
   }
-  if (ws.pdf(Form("pdfCTAUCOND_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")))) { 
+  if (ws.pdf(Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"))) { 
     cout << Form("[INFO] The %s Signal Ctau Conditional Model has already been implemented!", object.c_str()) << endl;
     return true; 
   }
@@ -719,37 +718,37 @@ bool addSignalCtauModel(RooWorkspace& ws, string object, CtauModel model, map<st
     case (CtauModel::SingleSidedDecay): 
 
       if (!( 
-            parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))) 
+            parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), "PP")) 
              )) { 
- 	cout << Form("[ERROR] Initial parameters where not found for %s Signal Single Sided Decay Ctau Model in %s", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; return false; 
+ 	cout << Form("[ERROR] Initial parameters where not found for %s Signal Single Sided Decay Ctau Model in %s", object.c_str(), "PP") << endl; return false; 
       }
       
       // create the variables for this model 
-      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))) ){ 
-        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))].c_str() ); 
+      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), "PP")) ){ 
+        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), "PP")].c_str() ); 
       }
-      ws.factory( parIni[Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP"))].c_str() ); 
+      ws.factory( parIni[Form("lambdaDSS_%s_%s", object.c_str(), "PP")].c_str() ); 
             
       // create the PDF
-      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUCOND_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")), "ctau", 
- 		      Form("lambdaDSS_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"), "ctau", 
+ 		      Form("lambdaDSS_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
  		      ));
  
-      cout << Form("[INFO] %s Signal Single Sided Decay Ctau PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break; 
+      cout << Form("[INFO] %s Signal Single Sided Decay Ctau PDF in %s included", object.c_str(), "PP") << endl; break; 
  
     case (CtauModel::Delta):
 
-      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))) ){ 
-        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))].c_str() ); 
+      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), "PP")) ){ 
+        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), "PP")].c_str() ); 
       }
 
       // create the three PDFs 
-      ws.factory(Form("SUM::%s(%s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), (isPbPb?"PbPb":"PP")),
- 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), (isPbPb?"PbPb":"PP"))
+      ws.factory(Form("SUM::%s(%s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
  		      ));
  		      
-      cout << Form("[INFO] %s Signal Delta Ctau PDF in %s included", object.c_str(), (isPbPb?"PbPb":"PP")) << endl; break; 
+      cout << Form("[INFO] %s Signal Delta Ctau PDF in %s included", object.c_str(), "PP") << endl; break; 
  
     default :
 
@@ -761,143 +760,134 @@ bool addSignalCtauModel(RooWorkspace& ws, string object, CtauModel model, map<st
 };
   
 
-void setCtauDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries)
+void setCtauDefaultParameters(map<string, string> &parIni, double numEntries)
 {
 
   cout << "[INFO] Setting user undefined initial parameters to their default values" << endl;
 
   // DEFAULT RANGE OF NUMBER OF EVENTS
-  if (parIni.count(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
+  if (parIni.count(Form("N_Jpsi_%s", "PP"))==0 || parIni[Form("N_Jpsi_%s", "PP")]=="") { 
+    parIni[Form("N_Jpsi_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Jpsi_%s", "PP"), numEntries, 0.0, numEntries*2.0);
   }
-  if (parIni.count(Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
+  if (parIni.count(Form("N_Bkg_%s", "PP"))==0 || parIni[Form("N_Bkg_%s", "PP")]=="") { 
+    parIni[Form("N_Bkg_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Bkg_%s", "PP"), numEntries, 0.0, numEntries*2.0);
   }
-  if (parIni.count(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
+  if (parIni.count(Form("b_Jpsi_%s", "PP"))==0 || parIni[Form("b_Jpsi_%s", "PP")]=="") { 
+    parIni[Form("b_Jpsi_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Jpsi_%s", "PP"), 0.2, 0.0, 1.0);
   }
-  if (parIni.count(Form("b_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("b_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("b_Jpsi_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Jpsi_%s", (isPbPb?"PbPb":"PP")), 0.2, 0.0, 1.0);
-  }
-  if (parIni.count(Form("b_Psi2S_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("b_Psi2S_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("b_Psi2S_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Psi2S_%s", (isPbPb?"PbPb":"PP")), 0.2, 0.0, 1.0);
-  }
-  if (parIni.count(Form("b_Bkg_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("b_Bkg_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("b_Bkg_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Bkg_%s", (isPbPb?"PbPb":"PP")), 0.2, 0.0, 1.0);
+  if (parIni.count(Form("b_Bkg_%s", "PP"))==0 || parIni[Form("b_Bkg_%s", "PP")]=="") { 
+    parIni[Form("b_Bkg_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Bkg_%s", "PP"), 0.2, 0.0, 1.0);
   }
 
  // CTAU FIT PARAMETERS
 
  // Resolution Ctau Model
-  if (parIni.count(Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP")), 0.0, -1.0, 1.0);
+  if (parIni.count(Form("ctau1_CtauRes_%s", "PP"))==0 || parIni[Form("ctau1_CtauRes_%s", "PP")]=="") { 
+    parIni[Form("ctau1_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau1_CtauRes_%s", "PP"), 0.0, -1.0, 1.0);
     
   }
-  if (parIni.count(Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0) {
-    parIni[Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0',{%s})", Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP")), Form("ctau1_CtauRes_%s", (isPbPb?"PbPb":"PP") ));
-  } else if (parIni[Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP")), 0.0, -1.0, 1.0);
+  if (parIni.count(Form("ctau2_CtauRes_%s", "PP"))==0) {
+    parIni[Form("ctau2_CtauRes_%s", "PP")] = Form("RooFormulaVar::%s('@0',{%s})", Form("ctau2_CtauRes_%s", "PP"), Form("ctau1_CtauRes_%s", "PP" ));
+  } else if (parIni[Form("ctau2_CtauRes_%s", "PP")]=="") {
+    parIni[Form("ctau2_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau2_CtauRes_%s", "PP"), 0.0, -1.0, 1.0);
   }
-  if (parIni.count(Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0) {
-    parIni[Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0',{%s})", Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP")), Form("ctau2_CtauRes_%s", (isPbPb?"PbPb":"PP") ));
-  } else if (parIni[Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP")), 0.0, -1.0, 1.0);
+  if (parIni.count(Form("ctau3_CtauRes_%s", "PP"))==0) {
+    parIni[Form("ctau3_CtauRes_%s", "PP")] = Form("RooFormulaVar::%s('@0',{%s})", Form("ctau3_CtauRes_%s", "PP"), Form("ctau2_CtauRes_%s", "PP" ));
+  } else if (parIni[Form("ctau3_CtauRes_%s", "PP")]=="") {
+    parIni[Form("ctau3_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau3_CtauRes_%s", "PP"), 0.0, -1.0, 1.0);
   }
-  if (parIni.count(Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0) {
-    parIni[Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0',{%s})", Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP")), Form("ctau3_CtauRes_%s", (isPbPb?"PbPb":"PP") ));
-  } else if (parIni[Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau4_CtauRes_%s", (isPbPb?"PbPb":"PP")), 0.0, -1.0, 1.0);
+  if (parIni.count(Form("ctau4_CtauRes_%s", "PP"))==0) {
+    parIni[Form("ctau4_CtauRes_%s", "PP")] = Form("RooFormulaVar::%s('@0',{%s})", Form("ctau4_CtauRes_%s", "PP"), Form("ctau3_CtauRes_%s", "PP" ));
+  } else if (parIni[Form("ctau4_CtauRes_%s", "PP")]=="") {
+    parIni[Form("ctau4_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau4_CtauRes_%s", "PP"), 0.0, -1.0, 1.0);
   }
-  if (parIni.count(Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP")), 1.0, 0.01, 2.0);
+  if (parIni.count(Form("s1_CtauRes_%s", "PP"))==0 || parIni[Form("s1_CtauRes_%s", "PP")]=="") { 
+    parIni[Form("s1_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("s1_CtauRes_%s", "PP"), 1.0, 0.01, 2.0);
   }
-  if (parIni.count(Form("rS21_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("rS21_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-      parIni[Form("rS21_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("rS21_CtauRes_%s", (isPbPb?"PbPb":"PP")), 1.2, 1.0, 3.0);
+  if (parIni.count(Form("rS21_CtauRes_%s", "PP"))==0 || parIni[Form("rS21_CtauRes_%s", "PP")]=="") {
+      parIni[Form("rS21_CtauRes_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("rS21_CtauRes_%s", "PP"), 1.2, 1.0, 3.0);
   }
-  if (parIni.count(Form("rS32_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("rS32_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-      parIni[Form("rS32_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("rS32_CtauRes_%s", (isPbPb?"PbPb":"PP")), 1.2, 1.0, 3.0);
+  if (parIni.count(Form("rS32_CtauRes_%s", "PP"))==0 || parIni[Form("rS32_CtauRes_%s", "PP")]=="") {
+      parIni[Form("rS32_CtauRes_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("rS32_CtauRes_%s", "PP"), 1.2, 1.0, 3.0);
   }
-  if (parIni.count(Form("rS43_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("rS43_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-      parIni[Form("rS43_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("rS43_CtauRes_%s", (isPbPb?"PbPb":"PP")), 1.2, 1.0, 3.0);
+  if (parIni.count(Form("rS43_CtauRes_%s", "PP"))==0 || parIni[Form("rS43_CtauRes_%s", "PP")]=="") {
+      parIni[Form("rS43_CtauRes_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("rS43_CtauRes_%s", "PP"), 1.2, 1.0, 3.0);
   }
-  if (parIni.count(Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0) {
-    parIni[Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0*@1',{%s,%s})", Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP")),
-                                                                   parIni[Form("rS21_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str(), Form("s1_CtauRes_%s", (isPbPb?"PbPb":"PP") ));
-  } else if ( parIni[Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP")), 1.2, 0.001, 6.0);
+  if (parIni.count(Form("s2_CtauRes_%s", "PP"))==0) {
+    parIni[Form("s2_CtauRes_%s", "PP")] = Form("RooFormulaVar::%s('@0*@1',{%s,%s})", Form("s2_CtauRes_%s", "PP"),
+                                                                   parIni[Form("rS21_CtauRes_%s", "PP")].c_str(), Form("s1_CtauRes_%s", "PP" ));
+  } else if ( parIni[Form("s2_CtauRes_%s", "PP")]=="") {
+    parIni[Form("s2_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("s2_CtauRes_%s", "PP"), 1.2, 0.001, 6.0);
   }
-  if (parIni.count(Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0) {
-    parIni[Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0*@1',{%s,%s})", Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP")),
-                                                                   parIni[Form("rS32_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str(), Form("s2_CtauRes_%s", (isPbPb?"PbPb":"PP") ));
-  } else if ( parIni[Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP")), 1.2, 0.001, 6.0);
+  if (parIni.count(Form("s3_CtauRes_%s", "PP"))==0) {
+    parIni[Form("s3_CtauRes_%s", "PP")] = Form("RooFormulaVar::%s('@0*@1',{%s,%s})", Form("s3_CtauRes_%s", "PP"),
+                                                                   parIni[Form("rS32_CtauRes_%s", "PP")].c_str(), Form("s2_CtauRes_%s", "PP" ));
+  } else if ( parIni[Form("s3_CtauRes_%s", "PP")]=="") {
+    parIni[Form("s3_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("s3_CtauRes_%s", "PP"), 1.2, 0.001, 6.0);
   }
-  if (parIni.count(Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0) {
-    parIni[Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("RooFormulaVar::%s('@0*@1',{%s,%s})", Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP")),
-                                                                   parIni[Form("rS43_CtauRes_%s", (isPbPb?"PbPb":"PP"))].c_str(), Form("s3_CtauRes_%s", (isPbPb?"PbPb":"PP") ));
-  } else if ( parIni[Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("s4_CtauRes_%s", (isPbPb?"PbPb":"PP")), 1.2, 0.001, 6.0);
+  if (parIni.count(Form("s4_CtauRes_%s", "PP"))==0) {
+    parIni[Form("s4_CtauRes_%s", "PP")] = Form("RooFormulaVar::%s('@0*@1',{%s,%s})", Form("s4_CtauRes_%s", "PP"),
+                                                                   parIni[Form("rS43_CtauRes_%s", "PP")].c_str(), Form("s3_CtauRes_%s", "PP" ));
+  } else if ( parIni[Form("s4_CtauRes_%s", "PP")]=="") {
+    parIni[Form("s4_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("s4_CtauRes_%s", "PP"), 1.2, 0.001, 6.0);
   }
-  if (parIni.count(Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("f_CtauRes_%s", (isPbPb?"PbPb":"PP")), 0.8, 0.4, 1.0);
+  if (parIni.count(Form("f_CtauRes_%s", "PP"))==0 || parIni[Form("f_CtauRes_%s", "PP")]=="") { 
+    parIni[Form("f_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("f_CtauRes_%s", "PP"), 0.8, 0.4, 1.0);
   }
-  if (parIni.count(Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("f2_CtauRes_%s", (isPbPb?"PbPb":"PP")), 0.8, 0.4, 1.0);
+  if (parIni.count(Form("f2_CtauRes_%s", "PP"))==0 || parIni[Form("f2_CtauRes_%s", "PP")]=="") { 
+    parIni[Form("f2_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("f2_CtauRes_%s", "PP"), 0.8, 0.4, 1.0);
   }
-  if (parIni.count(Form("f3_CtauRes_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("f3_CtauRes_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("f3_CtauRes_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("f3_CtauRes_%s", (isPbPb?"PbPb":"PP")), 0.8, 0.4, 1.0);
+  if (parIni.count(Form("f3_CtauRes_%s", "PP"))==0 || parIni[Form("f3_CtauRes_%s", "PP")]=="") { 
+    parIni[Form("f3_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("f3_CtauRes_%s", "PP"), 0.8, 0.4, 1.0);
   }
 
   // Signal Ctau Model
-  if (parIni.count(Form("lambdaDSS_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDSS_JpsiNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("lambdaDSS_JpsiNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS_JpsiNoPR_%s", (isPbPb?"PbPb":"PP")), 0.8, 0.01, 2.0);
-  }
-  if (parIni.count(Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")), 0.8, 0.01, 2.0);
+  if (parIni.count(Form("lambdaDSS_JpsiNoPR_%s", "PP"))==0 || parIni[Form("lambdaDSS_JpsiNoPR_%s", "PP")]=="") { 
+    parIni[Form("lambdaDSS_JpsiNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS_JpsiNoPR_%s", "PP"), 0.8, 0.01, 2.0);
   }
 
   // Background Ctau Model
-  if (parIni.count(Form("f_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("f_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("f_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("f_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.3, 0., 1.);
+  if (parIni.count(Form("f_BkgNoPR_%s", "PP"))==0 || parIni[Form("f_BkgNoPR_%s", "PP")]=="") { 
+    parIni[Form("f_BkgNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("f_BkgNoPR_%s", "PP"), 0.3, 0., 1.);
   }
-  if (parIni.count(Form("fDFSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDFSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("fDFSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.8, 0., 1.);
+  if (parIni.count(Form("fDFSS_BkgNoPR_%s", "PP"))==0 || parIni[Form("fDFSS_BkgNoPR_%s", "PP")]=="") { 
+    parIni[Form("fDFSS_BkgNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS_BkgNoPR_%s", "PP"), 0.8, 0., 1.);
   }
-  if (parIni.count(Form("fDFSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDFSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("fDFSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.8, 0., 1.);
+  if (parIni.count(Form("fDFSS2_BkgNoPR_%s", "PP"))==0 || parIni[Form("fDFSS2_BkgNoPR_%s", "PP")]=="") {
+    parIni[Form("fDFSS2_BkgNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS2_BkgNoPR_%s", "PP"), 0.8, 0., 1.);
   }
-  if (parIni.count(Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("fDLIV_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.5, 0., 1.);
+  if (parIni.count(Form("fDLIV_BkgNoPR_%s", "PP"))==0 || parIni[Form("fDLIV_BkgNoPR_%s", "PP")]=="") {
+    parIni[Form("fDLIV_BkgNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("fDLIV_BkgNoPR_%s", "PP"), 0.5, 0., 1.);
   }
-  if (parIni.count(Form("lambdaDSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("lambdaDSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.45, 0.0001, 5.0);
+  if (parIni.count(Form("lambdaDSS_BkgNoPR_%s", "PP"))==0 || parIni[Form("lambdaDSS_BkgNoPR_%s", "PP")]=="") { 
+    parIni[Form("lambdaDSS_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS_BkgNoPR_%s", "PP"), 0.45, 0.0001, 5.0);
   }
-  if (parIni.count(Form("lambdaDSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("lambdaDSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS2_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.45, 0.0001, 5.0);
+  if (parIni.count(Form("lambdaDSS2_BkgNoPR_%s", "PP"))==0 || parIni[Form("lambdaDSS2_BkgNoPR_%s", "PP")]=="") {
+    parIni[Form("lambdaDSS2_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS2_BkgNoPR_%s", "PP"), 0.45, 0.0001, 5.0);
   }
-  if (parIni.count(Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") {
-    parIni[Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDF_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.30, 0.00001, 5.0);
+  if (parIni.count(Form("lambdaDF_BkgNoPR_%s", "PP"))==0 || parIni[Form("lambdaDF_BkgNoPR_%s", "PP")]=="") {
+    parIni[Form("lambdaDF_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDF_BkgNoPR_%s", "PP"), 0.30, 0.00001, 5.0);
   }
-  if (parIni.count(Form("lambdaDDS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDDS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("lambdaDDS_BkgNoPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDDS_BkgNoPR_%s", (isPbPb?"PbPb":"PP")), 0.06, 0.0001, 5.0);
+  if (parIni.count(Form("lambdaDDS_BkgNoPR_%s", "PP"))==0 || parIni[Form("lambdaDDS_BkgNoPR_%s", "PP")]=="") { 
+    parIni[Form("lambdaDDS_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDDS_BkgNoPR_%s", "PP"), 0.06, 0.0001, 5.0);
   }
-  if (parIni.count(Form("f_BkgPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("f_BkgPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("f_BkgPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("f_BkgPR_%s", (isPbPb?"PbPb":"PP")), 0.3, 0., 1.);
+  if (parIni.count(Form("f_BkgPR_%s", "PP"))==0 || parIni[Form("f_BkgPR_%s", "PP")]=="") { 
+    parIni[Form("f_BkgPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("f_BkgPR_%s", "PP"), 0.3, 0., 1.);
   }
-  if (parIni.count(Form("fDFSS_BkgPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDFSS_BkgPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("fDFSS_BkgPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS_BkgPR_%s", (isPbPb?"PbPb":"PP")), 0.9, 0., 1.);
+  if (parIni.count(Form("fDFSS_BkgPR_%s", "PP"))==0 || parIni[Form("fDFSS_BkgPR_%s", "PP")]=="") { 
+    parIni[Form("fDFSS_BkgPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS_BkgPR_%s", "PP"), 0.9, 0., 1.);
   }
-  if (parIni.count(Form("fDLIV_BkgPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("fDLIV_BkgPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("fDLIV_BkgPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("fDLIV_BkgPR_%s", (isPbPb?"PbPb":"PP")), 0.9, 0., 1.);
+  if (parIni.count(Form("fDLIV_BkgPR_%s", "PP"))==0 || parIni[Form("fDLIV_BkgPR_%s", "PP")]=="") { 
+    parIni[Form("fDLIV_BkgPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("fDLIV_BkgPR_%s", "PP"), 0.9, 0., 1.);
   }
-  if (parIni.count(Form("lambdaDSS_BkgPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDSS_BkgPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("lambdaDSS_BkgPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDSS_BkgPR_%s", (isPbPb?"PbPb":"PP")), 0.42, 0.05, 1.5);
+  if (parIni.count(Form("lambdaDSS_BkgPR_%s", "PP"))==0 || parIni[Form("lambdaDSS_BkgPR_%s", "PP")]=="") { 
+    parIni[Form("lambdaDSS_BkgPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDSS_BkgPR_%s", "PP"), 0.42, 0.05, 1.5);
   }
-  if (parIni.count(Form("lambdaDF_BkgPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDF_BkgPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("lambdaDF_BkgPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDF_BkgPR_%s", (isPbPb?"PbPb":"PP")), 0.79, 0.001, 1.5);
+  if (parIni.count(Form("lambdaDF_BkgPR_%s", "PP"))==0 || parIni[Form("lambdaDF_BkgPR_%s", "PP")]=="") { 
+    parIni[Form("lambdaDF_BkgPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDF_BkgPR_%s", "PP"), 0.79, 0.001, 1.5);
   }
-  if (parIni.count(Form("lambdaDDS_BkgPR_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("lambdaDDS_BkgPR_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("lambdaDDS_BkgPR_%s", (isPbPb?"PbPb":"PP"))] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDDS_BkgPR_%s", (isPbPb?"PbPb":"PP")), 0.69, 0.02, 5.0);
+  if (parIni.count(Form("lambdaDDS_BkgPR_%s", "PP"))==0 || parIni[Form("lambdaDDS_BkgPR_%s", "PP")]=="") { 
+    parIni[Form("lambdaDDS_BkgPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDDS_BkgPR_%s", "PP"), 0.69, 0.02, 5.0);
   }
 
 };
@@ -908,8 +898,6 @@ bool createCtauBkgTemplate(RooWorkspace& ws, string dsName, string pdfType, stru
   string hType = pdfType;
   hType.replace(hType.find("pdf"), string("pdf").length(), "h");
   
-  bool isPbPb = false;
-  if (dsName.find("PbPb")!=std::string::npos) { isPbPb = true; }
   if (dsName.find("MC")!=std::string::npos)   { return false;  }  // Only accept data
   
   // create weighted data sets
@@ -919,9 +907,9 @@ bool createCtauBkgTemplate(RooWorkspace& ws, string dsName, string pdfType, stru
   double ctauMax = range[1], ctauMin = range[0];
   int nBins = min(int( round((ctauMax - ctauMin)/binWidth) ), 1000);
   
-  TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_Bkg_%s", hType.c_str(), (isPbPb?"PbPb":"PP")), *ws.var("ctau"), Binning(nBins, ctauMin, ctauMax));
+  TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_Bkg_%s", hType.c_str(), "PP"), *ws.var("ctau"), Binning(nBins, ctauMin, ctauMax));
   RooDataHist* dataHist = new RooDataHist("tmp", "", *ws.var("ctau"), hTot); delete dataHist; // KEEP THIS LINE, IT IS A FIX FOR ROOKEYS
-  if ( !ctauBkgHistToPdf(ws, hTot, Form("%s_Bkg_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP")), dsName, range)) { return false; }
+  if ( !ctauBkgHistToPdf(ws, hTot, Form("%s_Bkg_%s", pdfType.c_str(), "PP"), dsName, range)) { return false; }
   hTot->Delete();
 
   return true;

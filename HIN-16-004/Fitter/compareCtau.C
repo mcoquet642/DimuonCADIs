@@ -96,8 +96,7 @@ void compareCtau(TString fileNameMC, // Has to be of the form "dir1"
       thebin.print();
       cout << itData << " " << itMC << endl;
 
-      bool isPbPb      = itData.Contains("PbPb");
-      TString collSystem = isPbPb ? "PbPb" : "PP";
+      TString collSystem = "PP";
       TString spdfName_ctauRes  = "pdfCTAURES_Jpsi_" + collSystem;
       TString spdfName_ctauTrue = "pdfCTAUCOND_JpsiNoPR_" + collSystem;
       TString sdataName         = "dOS_MCJPSINOPR_" + collSystem + "_NoBkg";
@@ -114,12 +113,8 @@ void compareCtau(TString fileNameMC, // Has to be of the form "dir1"
       centmin = thebin.centbin().low();
       centmax = thebin.centbin().high();
 
-      if (!isPbPb)
-      {
          centmin = 0;
          centmax = 200;
-         isPbPb = false;
-      }
 
 
       RooPlot* frame(NULL);
@@ -216,8 +211,7 @@ void compareCtau(TString fileNameMC, // Has to be of the form "dir1"
       t.DrawLatex(0.35, 0.95, sTitle.Data());
       t.DrawLatex(0.21, 0.86-dy, Form("%.1f #leq p_{T}^{#mu#mu} < %.1f GeV/c",ptmin,ptmax)); dy+=0.045;
       t.DrawLatex(0.21, 0.86-dy, Form("%.1f #leq |y^{#mu#mu}| < %.1f",ymin,ymax)); dy+=0.045;
-      if (isPbPb) {t.DrawLatex(0.21, 0.86-dy, Form("Cent. %d-%d%%", (int)(centmin/2), (int)(centmax/2))); dy+=0.045;}
-      t.DrawLatex(0.21, 0.86-dy, isPbPb ? "PbPb" : "PP"); dy+=0.045;
+      t.DrawLatex(0.21, 0.86-dy, "PP"); dy+=0.045;
 
       // Drawing the Legend
       // TLegend* leg = new TLegend(0.6303, 0.7338, 0.8308, 0.8695); leg->SetTextSize(0.03);

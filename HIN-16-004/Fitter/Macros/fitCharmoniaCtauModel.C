@@ -8,8 +8,8 @@
 #include "fitCharmoniaCtauErrModel.C"
 #include "drawCtauPlot.C"
 
-bool setCtauModel( struct OniaModel& model, map<string, string>&  parIni, bool isPbPb, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt );
-void setCtauFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool isPbPb, bool fitSideBand, bool usectauBkgTemplate);
+bool setCtauModel( struct OniaModel& model, map<string, string>&  parIni, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt );
+void setCtauFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool fitSideBand, bool usectauBkgTemplate);
 void setCtauGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, string label, double binWidth, bool fitCtauRes=false, bool is2DFit=false);
 void setCtauCutParameters(struct KinCuts& cut, bool incNonPrompt);
 bool isCtauBkgPdfAlreadyFound(RooWorkspace& myws, string FileName, string pdfName, bool loadCtauBkgPdf=false);
@@ -58,7 +58,6 @@ bool fitCharmoniaCtauModel( RooWorkspace& myws,             // Local Workspace
                             string outputDir,               // Path to output directory
                             // Select the type of datasets to fit
                             string DSTAG,                   // Specifies the type of datasets: i.e, DATA, MCJPSINP, ...
-                            bool isPbPb        = false,     // isPbPb = false for pp, true for PbPb
                             bool importDS      = true,      // Select if the dataset is imported in the local workspace
                             // Select the type of object to fit
                             bool incJpsi       = true,      // Includes Jpsi model
@@ -94,7 +93,7 @@ bool fitCharmoniaCtauModel( RooWorkspace& myws,             // Local Workspace
   if (useSPlot && ((incBkg&&incJpsi))) { cout << "[ERROR] Only one object can be fitted using sPlot!" << endl; return false; }
   bool fitSideBand = (incBkg && !incJpsi);
 
-  string COLL = (isPbPb ? "PbPb" : "PP" );
+  string COLL = "PP";
   string fitType = "CTAU";
   if (!isMC && fitSideBand) { fitType = "CTAUSB";  }
   string label = ((DSTAG.find(COLL.c_str())!=std::string::npos) ? DSTAG.c_str() : Form("%s_%s", DSTAG.c_str(), COLL.c_str()));
@@ -112,7 +111,7 @@ bool fitCharmoniaCtauModel( RooWorkspace& myws,             // Local Workspace
       if (incJpsi)  { plotLabel = plotLabel + "_Jpsi";     }
       plotLabel = plotLabel + "_Bkg";
 	cout << "Just before file name" << endl;
-      setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), "DATA", plotLabel, cut, isPbPb, fitSideBand);
+      setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), "DATA", plotLabel, cut, fitSideBand);
 	cout << "Just after file name" << endl;
       bool foundFit = false;
 	cout << "Just before load ctErr range" << endl;
@@ -147,7 +146,7 @@ cout << "filename : " << FileName << endl;
   if (importDS) { 
     // Set global parameters
     setCtauErrGlobalParameterRange(myws, parIni, cut, "", binWidth["CTAUERR"], true);
-    setCtauGlobalParameterRange(myws, parIni, cut, label, binWidth[fitType.c_str()], (!incBkg&&useSPlot&&!isPbPb));
+    setCtauGlobalParameterRange(myws, parIni, cut, label, binWidth[fitType.c_str()], (!incBkg&&useSPlot));
   }
 
   string dsName2Fit = dsName;
@@ -170,11 +169,11 @@ cout << "filename : " << FileName << endl;
   string pdfName = Form("pdfCTAU_Tot_%s", COLL.c_str());
 
   string FileName = "";
-  setCtauFileName(FileName, (inputFitDir[fitType.c_str()]=="" ? outputDir : inputFitDir[fitType.c_str()]), DSTAG, plotLabel, cut, isPbPb, fitSideBand, usectauBkgTemplate);
+  setCtauFileName(FileName, (inputFitDir[fitType.c_str()]=="" ? outputDir : inputFitDir[fitType.c_str()]), DSTAG, plotLabel, cut, fitSideBand, usectauBkgTemplate);
   if (gSystem->AccessPathName(FileName.c_str()) && inputFitDir[fitType.c_str()]!="") {
     cout << "[WARNING] User Input File : " << FileName << " was not found!" << endl;
     if (loadFitResult) return false;
-    setCtauFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb, fitSideBand, usectauBkgTemplate);
+    setCtauFileName(FileName, outputDir, DSTAG, plotLabel, cut, fitSideBand, usectauBkgTemplate);
   }
 
   // check if we have already done this fit. If yes, do nothing and return true.
@@ -211,21 +210,21 @@ cout << "filename : " << FileName << endl;
       bool doConstrFit = false;
       
       if ( !fitCharmoniaMassModel( myws, inputWorkspace, cut, parIni, opt, outputDir,
-                                   DSTAG, isPbPb, impDS,
+                                   DSTAG, impDS,
                                    true, true,
                                    doMassFit, cutCtau, doConstrFit, false, applyCorr, loadMassFitResult, iMassFitDir, numCores,
                                    setLogScale, incSS, ibWidth, getMeanPT
                                    )
            ) { return false; }
       // Let's set all mass parameters to constant except the yields
-      if (myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))) {
+      if (myws.pdf("pdfMASS_Tot_PP")) {
         cout << "[INFO] Setting mass parameters to constant!" << endl;
-        myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kTRUE);
+        myws.pdf("pdfMASS_Tot_PP")->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kTRUE);
       } else { cout << "[ERROR] Mass PDF was not found!" << endl; return false; }
       std::vector< std::string > objs = {"Bkg", "Jpsi", "Psi2S"};
-      for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP"))))  setConstant( myws, Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")), false); }
+      for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str())))  setConstant( myws, Form("N_%s_PP", obj.c_str()), false); }
       // Let's set the minimum value of the yields to zero
-      for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))->setMin(0.0); }
+      for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str()))) myws.var(Form("N_%s_PP", obj.c_str()))->setMin(0.0); }
     }
     if (createSPLOTDS) {
       if (importDS && !myws.data(dsName2Fit.c_str())) {
@@ -249,7 +248,7 @@ cout << "filename : " << FileName << endl;
     if (!usectauBkgTemplate)
     {
 	cout << "No use bkg template" << endl;
-      if (!setCtauModel(model, parIni, isPbPb, incJpsi, incBkg, incPrompt, incNonPrompt)) { return false; }
+      if (!setCtauModel(model, parIni, incJpsi, incBkg, incPrompt, incNonPrompt)) { return false; }
 	cout << "CTAU model set" << endl;
     }
 
@@ -261,7 +260,7 @@ cout << "filename : " << FileName << endl;
       bool doCtauErrFit = true;
       bool importDS = isMC;
       bool incJpsi = true;
-      string DSTAG = Form("DATA_%s", (isPbPb?"PbPb":"PP"));
+      string DSTAG = "DATA_PP";
         
 /*      if ( !fitCharmoniaCtauErrModel( myws, inputWorkspace, cut, parIni, opt, outputDir,
                                       DSTAG, isPbPb, importDS,
@@ -274,7 +273,7 @@ cout << "filename : " << FileName << endl;
     }
 
     // Build the Fit Model
-    if (!buildCharmoniaCtauModel(myws, (isPbPb ? model.PbPb : model.PP), parIni, dsName2FitCut, cut, isPbPb, incBkg, incJpsi, incPrompt, incNonPrompt, useTotctauErrPdf, usectauBkgTemplate, binWidth["CTAUSB"], numEntries))  { return false; }
+    if (!buildCharmoniaCtauModel(myws, model.PP, parIni, dsName2FitCut, cut, incBkg, incJpsi, incPrompt, incNonPrompt, useTotctauErrPdf, usectauBkgTemplate, binWidth["CTAUSB"], numEntries))  { return false; }
 cout << "CTAU model built" << endl;
 
     //// LOAD CTAU RESOLUTION PDF
@@ -282,29 +281,29 @@ cout << "CTAU model built" << endl;
       // check if we have already done the resolution fits. If yes, load their results
       string FileName = "";
       string plotLabel = Form("_CtauRes_%s", parIni[Form("Model_CtauRes_%s", COLL.c_str())].c_str());
-      string DSTAG = Form("MCJPSIPR_%s", (isPbPb?"PbPb":"PP"));
-      if (inputFitDir["CTAURES"].find("nonPrompt")!=std::string::npos) DSTAG = Form("MCJPSINOPR_%s", (isPbPb?"PbPb":"PP"));
-      if (inputFitDir["CTAURES"].find("DataFits")!=std::string::npos && inputFitDir["CTAURES"].find("MCFits")==std::string::npos) DSTAG = Form("DATA_%s", (isPbPb?"PbPb":"PP"));
-      setCtauResFileName(FileName, (inputFitDir["CTAURES"]=="" ? outputDir : inputFitDir["CTAURES"]), DSTAG, plotLabel, cut, isPbPb);
+      string DSTAG = "MCJPSIPR_PP";
+      if (inputFitDir["CTAURES"].find("nonPrompt")!=std::string::npos) DSTAG = "MCJPSINOPR_PP";
+      if (inputFitDir["CTAURES"].find("DataFits")!=std::string::npos && inputFitDir["CTAURES"].find("MCFits")==std::string::npos) DSTAG = "DATA_PP";
+      setCtauResFileName(FileName, (inputFitDir["CTAURES"]=="" ? outputDir : inputFitDir["CTAURES"]), DSTAG, plotLabel, cut);
       if (wantPureSMC) { plotLabel = plotLabel + "_NoBkg"; }
       bool found = false;
       if (!found && gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAURES"]!="") {
         plotLabel = string(Form("_CtauRes_%s_NoBkg", parIni[Form("Model_CtauRes_%s", COLL.c_str())].c_str()));
-        setCtauResFileName(FileName, (inputFitDir["CTAURES"]=="" ? outputDir : inputFitDir["CTAURES"]), DSTAG, plotLabel, cut, isPbPb);
+        setCtauResFileName(FileName, (inputFitDir["CTAURES"]=="" ? outputDir : inputFitDir["CTAURES"]), DSTAG, plotLabel, cut);
       } else if (inputFitDir["CTAURES"]!="") { found = true; }
       if (!found && gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAURES"]!="") {
         plotLabel = Form("_CtauRes_%s", parIni[Form("Model_CtauRes_%s", COLL.c_str())].c_str());
-        setCtauResFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb);
+        setCtauResFileName(FileName, outputDir, DSTAG, plotLabel, cut);
       } else if (inputFitDir["CTAURES"]!="") { found = true; }
       if (!found && gSystem->AccessPathName(FileName.c_str())) {
         plotLabel = string(Form("_CtauRes_%s_NoBkg", parIni[Form("Model_CtauRes_%s", COLL.c_str())].c_str()));
-        setCtauResFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb);
+        setCtauResFileName(FileName, outputDir, DSTAG, plotLabel, cut);
       } else { found = true; }
       if (!found && gSystem->AccessPathName(FileName.c_str())) {
         cout << "[ERROR] User Input File : " << FileName << " was not found!" << endl;
         return false;
       }
-      if ( !loadPreviousFitResult(myws, FileName, DSTAG, isPbPb, false, false) ) {
+      if ( !loadPreviousFitResult(myws, FileName, DSTAG, false, false) ) {
         cout << "[ERROR] The ctau resolution fit results were not loaded!" << endl;
         return false;
       } else { 
@@ -312,9 +311,9 @@ cout << "CTAU model built" << endl;
       }
       std::vector< std::string > objs = {"Bkg", "Jpsi", "Psi2S"}; bool hasPromptPdf = false;
       for (auto obj : objs) {
-        if (myws.pdf(Form("pdfCTAU_%sPR_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) {
+        if (myws.pdf(Form("pdfCTAU_%sPR_PP", obj.c_str()))) {
           cout << "[INFO] Setting Prompt " << obj << " parameters to constant!" << endl; hasPromptPdf = true;
-          myws.pdf(Form("pdfCTAU_%sPR_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))->getParameters(RooArgSet(*myws.var("ctau"), *myws.var("ctauErr")))->setAttribAll("Constant", kTRUE); 
+          myws.pdf(Form("pdfCTAU_%sPR_PP", obj.c_str()))->getParameters(RooArgSet(*myws.var("ctau"), *myws.var("ctauErr")))->setAttribAll("Constant", kTRUE); 
         }
       }
       if (!hasPromptPdf) { cout << "[ERROR] Prompt Ctau PDF was not found!" << endl; return false; }
@@ -333,7 +332,7 @@ cout << "CTAU model built" << endl;
   {
     found = found && isFitAlreadyFound(newpars, FileName, pdfName.c_str());
     if (loadFitResult) {
-      if ( loadPreviousFitResult(myws, FileName, DSTAG, isPbPb, false, false) ) { skipFit = true; } else  { skipFit = false; }
+      if ( loadPreviousFitResult(myws, FileName, DSTAG, false, false) ) { skipFit = true; } else  { skipFit = false; }
       if (skipFit) { cout << "[INFO] This ctau fit was already done, so I'll load the fit results." << endl; }
       myws.saveSnapshot(Form("%s_parLoad", pdfName.c_str()),*newpars,kTRUE);
     } else if (found) {
@@ -353,9 +352,9 @@ cout << "CTAU model built" << endl;
     }
     
     // Draw the mass plot
-    drawCtauPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, incBkg, incPrompt, incNonPrompt, useSPlot, wantPureSMC, setLogScale, incSS, binWidth[fitType.c_str()]);
+    drawCtauPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, incJpsi, incBkg, incPrompt, incNonPrompt, useSPlot, wantPureSMC, setLogScale, incSS, binWidth[fitType.c_str()]);
     // Save the results
-    string FileName = ""; setCtauFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb, fitSideBand, usectauBkgTemplate);
+    string FileName = ""; setCtauFileName(FileName, outputDir, DSTAG, plotLabel, cut, fitSideBand, usectauBkgTemplate);
     myws.saveSnapshot(Form("%s_parFit", pdfName.c_str()),*newpars,kTRUE);
     saveWorkSpace(myws, Form("%sctau%s/%s/result", outputDir.c_str(), (fitSideBand?Form("SB%s",usectauBkgTemplate?"Temp":""):""), DSTAG.c_str()), FileName);
   }
@@ -364,7 +363,7 @@ cout << "CTAU model built" << endl;
 };
 
 
-bool setCtauModel( struct OniaModel& model, map<string, string>&  parIni, bool isPbPb, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt )
+bool setCtauModel( struct OniaModel& model, map<string, string>&  parIni, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt )
 {
 map< string , CtauModel > CtauModelDictionary = {
   {"InvalidModel",             CtauModel::InvalidModel},
@@ -379,16 +378,6 @@ map< string , CtauModel > CtauModelDictionary = {
   {"Delta",                    CtauModel::Delta}
 };
 
-  if (isPbPb) {
-    if (parIni.count("Model_CtauRes_PbPb")>0) {
-      model.PbPb.CtauRes = CtauModelDictionary[parIni["Model_CtauRes_PbPb"]];
-      if (model.PbPb.CtauRes==CtauModel(0)) {
-        cout << "[ERROR] The ctau resolution model: " << parIni["Model_CtauRes_PbPb"] << " is invalid" << endl; return false;
-      }
-    } else { 
-      cout << "[ERROR] Ctau Resolution model for PbPb was not found in the initial parameters!" << endl; return false;
-    }
-  } else {
     if (parIni.count("Model_CtauRes_PP")>0) {
       model.PP.CtauRes = CtauModelDictionary[parIni["Model_CtauRes_PP"]];
       if (model.PP.CtauRes==CtauModel(0)) {
@@ -397,51 +386,7 @@ map< string , CtauModel > CtauModelDictionary = {
     } else { 
       cout << "[ERROR] Ctau Resolution model for PP was not found in the initial parameters!" << endl; return false;
     }
-  }
-  if (isPbPb && incBkg && incNonPrompt) {
-    if (parIni.count("Model_BkgNoPR_PbPb")>0) {
-      model.PbPb.Bkg.Ctau.NonPrompt = CtauModelDictionary[parIni["Model_BkgNoPR_PbPb"]];
-      if (model.PbPb.Bkg.Ctau.NonPrompt==CtauModel(0)) {
-        cout << "[ERROR] The background non-prompt ctau model: " << parIni["Model_BkgNoPR_PbPb"] << " is invalid" << endl; return false;
-      }
-    } else { 
-      cout << "[ERROR] Background non-prompt ctau model for PbPb was not found in the initial parameters!" << endl; return false;
-    }
-  }
-  if (isPbPb && incBkg && incPrompt) {
-    if (parIni.count("Model_BkgPR_PbPb")>0) {
-      model.PbPb.Bkg.Ctau.Prompt = CtauModelDictionary[parIni["Model_BkgPR_PbPb"]];
-      if (model.PbPb.Bkg.Ctau.Prompt==CtauModel(0)) {
-        cout << "[ERROR] The background prompt ctau model: " << parIni["Model_BkgPR_PbPb"] << " is invalid" << endl; return false;
-      }
-    } else {
-      parIni["Model_BkgPR_PbPb"] = "Delta";
-      model.PbPb.Bkg.Ctau.Prompt=CtauModel::Delta;
-    }
-  }
-  if (isPbPb && incJpsi && incNonPrompt) {
-    if (parIni.count("Model_JpsiNoPR_PbPb")>0) {
-      model.PbPb.Jpsi.Ctau.NonPrompt = CtauModelDictionary[parIni["Model_JpsiNoPR_PbPb"]];
-      if (model.PbPb.Jpsi.Ctau.NonPrompt==CtauModel(0)) {
-        cout << "[ERROR] The Jpsi non-prompt ctau model: " << parIni["Model_JpsiNoPR_PbPb"] << " is invalid" << endl; return false;
-      }
-    } else { 
-      cout << "[ERROR] Jpsi non-prompt ctau model for PbPb was not found in the initial parameters!" << endl; return false;
-    }
-  }
-  if (isPbPb && incJpsi && incPrompt) {
-    if (parIni.count("Model_JpsiPR_PbPb")>0) {
-      model.PbPb.Jpsi.Ctau.Prompt = CtauModelDictionary[parIni["Model_JpsiPR_PbPb"]];
-      if (model.PbPb.Jpsi.Ctau.Prompt==CtauModel(0)) {
-        cout << "[ERROR] The Jpsi prompt ctau model: " << parIni["Model_JpsiPR_PbPb"] << " is invalid" << endl; return false;
-      }
-    } else { 
-      parIni["Model_JpsiPR_PbPb"] = "Delta";
-      model.PbPb.Jpsi.Ctau.Prompt=CtauModel::Delta;
-    }
-  }
-
-  if (!isPbPb && incBkg && incNonPrompt) {
+  if (incBkg && incNonPrompt) {
     if (parIni.count("Model_BkgNoPR_PP")>0) {
       model.PP.Bkg.Ctau.NonPrompt = CtauModelDictionary[parIni["Model_BkgNoPR_PP"]];
       if (model.PP.Bkg.Ctau.NonPrompt==CtauModel(0)) {
@@ -451,7 +396,7 @@ map< string , CtauModel > CtauModelDictionary = {
 //      cout << "[ERROR] Background non-prompt ctau model for PP was not found in the initial parameters!" << endl; return false;
     }
   }
-  if (!isPbPb && incBkg && incPrompt) {
+  if (incBkg && incPrompt) {
     if (parIni.count("Model_BkgPR_PP")>0) {
       model.PP.Bkg.Ctau.Prompt = CtauModelDictionary[parIni["Model_BkgPR_PP"]];
       if (model.PP.Bkg.Ctau.Prompt==CtauModel(0)) {
@@ -462,7 +407,7 @@ map< string , CtauModel > CtauModelDictionary = {
       model.PP.Bkg.Ctau.Prompt=CtauModel::Delta;
     }
   }
-  if (!isPbPb && incJpsi && incNonPrompt) {
+  if (incJpsi && incNonPrompt) {
     if (parIni.count("Model_JpsiNoPR_PP")>0) {
       model.PP.Jpsi.Ctau.NonPrompt = CtauModelDictionary[parIni["Model_JpsiNoPR_PP"]];
       if (model.PP.Jpsi.Ctau.NonPrompt==CtauModel(0)) {
@@ -472,7 +417,7 @@ map< string , CtauModel > CtauModelDictionary = {
       cout << "[ERROR] Jpsi non-prompt ctau model for PP was not found in the initial parameters!" << endl; return false;
     }
   }
-  if (!isPbPb && incJpsi && incPrompt) {
+  if (incJpsi && incPrompt) {
     if (parIni.count("Model_JpsiPR_PP")>0) {
       model.PP.Jpsi.Ctau.Prompt = CtauModelDictionary[parIni["Model_JpsiPR_PP"]];
       if (model.PP.Jpsi.Ctau.Prompt==CtauModel(0)) {
@@ -490,7 +435,6 @@ map< string , CtauModel > CtauModelDictionary = {
 
 void setCtauGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, string label, double binWidth, bool optimizeRange, bool is2DFit)
 {
-  bool isPbPb = (label.find("PbPb")!=std::string::npos);
   Double_t ctauMax; Double_t ctauMin;
   myws.data(Form("dOS_%s", label.c_str()))->getRange(*myws.var("ctau"), ctauMin, ctauMax);
   ctauMin -= 0.00001;  ctauMax += 0.00001;
@@ -506,10 +450,10 @@ void setCtauGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni
     if (ctauMin < -4.0) { ctauMin = -4.0; }
     ctauMax =  7.0;
   }
-  else if (!is2DFit && parIni.count(Form("ctauCut_%s",isPbPb?"PbPb":"PP"))>0 && parIni[Form("ctauCut_%s",isPbPb?"PbPb":"PP")]!="") {
-    parIni[Form("ctauCut_%s",isPbPb?"PbPb":"PP")].erase(parIni[Form("ctauCut_%s",isPbPb?"PbPb":"PP")].find("["), string("[").length());
-    parIni[Form("ctauCut_%s",isPbPb?"PbPb":"PP")].erase(parIni[Form("ctauCut_%s",isPbPb?"PbPb":"PP")].find("]"), string("]").length());
-    TString sctauCut(parIni[Form("ctauCut_%s",isPbPb?"PbPb":"PP")].c_str());
+  else if (!is2DFit && parIni.count("ctauCut_PP")>0 && parIni["ctauCut_PP"]!="") {
+    parIni["ctauCut_PP"].erase(parIni["ctauCut_PP"].find("["), string("[").length());
+    parIni["ctauCut_PP"].erase(parIni["ctauCut_PP"].find("]"), string("]").length());
+    TString sctauCut(parIni["ctauCut_PP"].c_str());
     TObjArray* actauCut = sctauCut.Tokenize(",");    
     ctauMin = (static_cast<TObjString*>(actauCut->At(0)))->GetString().Atof();
     ctauMax = (static_cast<TObjString*>(actauCut->At(1)))->GetString().Atof();
@@ -535,11 +479,11 @@ void setCtauGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni
 };
 
 
-void setCtauFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool isPbPb, bool fitSideBand, bool usectauBkgTemplate)
+void setCtauFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool fitSideBand, bool usectauBkgTemplate)
 {
   if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
-  if (!usectauBkgTemplate) {FileName = Form("%sctau%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (fitSideBand?"SB":""), TAG.c_str(), "CTAU", TAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);}
-  else {FileName = Form("%sctau%sTemp/%s/result/FIT_%s_%s_%s_%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (fitSideBand?"SB":""), TAG.c_str(), "CTAU", TAG.c_str(), (isPbPb?"PbPb":"PP"),
+  if (!usectauBkgTemplate) {FileName = Form("%sctau%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (fitSideBand?"SB":""), TAG.c_str(), "CTAU", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);}
+  else {FileName = Form("%sctau%sTemp/%s/result/FIT_%s_%s_%s_%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (fitSideBand?"SB":""), TAG.c_str(), "CTAU", TAG.c_str(), "PP",
                         "Bkg", (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);}
 
   return;
@@ -568,32 +512,30 @@ void setCtauCutParameters(struct KinCuts& cut, bool incNonPrompt)
 
 bool createCtauDSUsingSPLOT(RooWorkspace& ws, string dsName, map<string, string>  parIni, struct KinCuts cut, bool incJpsi, bool incBkg)
 {  
-  bool isPbPb = false;
-  if (dsName.find("PbPb")!=std::string::npos) { isPbPb = true; }
   if (dsName.find("MC")!=std::string::npos)   { return false;  }  // Only accept data
   
   if (!ws.data((dsName+"_SPLOT").c_str())) {
-    string pdfMassName = Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP"));
+    string pdfMassName = "pdfMASS_Tot_PP";
     RooArgList yieldList;
-    yieldList.add( *ws.var(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))) );
-    yieldList.add( *ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) ); // Always add background
+    yieldList.add( *ws.var("N_Jpsi_PP") );
+    yieldList.add( *ws.var("N_Bkg_PP") ); // Always add background
     RooDataSet* data = (RooDataSet*)ws.data(dsName.c_str())->Clone("TMP_DATA");
     RooAbsPdf* pdf = clone(*ws.pdf(pdfMassName.c_str()));
     RooStats::SPlot sData = RooStats::SPlot("sData","An SPlot", *data, pdf, yieldList);
     ws.import(*data, Rename((dsName+"_SPLOT").c_str()));
-    cout <<  "[INFO] Bkg yield -> Mass Fit: " << ws.var(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP")))->getVal() << " , sWeights: " << sData.GetYieldFromSWeight(Form("N_Bkg_%s", (isPbPb?"PbPb":"PP"))) << std::endl;
+    cout <<  "[INFO] Bkg yield -> Mass Fit: " << ws.var("N_Bkg_PP")->getVal() << " , sWeights: " << sData.GetYieldFromSWeight("N_Bkg_PP") << std::endl;
 //    if (!isCompatibleDataset(*data, *(RooDataSet*)ws.data(dsName.c_str()))){ cout << "[ERROR] sPlot and original Datasets are inconsistent!" << endl; return false; }
     delete data; delete pdf;
   }
   
   if (incBkg) {
-    RooDataSet* dataw_Bkg  = new RooDataSet("TMP_BKG_DATA","TMP_BKG_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("invMass"), *ws.var("ctau"), *ws.var("ctauN"), *ws.var("ctauErr"), *ws.var(Form("N_Bkg_%s_sw", (isPbPb?"PbPb":"PP")))), 0, Form("N_Bkg_%s_sw", (isPbPb?"PbPb":"PP")));
+    RooDataSet* dataw_Bkg  = new RooDataSet("TMP_BKG_DATA","TMP_BKG_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("invMass"), *ws.var("ctau"), *ws.var("ctauN"), *ws.var("ctauErr"), *ws.var("N_Bkg_PP_sw")), 0, "N_Bkg_PP_sw");
     ws.import(*dataw_Bkg, Rename((dsName+"_BKG").c_str()));
     cout <<  "[INFO] sPLOT_BKG_DS Events: " << ws.data((dsName+"_BKG").c_str())->sumEntries() << std::endl;
     delete dataw_Bkg;
   }
   if (incJpsi) {
-    RooDataSet* dataw_Sig  = new RooDataSet("TMP_JPSI_DATA","TMP_JPSI_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("invMass"), *ws.var("ctau"), *ws.var("ctauN"), *ws.var("ctauErr"), *ws.var(Form("N_Jpsi_%s_sw", (isPbPb?"PbPb":"PP")))), 0, Form("N_Jpsi_%s_sw", (isPbPb?"PbPb":"PP")));
+    RooDataSet* dataw_Sig  = new RooDataSet("TMP_JPSI_DATA","TMP_JPSI_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("invMass"), *ws.var("ctau"), *ws.var("ctauN"), *ws.var("ctauErr"), *ws.var("N_Jpsi_PP_sw")), 0, "N_Jpsi_PP_sw");
     ws.import(*dataw_Sig, Rename((dsName+"_JPSI").c_str()));
     cout <<  "[INFO] sPLOT_JPSI_DS Events: " << ws.data((dsName+"_JPSI").c_str())->sumEntries() << std::endl;
     delete dataw_Sig;

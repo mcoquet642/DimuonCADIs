@@ -13,7 +13,6 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
                       string plotLabel,     // The label used to define the output file name
                       // Select the type of datasets to fit
                       string DSTAG,         // Specifies the type of datasets: i.e, DATA, MCJPSINP, ...
-                      bool isPbPb,          // Define if it is PbPb (True) or PP (False)
                       // Select the type of object to fit
                       bool incJpsi,         // Includes Jpsi model
                       bool plotPureSMC,     // Flag to indicate if we want to fit pure signal MC
@@ -38,11 +37,11 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
     if(DSTAG.find("NOPR")!=std::string::npos) isNPrompt = true;
   }
 
-  string dsOSName = Form("dOS_%s_%s", DSTAG.c_str(), (isPbPb?"PbPb":"PP"));
-  string dsSSName = Form("dSS_%s_%s", DSTAG.c_str(), (isPbPb?"PbPb":"PP"));
+  string dsOSName = Form("dOS_%s_PP", DSTAG.c_str());
+  string dsSSName = Form("dSS_%s_PP", DSTAG.c_str());
   string pdfName  = "pdfCTAU";
-  string pdfTotName  = Form("%s_%s_%s", pdfName.c_str(), incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP"));
-  if (plotPureSMC) dsOSName = Form("dOS_%s_%s_NoBkg", DSTAG.c_str(), (isPbPb?"PbPb":"PP"));
+  string pdfTotName  = Form("%s_%s_%s", pdfName.c_str(), "JpsiNoPR", "PP");
+  if (plotPureSMC) dsOSName = Form("dOS_%s_%s_NoBkg", DSTAG.c_str(), "PP");
 
   bool isWeighted = myws.data(dsOSName.c_str())->isWeighted();
   // Create the main plot of the fit
@@ -66,9 +65,9 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
   setTDRStyle();
   
   // Create the main canvas
-  TCanvas *cFig  = new TCanvas(Form("cCtauRecoFig_%s", (isPbPb?"PbPb":"PP")), "cCtauRecoFig",800,800);
-  TPad    *pad1  = new TPad(Form("pad1_%s", (isPbPb?"PbPb":"PP")),"",0,0.23,1,1);
-  TPad    *pad2  = new TPad(Form("pad2_%s", (isPbPb?"PbPb":"PP")),"",0,0,1,.228);
+  TCanvas *cFig  = new TCanvas(Form("cCtauRecoFig_%s", "PP"), "cCtauRecoFig",800,800);
+  TPad    *pad1  = new TPad(Form("pad1_%s", "PP"),"",0,0.23,1,1);
+  TPad    *pad2  = new TPad(Form("pad2_%s", "PP"),"",0,0,1,.228);
   TLine   *pline = new TLine(cut.dMuon.ctauTrue.Min, 0.0, cut.dMuon.ctauTrue.Max, 0.0);
 
   frame->SetTitle("");
@@ -102,13 +101,6 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
   float dy = 0; 
   
   t->SetTextSize(0.03);
-  t->DrawLatex(0.21, 0.86-dy, "2015 HI Soft Muon ID"); dy+=0.045;
-  if (isPbPb) {
-    t->DrawLatex(0.21, 0.86-dy, "HLT_HIL1DoubleMu0_v1"); dy+=0.045;
-  } else {
-    t->DrawLatex(0.21, 0.86-dy, "HLT_HIL1DoubleMu0_v1"); dy+=0.045;
-  } 
-  if (isPbPb) {t->DrawLatex(0.21, 0.86-dy, Form("Cent. %d-%d%%", (int)(cut.Centrality.Start/2), (int)(cut.Centrality.End/2))); dy+=0.045;}
   t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq p_{T}^{#mu#mu} < %.1f GeV/c",cut.dMuon.Pt.Min,cut.dMuon.Pt.Max)); dy+=0.045;
   t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq |y^{#mu#mu}| < %.1f",cut.dMuon.AbsRap.Min,cut.dMuon.AbsRap.Max)); dy+=1.5*0.045;
 
@@ -123,21 +115,12 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
 
   //Drawing the title
   TString label;
-  if (isPbPb) {
-    if (opt.PbPb.RunNb.Start==opt.PbPb.RunNb.End){
-      label = Form("PbPb Run %d", opt.PbPb.RunNb.Start);
-    } else {
-      label = Form("%s [%s %d-%d]", "PbPb", "HIOniaL1DoubleMu0", opt.PbPb.RunNb.Start, opt.PbPb.RunNb.End);
-    }
-  } else {
     if (opt.pp.RunNb.Start==opt.pp.RunNb.End){
       label = Form("PP Run %d", opt.pp.RunNb.Start);
     } else {
       label = Form("%s [%s %d-%d]", "PP", "DoubleMu0", opt.pp.RunNb.Start, opt.pp.RunNb.End);
     }
-  }
   
-  //CMS_lumi(pad1, isPbPb ? 105 : 104, 33, label);
   int fc = isMC ? -1 : 1;
   TString lumiLabel("");
   if (isMC)
@@ -148,8 +131,6 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
     if (incJpsi) lumiLabel += " J/#psi";
     else lumiLabel += " #psi(2S)";
   }
-  CMS_lumi(pad1, isPbPb ? fc*108 : fc*107, 33, lumiLabel.Data());
-  //CMS_lumi(pad1, isPbPb ? 108 : 107, 33, "");
   gStyle->SetTitleFontSize(0.05);
   
   pad1->Update();
@@ -182,11 +163,11 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
   
   // Save the plot in different formats
   gSystem->mkdir(Form("%sctauReco/%s/plot/root/", outputDir.c_str(), DSTAG.c_str()), kTRUE); 
-  cFig->SaveAs(Form("%sctauReco/%s/plot/root/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), DSTAG.c_str(), "CTAURECO", DSTAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
+  cFig->SaveAs(Form("%sctauReco/%s/plot/root/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), DSTAG.c_str(), "CTAURECO", DSTAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
   gSystem->mkdir(Form("%sctauReco/%s/plot/png/", outputDir.c_str(), DSTAG.c_str()), kTRUE);
-  cFig->SaveAs(Form("%sctauReco/%s/plot/png/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.png", outputDir.c_str(), DSTAG.c_str(), "CTAURECO", DSTAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
+  cFig->SaveAs(Form("%sctauReco/%s/plot/png/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.png", outputDir.c_str(), DSTAG.c_str(), "CTAURECO", DSTAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
   gSystem->mkdir(Form("%sctauReco/%s/plot/pdf/", outputDir.c_str(), DSTAG.c_str()), kTRUE);
-  cFig->SaveAs(Form("%sctauReco/%s/plot/pdf/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.pdf", outputDir.c_str(), DSTAG.c_str(), "CTAURECO", DSTAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
+  cFig->SaveAs(Form("%sctauReco/%s/plot/pdf/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.pdf", outputDir.c_str(), DSTAG.c_str(), "CTAURECO", DSTAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
 
   cFig->Clear();
   cFig->Close();

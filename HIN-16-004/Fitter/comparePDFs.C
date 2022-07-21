@@ -53,7 +53,6 @@ void comparePDFs(const char* workDirNames, // Has to be of the form "dir1,dir2,d
   //      1) comparePDFs("MCFitsCent_nonprompt_ctauRes/DataFits_006,MCFitsCent_prompt_ctauRes/DataFits_006,DataFitsCent_ctauRes_nominalErr/DataFits_006","pdfCTAUNRES_Tot","J/#psi nonprompt MC,J/#psi prompt MC, J/#psi DATA","ctauNRes","MCJPSINOPR,MCJPSIPR,DATA","","ctauRes",0)
   //      2) comparePDFs("DataFitsCent_ctauErr_nominal/DataFits_006,DataFitsCent_ctauErr_CBG/DataFits_006","pdfCTAUERR_Jpsi","J/#psi CB+CB MC,J/#psi CB+G","ctauErr","DATA,DATA","","ctauErr",0)
   
-  bool isPbPb = false;
   bool setLogScale = false;
   
   TString spdfName(pdfName);
@@ -179,15 +178,10 @@ void comparePDFs(const char* workDirNames, // Has to be of the form "dir1,dir2,d
     ymax = thebin.rapbin().high();
     centmin = thebin.centbin().low();
     centmax = thebin.centbin().high();
-    strcpy(collSystem, (it->Contains("PbPb")) ? "PbPb" : "PP");
+    strcpy(collSystem, "PP");
     
-    if (!strcmp(collSystem,"PP"))
-    {
       centmin = 0;
       centmax = 200;
-      isPbPb = false;
-    }
-    else isPbPb = true;
     
     
     for (int i = 1 ; i < nDirs ; i++)
@@ -319,8 +313,7 @@ void comparePDFs(const char* workDirNames, // Has to be of the form "dir1,dir2,d
     t->DrawLatex(0.35, 0.95, sTitle.Data());
     t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq p_{T}^{#mu#mu} < %.1f GeV/c",ptmin,ptmax)); dy+=0.045;
     t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq |y^{#mu#mu}| < %.1f",ymin,ymax)); dy+=0.045;
-    if (isPbPb) {t->DrawLatex(0.21, 0.86-dy, Form("Cent. %d-%d%%", (int)(centmin/2), (int)(centmax/2))); dy+=0.045;}
-    t->DrawLatex(0.21, 0.86-dy, isPbPb ? "PbPb" : "PP"); dy+=0.045;
+    t->DrawLatex(0.21, 0.86-dy, "PP"); dy+=0.045;
     
     // Drawing the Legend
     TLegend* leg = new TLegend(0.6303, 0.7338, 0.8308, 0.8695); leg->SetTextSize(0.03);

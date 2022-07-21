@@ -8,9 +8,9 @@
 
 
 void setCtauResCutParameters(struct KinCuts& cut, bool incNonPrompt);
-void setCtauResFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool isPbPb);
+void setCtauResFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut);
 void setCtauResGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, string label, double binWidth);
-bool setCtauResModel( struct OniaModel& model, map<string, string>&  parIni, bool isPbPb);
+bool setCtauResModel( struct OniaModel& model, map<string, string>&  parIni);
 
 /*bool loadCtauErrRange2(string FileName, struct KinCuts& cut)
 {
@@ -56,7 +56,6 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
                                string outputDir,               // Path to output directory
                                // Select the type of datasets to fit
                                string DSTAG,                   // Specifies the type of datasets: i.e, DATA, MCJPSINP, ...
-                               bool isPbPb        = false,     // isPbPb = false for pp, true for PbPb
                                bool importDS      = true,      // Select if the dataset is imported in the local workspace
                                // Select the type of object to fit
                                bool incJpsi       = true,      // Includes Jpsi model
@@ -84,7 +83,7 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
   if (!isMC)  { cout << "[ERROR] The ctau resolution fit can only be performed in MC!" << endl; return false; }
   bool incNonPrompt = (DSTAG.find("NOPR")!=std::string::npos);
 
-  string COLL = (isPbPb ? "PbPb" : "PP" );
+  string COLL = "PP";
   bool usePerEventError = false;
   bool incBkg = false;
 
@@ -99,7 +98,7 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
       bool fitSideBand = false;
       if (incJpsi)  { plotLabel = plotLabel + "_Jpsi";     }
       plotLabel = plotLabel + "_Bkg";
-      setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), "DATA", plotLabel, cut, isPbPb, fitSideBand);
+      setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), "DATA", plotLabel, cut, fitSideBand);
       bool foundFit = false;
       if ( loadCtauErrRange(FileName, cut) ) { foundFit = true; }
       if (foundFit) { cout << "[INFO] The ctauErr fit was found and I'll load the ctau Error range used." << endl; }
@@ -130,12 +129,12 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
     myws.import(*dataToFit);
   }
   string dsNameCut = dsName+"_CTAUNRESCUT";
-  string pdfName = Form("pdfCTAURES_Tot_%s", (isPbPb?"PbPb":"PP"));
+  string pdfName = "pdfCTAURES_Tot_PP";
 
   if (!loadFitResult) {
     // Set models based on initial parameters
     struct OniaModel model;
-    if (!setCtauResModel(model, parIni, isPbPb)) { return false; }
+    if (!setCtauResModel(model, parIni)) { return false; }
     //// LOAD CTAU ERROR PDF
     if (usePerEventError) {
       // Setting extra input information needed by each fitter
@@ -143,10 +142,10 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
       bool doCtauErrFit = true;
       bool importDS = isMC;
       bool incJpsi = true;
-      string DSTAG = Form("DATA_%s", (isPbPb?"PbPb":"PP"));
+      string DSTAG = "DATA_PP";
   
       if ( !fitCharmoniaCtauErrModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
-                                      DSTAG, isPbPb, importDS, 
+                                      DSTAG, importDS, 
                                       incJpsi, incBkg, 
                                       doCtauErrFit, wantPureSMC, loadCtauErrFitResult, inputFitDir, numCores, 
                                       setLogScale, incSS, binWidth
@@ -155,8 +154,8 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
     }
 
     // Build the Fit Model
-    if (!buildCharmoniaCtauResModel(myws, (isPbPb ? model.PbPb : model.PP), parIni, dsName, "ctauRes", "pdfCTAURES", isPbPb, usePerEventError, useTotctauErrPdf, numEntries))  { return false; }
-    if (!buildCharmoniaCtauResModel(myws, (isPbPb ? model.PbPb : model.PP), parIni, dsName, "ctauNRes", "pdfCTAUNRES", isPbPb, false, useTotctauErrPdf, numEntries))  { return false; }
+    if (!buildCharmoniaCtauResModel(myws, model.PP, parIni, dsName, "ctauRes", "pdfCTAURES", usePerEventError, useTotctauErrPdf, numEntries))  { return false; }
+    if (!buildCharmoniaCtauResModel(myws, model.PP, parIni, dsName, "ctauNRes", "pdfCTAUNRES", false, useTotctauErrPdf, numEntries))  { return false; }
 
     // save the initial values of the model we've just created
     RooArgSet* params = (RooArgSet*) myws.pdf(pdfName.c_str())->getParameters(RooArgSet(*myws.var("ctauRes"), *myws.var("ctauNRes"), *myws.var("ctauErr"), *myws.var("ctau")));
@@ -171,17 +170,17 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
 
   // check if we have already done this fit. If yes, do nothing and return true.
   string FileName = "";
-  setCtauResFileName(FileName, (inputFitDir["CTAURES"]=="" ? outputDir : inputFitDir["CTAURES"]), DSTAG, plotLabel, cut, isPbPb);
+  setCtauResFileName(FileName, (inputFitDir["CTAURES"]=="" ? outputDir : inputFitDir["CTAURES"]), DSTAG, plotLabel, cut);
   if (gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAURES"]!="") {
     cout << "[WARNING] User Input File : " << FileName << " was not found!" << endl;
     if (loadFitResult) return false;
-    setCtauResFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb);
+    setCtauResFileName(FileName, outputDir, DSTAG, plotLabel, cut);
   }
   bool found =  true; bool skipFit = !doFit;
   RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(RooArgSet(*myws.var("ctau"), *myws.var("ctauErr"), *myws.var("ctauNRes"), *myws.var("ctauRes")));
   found = found && isFitAlreadyFound(newpars, FileName, pdfName.c_str());
   if (loadFitResult) {
-    if ( loadPreviousFitResult(myws, FileName, DSTAG, isPbPb, false, false) ) { skipFit = true; } else  { skipFit = false; }
+    if ( loadPreviousFitResult(myws, FileName, DSTAG, false, false) ) { skipFit = true; } else  { skipFit = false; }
     if (skipFit) { cout << "[INFO] This ctau fit was already done, so I'll load the fit results." << endl; }
     myws.saveSnapshot(Form("%s_parLoad", pdfName.c_str()),*newpars,kTRUE);
   } else if (found) {
@@ -196,9 +195,9 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
     fitResult->Print("v");
     myws.import(*fitResult, Form("fitResult_%s", pdfName.c_str()));
     // Draw the mass plot
-    drawCtauResPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, wantPureSMC, setLogScale, incSS, binWidth["CTAURES"]);
+    drawCtauResPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, wantPureSMC, setLogScale, incSS, binWidth["CTAURES"]);
     // Save the results
-    string FileName = ""; setCtauResFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb);
+    string FileName = ""; setCtauResFileName(FileName, outputDir, DSTAG, plotLabel, cut);
     myws.saveSnapshot(Form("%s_parFit", pdfName.c_str()),*newpars,kTRUE);
     saveWorkSpace(myws, Form("%sctauRes/%s/result", outputDir.c_str(), DSTAG.c_str()), FileName);
   }
@@ -207,7 +206,7 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
 };
 
 
-bool setCtauResModel( struct OniaModel& model, map<string, string>&  parIni, bool isPbPb)
+bool setCtauResModel( struct OniaModel& model, map<string, string>&  parIni)
 {
 map< string , CtauModel > CtauModelDictionary = {
   {"InvalidModel",             CtauModel::InvalidModel},
@@ -222,16 +221,6 @@ map< string , CtauModel > CtauModelDictionary = {
   {"Delta",                    CtauModel::Delta}
 };
 
-  if (isPbPb) {
-    if (parIni.count("Model_CtauRes_PbPb")>0) {
-      model.PbPb.CtauRes = CtauModelDictionary[parIni["Model_CtauRes_PbPb"]];
-      if (model.PbPb.CtauRes==CtauModel(0)) {
-        cout << "[ERROR] The ctau resolution model: " << parIni["Model_CtauRes_PbPb"] << " is invalid" << endl; return false;
-      }
-    } else { 
-      cout << "[ERROR] Ctau Resolution model for PbPb was not found in the initial parameters!" << endl; return false;
-    }
-  } else {
     if (parIni.count("Model_CtauRes_PP")>0) {
       model.PP.CtauRes = CtauModelDictionary[parIni["Model_CtauRes_PP"]];
       if (model.PP.CtauRes==CtauModel(0)) {
@@ -240,7 +229,6 @@ map< string , CtauModel > CtauModelDictionary = {
     } else { 
       cout << "[ERROR] Ctau Resolution model for PP was not found in the initial parameters!" << endl; return false;
     }
-  }
 
   return true;
 };
@@ -295,10 +283,10 @@ void setCtauResGlobalParameterRange(RooWorkspace& myws, map<string, string>& par
 };
 
 
-void setCtauResFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool isPbPb)
+void setCtauResFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut)
 {
   if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
-  FileName = Form("%sctauRes/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), TAG.c_str(), "CTAURES", TAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
+  FileName = Form("%sctauRes/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), TAG.c_str(), "CTAURES", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
   
   return;
 };

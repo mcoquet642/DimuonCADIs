@@ -8,9 +8,9 @@
 
 void setCtauErrCutParameters(struct KinCuts& cut);
 bool isCtauErrPdfAlreadyFound(RooWorkspace& myws, string FileName, vector<string> pdfNames, bool loadCtauErrPdf=false);
-void setCtauErrFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool isPbPb, bool cutSideBand);
+void setCtauErrFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool cutSideBand);
 void setCtauErrGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, string label, double binWidth, bool useForCtauFits=false);
-void reNormMassVar( RooWorkspace& myws, string obj, bool isPbPb);
+void reNormMassVar( RooWorkspace& myws, string obj);
 
 
 bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspace
@@ -21,7 +21,6 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
                                string outputDir,               // Path to output directory
                                // Select the type of datasets to fit
                                string DSTAG,                   // Specifies the type of datasets: i.e, DATA, MCJPSINP, ...
-                               bool isPbPb         = false,    // isPbPb = false for pp, true for PbPb
                                bool importDS       = true,     // Select if the dataset is imported in the local workspace
                                // Select the type of object to fit
                                bool incJpsi        = true,     // Includes Jpsi model
@@ -53,7 +52,7 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
   setCtauErrCutParameters(cut);
   
   string pdfType = "pdfCTAUERR";
-  string COLL = (isPbPb ? "PbPb" : "PP" );
+  string COLL = "PP";
 
   // Define pdf and plot names
   vector<string> pdfNames;
@@ -65,11 +64,11 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
 
   // check if we have already done this fit. If yes, do nothing and return true.
   string FileName = "";
-  setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), DSTAG, plotLabel, cut, isPbPb, cutSideBand);
+  setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), DSTAG, plotLabel, cut, cutSideBand);
   if (gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAUERR"]!="") {
     cout << "[WARNING] User Input File : " << FileName << " was not found!" << endl;
     if (loadCtauErrPdf) return false;
-    setCtauErrFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb, cutSideBand);
+    setCtauErrFileName(FileName, outputDir, DSTAG, plotLabel, cut, cutSideBand);
   }
   bool found =  true; bool skipCtauErrPdf = !doCtauErrPdf;
   found = found && isPdfAlreadyFound(myws, FileName, pdfNames, loadCtauErrPdf);
@@ -113,19 +112,19 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
     bool doConstrFit = false;
 
     if ( !fitCharmoniaMassModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
-                                 DSTAG, isPbPb, importDS,
+                                 DSTAG, importDS,
                                  incJpsi, true, 
                                  doMassFit, cutCtau, doConstrFit, wantPureSMC, applyCorr, loadMassFitResult, iMassFitDir, numCores, 
                                  setLogScale, incSS, ibWidth, getMeanPT
                                  ) 
          ) { return false; }
     // Let's set all mass parameters to constant except the yields
-    if (myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))) {
+    if (myws.pdf("pdfMASS_Tot_PP")) {
       cout << "[INFO] Setting mass parameters to constant!" << endl;
-      myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kTRUE); 
+      myws.pdf("pdfMASS_Tot_PP")->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kTRUE); 
     } else { cout << "[ERROR] Mass PDF was not found!" << endl; return false; }
     std::vector< std::string > objs = {"Bkg", "Jpsi", "Psi2S"};
-    for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) setConstant( myws, Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")), false); }
+    for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str()))) setConstant( myws, Form("N_%s_PP", obj.c_str()), false); }
   }
 
   if (skipCtauErrPdf==false) {
@@ -138,9 +137,9 @@ bool fitCharmoniaCtauErrModel( RooWorkspace& myws,             // Local Workspac
     //fitResult->Print("v");
     //myws.import(*fitResult, Form("fitResult_%s", pdfName.c_str()));
     // Draw the mass plot
-    drawCtauErrorPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, incBkg, wantPureSMC, setLogScale, incSS, binWidth["CTAUERR"]);
+    drawCtauErrorPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, incJpsi, incBkg, wantPureSMC, setLogScale, incSS, binWidth["CTAUERR"]);
     // Save the results
-    string FileName = ""; setCtauErrFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb, cutSideBand);
+    string FileName = ""; setCtauErrFileName(FileName, outputDir, DSTAG, plotLabel, cut, cutSideBand);
     RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(*(myws.var("ctauErr")));
     myws.saveSnapshot(Form("%s_parFit", pdfName.c_str()),*newpars,kTRUE);
     if (!saveWorkSpace(myws, Form("%sctauErr%s/%s/result", outputDir.c_str(), (cutSideBand?"SB":""), DSTAG.c_str()), FileName)) { return false; };
@@ -184,10 +183,10 @@ void setCtauErrGlobalParameterRange(RooWorkspace& myws, map<string, string>& par
 };
 
 
-void setCtauErrFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool isPbPb, bool cutSideBand)
+void setCtauErrFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool cutSideBand)
 {
   if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
-  FileName = Form("%sctauErr%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (cutSideBand?"SB":""), TAG.c_str(), "CTAUERR", TAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
+  FileName = Form("%sctauErr%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (cutSideBand?"SB":""), TAG.c_str(), "CTAUERR", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
 
   return;
 };

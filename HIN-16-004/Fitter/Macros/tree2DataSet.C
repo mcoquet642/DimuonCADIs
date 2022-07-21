@@ -29,10 +29,8 @@ void    iniBranch(TChain* fChain,bool isMC=false, string TreeName="DimuonsAll");
 bool    checkDS(RooDataSet* DS, string DSName);
 double  deltaR(TLorentzVector* GenMuon, TLorentzVector* RecoMuon);
 bool    isMatchedRecoDiMuon(int iRecoDiMuon, double maxDeltaR=0.03);
-double  getNColl(int centr, bool isPP);
-double  getCorr(Double_t rapidity, Double_t pt, Double_t mass, bool isPP);
+double  getCorr(Double_t rapidity, Double_t pt, Double_t mass);
 bool    readCorrection(const char* file);
-void    setCentralityMap(const char* file);
 
 
 bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string DSName, string OutputFileName, bool UpdateDS=false)
@@ -43,21 +41,12 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
   bool isMC = false;
   if (DSName.find("MC")!=std::string::npos) isMC =true;
   
-  bool isPbPb = false;
-  if (DSName.find("PbPb")!=std::string::npos) isPbPb =true;
   int triggerIndex_PP   = PP::HLT_HIL1DoubleMu0_v1;
-  int triggerIndex_PbPb = HI::HLT_HIL1DoubleMu0_v1;
   int CentFactor = 1;
   
   bool usePeriPD = false;
-  if (InputFileNames[0].find("HIOniaPeripheral30100")!=std::string::npos) {
-    cout << "[INFO] Working with Peripheral PbPb PD" << endl;
-    usePeriPD = true;
-    triggerIndex_PbPb = HI::HLT_HIL1DoubleMu0_2HF_Cent30100_v1;
-  }
   
   bool applyWeight = false;
-  if (isMC && isPbPb) applyWeight = true;
   
   bool isPureSDataset = false;
   if (OutputFileName.find("_PureS")!=std::string::npos) isPureSDataset = true;
@@ -128,22 +117,7 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
     RooRealVar* weightCorr   = new RooRealVar("weightCorr","Data correction weight", 0.0, 10000000.0, "");
     RooArgSet*  cols    = NULL;
     
-    if (applyWeight)
-    {
-      setCentralityMap(Form("%s/Input/CentralityMap_PbPb2015.txt",gSystem->ExpandPathName(gSystem->pwd())));
-      if (isMC) {
-        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ctauTrue, *ptQQ, *rapQQ, *cent, *weight);
-        cols->add(*ctauNRes);
-        cols->add(*ctauRes);
-      } else {
-        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ptQQ, *rapQQ, *cent, *weight);
-        cols->add(*ctauN);
-      }
-      dataOS = new RooDataSet(Form("dOS_%s", DSName.c_str()), "dOS", *cols, WeightVar(*weight), StoreAsymError(*mass));
-      dataSS = new RooDataSet(Form("dSS_%s", DSName.c_str()), "dSS", *cols, WeightVar(*weight), StoreAsymError(*mass));
-      if (isPureSDataset) dataOSNoBkg = new RooDataSet(Form("dOS_%s_NoBkg", DSName.c_str()), "dOSNoBkg", *cols, WeightVar(*weight), StoreAsymError(*mass));
-    }
-    else if (applyWeight_Corr)
+    if (applyWeight_Corr)
     {
       if (isMC) {
         cols = new RooArgSet(*mass, *ctau, *ctauErr, *ctauTrue, *ptQQ, *rapQQ, *cent, *weightCorr);
@@ -177,27 +151,6 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
     //nentries = 50000;
     
     float normF = 0.;
-    if (isMC && isPbPb)
-    {
-      cout << "[INFO] Computing sum of weights for " << nentries << " nentries" << endl;
-      
-      for (Long64_t jentry=0; jentry<nentries;jentry++) {
-        
-        if (jentry%1000000==0) cout << "[INFO] " << jentry << "/" << nentries << endl;
-        
-        if (theTree->LoadTree(jentry)<0) break;
-        if (theTree->GetTreeNumber()!=fCurrent) {
-          fCurrent = theTree->GetTreeNumber();
-          cout << "[INFO] Processing Root File: " << InputFileNames[fCurrent] << endl;
-        }
-        
-        theTree->GetEntry(jentry);
-       // normF += theTree->GetWeight()*getNColl(Centrality,!isPbPb);
-        normF += theTree->GetWeight();  
-    }
-      
-      normF = nentries/normF;
-    }
     
     cout << "[INFO] Starting to process " << nentries << " nentries" << endl;
     for (Long64_t jentry=0; jentry<nentries;jentry++) {
@@ -267,14 +220,9 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
         }
 
 
-        if (applyWeight){
-          double w = theTree->GetWeight();
-          if (isMC && isPbPb) w = w*normF;//*getNColl(Centrality,!isPbPb)*normF;
-          weight->setVal(w);
-        }
         else if (applyWeight_Corr)
         {
-          double Corr = getCorr(fEta,fPt,fMass,!isPbPb);
+          double Corr = getCorr(fEta,fPt,fMass);
           double wCorr = 1/Corr;
           weightCorr->setVal(wCorr);
         }
@@ -508,7 +456,6 @@ void iniBranch(TChain* fChain, bool isMC, string TreeName)
 
 bool checkDS(RooDataSet* DS, string DSName)
 {
-  bool incCent     = (DSName.find("PbPb")!=std::string::npos);
   bool incCtauTrue = (DSName.find("MC")!=std::string::npos);
   const RooArgSet* row = DS->get();
   if (
@@ -516,7 +463,6 @@ bool checkDS(RooDataSet* DS, string DSName)
       (row->find("pt")!=0)      &&
       (row->find("ctau")!=0)    &&
       (row->find("ctauErr")!=0) &&
-      (incCent     ? row->find("cent")!=0     : true) &&
       (incCtauTrue ? row->find("ctauTrue")!=0 : true) &&
       (incCtauTrue ? row->find("ctauRes")!=0 : true) &&
       (incCtauTrue ? row->find("ctauNRes")!=0 : true) &&
@@ -556,55 +502,6 @@ bool isMatchedRecoDiMuon(int iRecoDiMuon, double maxDeltaR)
   return isMatched;
 };
 
-double getNColl(int centr, bool isPP)
-{
-  // Returns the corresponding Ncoll value to the "centr" centrality bin
-  
-  if ( isPP ) return 1.;
-  
-  int normCent = TMath::Nint(centr/2.);
-  
-  int lcent = 0;
-  int ucent = 0;
-  for ( int i = 0 ; i < fCentBins ; i++ )
-  {
-    ucent = fCentBinning[i];
-    if ( (normCent >= lcent) && (normCent < ucent) ) return fCentMap[ucent];
-    else lcent = ucent;
-  }
-  return 1.;
-};
-
-void setCentralityMap(const char* file)
-{
-  // Creates a mapping between centrality and Ncoll, based on a text file (taken from: https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideHeavyIonCentrality)
-  
-  if ( strlen(file) > 0 )
-  {
-    char line[1024];
-    ifstream in(file);
-    float lcent;
-    float ucent;
-    float Ncoll;
-    
-    fCentBins = 0;
-    while ( in.getline(line,1024,'\n'))
-    {
-      sscanf(line,"%f %f %f",&lcent,&ucent,&Ncoll);
-      
-      fCentMap[ucent] = Ncoll;
-      fCentBinning[fCentBins++] = ucent;
-    }
-    if ( fCentBins == 0 ) std::cout << "[INFO] No centrality map could be defined: The file provided is empty" << std::endl;
-    else std::cout << "[INFO] Defining centrality map" << std::endl;
-  }
-  else
-  {
-    fCentBins = 0;
-    std::cout << "[INFO] No centrality map could be defined: No file provided" << std::endl;
-  }
-};
-
 bool readCorrection(const char* file)
 {
   TFile *froot = new TFile(file,"READ");
@@ -641,13 +538,11 @@ bool readCorrection(const char* file)
   return true;
 };
 
-double getCorr(Double_t rapidity, Double_t pt, Double_t mass, bool isPP)
+double getCorr(Double_t rapidity, Double_t pt, Double_t mass)
 {
-  const char* collName = "PbPb";
+  const char* collName = "PP";
   const char* massName = "Interp";
-  if (isPP) collName = "PP";
-  if (mass>3.5) massName = "Psi2S";
-  else if (mass<3.3) massName = "Jpsi";
+  if (mass<3.3) massName = "Jpsi";
   
   if (!fcorrArray)
   {
@@ -659,8 +554,7 @@ double getCorr(Double_t rapidity, Double_t pt, Double_t mass, bool isPP)
   if (!strcmp(massName,"Interp"))
   {
     TH2* corrHistoJpsi = static_cast<TH2*>(fcorrArray->FindObject(Form("hcorr_Jpsi_%s",collName)));
-    TH2* corrHistoPsi2S = static_cast<TH2*>(fcorrArray->FindObject(Form("hcorr_Psi2S_%s",collName)));
-    if (!corrHistoJpsi || !corrHistoPsi2S)
+    if (!corrHistoJpsi)
     {
       std::cout << "[Error] No histogram provided for correction of " << collName << " " << massName << ". Weight set to 1." << std::endl;
       return 1.;
@@ -668,11 +562,6 @@ double getCorr(Double_t rapidity, Double_t pt, Double_t mass, bool isPP)
     
     Int_t binJpsi = corrHistoJpsi->FindBin(fabs(rapidity), pt);
     Double_t corrJpsi = corrHistoJpsi->GetBinContent(binJpsi);
-    
-    Int_t binPsi2S = corrHistoPsi2S->FindBin(fabs(rapidity), pt);
-    Double_t corrPsi2S = corrHistoPsi2S->GetBinContent(binPsi2S);
-    
-    corr = ((corrPsi2S - corrJpsi)/(3.5-3.3))*(mass-3.3) + corrJpsi;
     
   }
   else

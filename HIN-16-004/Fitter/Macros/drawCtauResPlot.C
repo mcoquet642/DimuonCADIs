@@ -4,7 +4,7 @@
 #include "Utilities/initClasses.h"
 
 void setCtauResRange(RooWorkspace& myws, RooPlot* frame, string dsName, string varName, bool setLogScale, vector<double> rangeErr, double excEvts=0.0);
-void printCtauResParameters(RooWorkspace myws, TPad* Pad, bool isPbPb, string pdfName, bool isWeighted);
+void printCtauResParameters(RooWorkspace myws, TPad* Pad, string pdfName, bool isWeighted);
 
 void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
                      string outputDir,     // Output directory
@@ -14,7 +14,6 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
                      string plotLabel,     // The label used to define the output file name
                      // Select the type of datasets to fit
                      string DSTAG,         // Specifies the type of datasets: i.e, DATA, MCJPSINP, ...
-                     bool isPbPb,          // Define if it is PbPb (True) or PP (False)
                      // Select the type of object to fit
                      // Select the fitting options
                      bool plotPureSMC,     // Flag to indicate if we want to fit pure signal MC
@@ -35,10 +34,10 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
     if(DSTAG.find("NOPR")!=std::string::npos) isNPrompt = true;
   }
 
-  string dsOSName = Form("dOS_%s_%s", DSTAG.c_str(), (isPbPb?"PbPb":"PP"));
-  if (plotPureSMC) dsOSName = Form("dOS_%s_%s_NoBkg", DSTAG.c_str(), (isPbPb?"PbPb":"PP"));
+  string dsOSName = Form("dOS_%s_PP", DSTAG.c_str());
+  if (plotPureSMC) dsOSName = Form("dOS_%s_PP_NoBkg", DSTAG.c_str());
   string dsOSNameCut = dsOSName+"_CTAUNRESCUT";
-  string dsSSName = Form("dSS_%s_%s", DSTAG.c_str(), (isPbPb?"PbPb":"PP"));
+  string dsSSName = Form("dSS_%s_PP", DSTAG.c_str());
 
   bool isWeighted = myws.data(dsOSName.c_str())->isWeighted();
   bool incJpsi = (dsOSName.find("JPSI")!=std::string::npos);
@@ -47,7 +46,7 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
 
   string pdfType  = "pdfCTAUNRES";
   string varName = "ctauNRes";
-  string pdfTotName  = Form("%s_Tot_%s", pdfType.c_str(), (isPbPb?"PbPb":"PP"));
+  string pdfTotName  = Form("%s_Tot_PP", pdfType.c_str());
   string obj = "";
   if (incJpsi) obj = "Jpsi";
 
@@ -65,8 +64,8 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
 
   int nGauss = 1;
   for (int i=1; i<5; i++) {
-    if (myws.pdf(Form("%s%d_%s_%s", pdfType.c_str(), i, obj.c_str(),(isPbPb?"PbPb":"PP")))){
-      myws.pdf(pdfTotName.c_str())->plotOn(frame,Name(Form("PDF%d", i)),Components(RooArgSet(*myws.pdf(Form("%s%d_%s_%s", pdfType.c_str(), i, obj.c_str(), (isPbPb?"PbPb":"PP"))))),
+    if (myws.pdf(Form("%s%d_%s_PP", pdfType.c_str(), i, obj.c_str()))){
+      myws.pdf(pdfTotName.c_str())->plotOn(frame,Name(Form("PDF%d", i)),Components(RooArgSet(*myws.pdf(Form("%s%d_%s_PP", pdfType.c_str(), i, obj.c_str())))),
                                            Normalization(myws.data(dsOSName.c_str())->sumEntries(), RooAbsReal::NumEvent),
                                            LineColor(COLOR[i-1]), Precision(1e-5), NormRange("CtauNResWindow")
                                            );
@@ -93,9 +92,9 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
   frame2->addPlotable(hpull, "PX"); 
   
   // Create the main canvas
-  TCanvas *cFig  = new TCanvas(Form("cCtauFig_%s", (isPbPb?"PbPb":"PP")), "cCtauFig",800,800);
-  TPad    *pad1  = new TPad(Form("pad1_%s", (isPbPb?"PbPb":"PP")),"",0,0.23,1,1);
-  TPad    *pad2  = new TPad(Form("pad2_%s", (isPbPb?"PbPb":"PP")),"",0,0,1,.228);
+  TCanvas *cFig  = new TCanvas("cCtauFig_PP", "cCtauFig",800,800);
+  TPad    *pad1  = new TPad("pad1_PP","",0,0.23,1,1);
+  TPad    *pad2  = new TPad("pad2_PP","",0,0,1,.228);
   TLine   *pline = new TLine(minRange, 0.0, maxRange, 0.0);
   
   TPad *pad4 = new TPad("pad4","This is pad4",0.55,0.46,0.97,0.87);
@@ -129,7 +128,7 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
   pad1->cd(); 
   frame->Draw();
 
-  printCtauResParameters(myws, pad1, isPbPb, pdfTotName, isWeighted);
+  printCtauResParameters(myws, pad1, pdfTotName, isWeighted);
   pad1->SetLogy(setLogScale);
 
   // Drawing the text in the plot
@@ -138,20 +137,10 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
   
   t->SetTextSize(0.03);
   t->DrawLatex(0.21, 0.86-dy, "2015 HI Soft Muon ID"); dy+=0.045;
-  if (isPbPb) {
-    t->DrawLatex(0.21, 0.86-dy, "HLT_HIL1DoubleMu0_v1"); dy+=0.045;
-  } else {
-    t->DrawLatex(0.21, 0.86-dy, "HLT_HIL1DoubleMu0_v1"); dy+=0.045;
-  } 
   t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq p_{T}^{#mu#mu} < %.1f GeV/c",cut.dMuon.Pt.Min,cut.dMuon.Pt.Max)); dy+=0.045;
   t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq |y^{#mu#mu}| < %.1f",cut.dMuon.AbsRap.Min,cut.dMuon.AbsRap.Max)); dy+=0.045;
-  if (isPbPb) {t->DrawLatex(0.21, 0.86-dy, Form("Cent. %d-%d%%", (int)(cut.Centrality.Start/2), (int)(cut.Centrality.End/2))); dy+=0.045;}
   if (outErr>0.0) {
-    if (isPbPb && isMC) {
-      t->DrawLatex(0.21, 0.86-dy, Form("Excl: (%.4f%%) %.2f evts", (outErr*100.0/outTot), outErr)); dy+=1.5*0.045;
-    } else {
       t->DrawLatex(0.21, 0.86-dy, Form("Excl: (%.4f%%) %.0f evts", (outErr*100.0/outTot), outErr)); dy+=1.5*0.045;
-    }
   }
 
   // Drawing the Legend
@@ -169,21 +158,12 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
 
   //Drawing the title
   TString label;
-  if (isPbPb) {
-    if (opt.PbPb.RunNb.Start==opt.PbPb.RunNb.End){
-      label = Form("PbPb Run %d", opt.PbPb.RunNb.Start);
-    } else {
-      label = Form("%s [%s %d-%d]", "PbPb", "HIOniaL1DoubleMu0", opt.PbPb.RunNb.Start, opt.PbPb.RunNb.End);
-    }
-  } else {
     if (opt.pp.RunNb.Start==opt.pp.RunNb.End){
       label = Form("PP Run %d", opt.pp.RunNb.Start);
     } else {
       label = Form("%s [%s %d-%d]", "PP", "DoubleMu0", opt.pp.RunNb.Start, opt.pp.RunNb.End);
     }
-  }
   
-  //CMS_lumi(pad1, isPbPb ? 105 : 104, 33, label);
   int fc = isMC ? -1 : 1;
   TString lumiLabel("");
   if (isMC)
@@ -194,7 +174,6 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
     if (incJpsi) lumiLabel += " J/#psi";
     else lumiLabel += " #psi(2S)";
   }
-  CMS_lumi(pad1, isPbPb ? fc*108 : fc*107, 33, lumiLabel.Data());
   gStyle->SetTitleFontSize(0.05);
   
   pad1->Update();
@@ -227,11 +206,11 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
   
   // Save the plot in different formats
   gSystem->mkdir(Form("%sctauRes/%s/plot/root/", outputDir.c_str(), DSTAG.c_str()), kTRUE); 
-  cFig->SaveAs(Form("%sctauRes/%s/plot/root/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), DSTAG.c_str(), "CTAURES", DSTAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
+  cFig->SaveAs(Form("%sctauRes/%s/plot/root/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), DSTAG.c_str(), "CTAURES", DSTAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
   gSystem->mkdir(Form("%sctauRes/%s/plot/png/", outputDir.c_str(), DSTAG.c_str()), kTRUE);
-  cFig->SaveAs(Form("%sctauRes/%s/plot/png/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.png", outputDir.c_str(), DSTAG.c_str(), "CTAURES", DSTAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
+  cFig->SaveAs(Form("%sctauRes/%s/plot/png/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.png", outputDir.c_str(), DSTAG.c_str(), "CTAURES", DSTAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
   gSystem->mkdir(Form("%sctauRes/%s/plot/pdf/", outputDir.c_str(), DSTAG.c_str()), kTRUE);
-  cFig->SaveAs(Form("%sctauRes/%s/plot/pdf/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.pdf", outputDir.c_str(), DSTAG.c_str(), "CTAURES", DSTAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
+  cFig->SaveAs(Form("%sctauRes/%s/plot/pdf/PLOT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.pdf", outputDir.c_str(), DSTAG.c_str(), "CTAURES", DSTAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End));
   
   cFig->Clear();
   cFig->Close();
@@ -276,7 +255,7 @@ void setCtauResRange(RooWorkspace& myws, RooPlot* frame, string dsName, string v
 };
 
 
-void printCtauResParameters(RooWorkspace myws, TPad* Pad, bool isPbPb, string pdfName, bool isWeighted)
+void printCtauResParameters(RooWorkspace myws, TPad* Pad, string pdfName, bool isWeighted)
 {
   Pad->cd();
   TLatex *t = new TLatex(); t->SetNDC(); t->SetTextSize(0.026); float dy = 0.045; 
