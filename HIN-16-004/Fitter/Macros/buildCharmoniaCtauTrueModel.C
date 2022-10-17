@@ -226,7 +226,7 @@ void setCtauTrueDefaultParameters(map<string, string> &parIni, double numEntries
 
   // Signal Ctau Truth Model
   if (parIni.count(Form("lambdaDSS_JpsiNoPR_%s", "PP"))==0 || parIni[Form("lambdaDSS_JpsiNoPR_%s", "PP")]=="") { 
-    parIni[Form("lambdaDSS_JpsiNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDSS_JpsiNoPR_%s", "PP"), 0.8, 0.001, 2.0);
+    parIni[Form("lambdaDSS_JpsiNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDSS_JpsiNoPR_%s", "PP"), 0.48, 0.001, .6);
   }
   if (parIni.count(Form("lambdaDSS2_JpsiNoPR_%s", "PP"))==0 || parIni[Form("lambdaDSS2_JpsiNoPR_%s", "PP")]=="") { 
     parIni[Form("lambdaDSS2_JpsiNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDSS2_JpsiNoPR_%s", "PP"), 0.8, 0.001, 2.0);

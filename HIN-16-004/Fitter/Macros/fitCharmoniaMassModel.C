@@ -107,7 +107,6 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
 
 
     // Define pdf and plot names
-    cout << "[INFO] no simul fit" << endl;
     string pdfName = Form("pdfMASS_Tot_%s", COLL.c_str());
     string plotLabel = plotLabelPP;
 
@@ -209,8 +208,6 @@ map< string , MassModel > MassModelDictionary = {
   if (incBkg) {
     if (parIni.count("Model_Bkg_PP")>0) {
       model.PP.Bkg.Mass = MassModelDictionary[parIni["Model_Bkg_PP"]];
-//      model.PP.Bkg.Mass = MassModel::Chebychev2;
-cout << "Mass model set" << endl;
       if (model.PP.Bkg.Mass==MassModel(0)) {
         cout << "[ERROR] The background model: " << parIni["Model_Bkg_PP"] << " is invalid" << endl; return false;
       }
@@ -221,7 +218,7 @@ cout << "Mass model set" << endl;
   if (incJpsi) {
     if (parIni.count("Model_Jpsi_PP")>0) {
       model.PP.Jpsi.Mass = MassModelDictionary[parIni["Model_Jpsi_PP"]];
-//      model.PP.Jpsi.Mass = MassModel::DoubleCrystalBall;
+	cout << "Mass model set to " << parIni["Model_Jpsi_PP"] << " " << endl;
       if (model.PP.Jpsi.Mass==MassModel(0)) {
         cout << "[ERROR] The Jpsi model: " << parIni["Model_Jpsi_PP"] << " is invalid" << endl; return false;
       }
@@ -262,10 +259,8 @@ void setMassGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni
     if (incBkg) {
       myws.var("invMass")->setRange("SideBandMID_FULL",  ((cut.dMuon.M.Min<3.3)?3.3:cut.dMuon.M.Min), ((cut.dMuon.M.Max>3.5)?3.5:cut.dMuon.M.Max));
       myws.var("invMass")->setRange("SideBandMID_JPSI",  ((cut.dMuon.M.Min<3.3)?3.3:cut.dMuon.M.Min), ((cut.dMuon.M.Max>3.5)?3.5:cut.dMuon.M.Max));
-      myws.var("invMass")->setRange("SideBandMID_PSI2S", ((cut.dMuon.M.Min<3.4)?3.4:cut.dMuon.M.Min), ((cut.dMuon.M.Max>3.5)?3.5:cut.dMuon.M.Max));
       parIni["BkgMassRange_FULL_Label"]  = "SideBandMID_FULL";
       parIni["BkgMassRange_JPSI_Label"]  = "SideBandMID_JPSI";
-      parIni["BkgMassRange_PSI2S_Label"] = "SideBandMID_PSI2S";
       if (cut.dMuon.M.Min < 2.8) {
         myws.var("invMass")->setRange("SideBandBOT_FULL", cut.dMuon.M.Min, 2.8);
         myws.var("invMass")->setRange("SideBandBOT_JPSI", ((cut.dMuon.M.Min<2.0)?2.0:cut.dMuon.M.Min), 2.8);
@@ -276,15 +271,12 @@ void setMassGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni
         myws.var("invMass")->setRange("SideBandTOP_FULL", 3.9, cut.dMuon.M.Max);
         myws.var("invMass")->setRange("SideBandTOP_PSI2S", 3.9, ((cut.dMuon.M.Max>4.2)?4.2:cut.dMuon.M.Max));
         parIni["BkgMassRange_FULL_Label"] = parIni["BkgMassRange_FULL_Label"] + "," + "SideBandTOP_FULL";
-        parIni["BkgMassRange_PSI2S_Label"] = parIni["BkgMassRange_PSI2S_Label"] + "," + "SideBandTOP_PSI2S";
       }
       parIni["BkgMassRange_FULL_Cut"]  = Form("(%.6f < invMass && invMass < %.6f)",       cut.dMuon.M.Min,       cut.dMuon.M.Max);
       parIni["BkgMassRange_FULL_Cut"]  = parIni["BkgMassRange_FULL_Cut"]  + "&&" + "((2.0 < invMass && invMass < 2.8) || (3.3 < invMass && invMass < 3.5) || (3.9 < invMass && invMass < 5.0))";
       parIni["BkgMassRange_JPSI_Cut"]  = parIni["BkgMassRange_FULL_Cut"]  + "&&" + "(2.0 < invMass && invMass < 3.5)";
-      parIni["BkgMassRange_PSI2S_Cut"] = parIni["BkgMassRange_FULL_Cut"] + "&&" + "(3.4 < invMass && invMass < 5.0)";
       parIni["BkgMassRange_FULL_Cut"]  = "("+parIni["BkgMassRange_FULL_Cut"]+")";
       parIni["BkgMassRange_JPSI_Cut"]  = "("+parIni["BkgMassRange_JPSI_Cut"]+")";
-      parIni["BkgMassRange_PSI2S_Cut"] = "("+parIni["BkgMassRange_PSI2S_Cut"]+")";
     }
   }
 

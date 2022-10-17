@@ -180,8 +180,7 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
               ROOT::Math::PtEtaPhiMVector v12_part = v1_part + v2_part;
 //        mass->setVal(v12_part.M());
         mass->setVal(fMass);
-//	cout << "DMass=" << std::abs(v12_part.M()-fMass) << endl;
-//
+
 /*        if (theTree->GetBranch("Reco_QQ_ctau3D")) { ctau->setVal(Reco_QQ_ctau3D[iQQ]); }
         else if (theTree->GetBranch("Reco_QQ_ctau")) { ctau->setVal(Reco_QQ_ctau[iQQ]); }
         else { cout << "[ERROR] No ctau information found in the Onia Tree" << endl; }
@@ -189,20 +188,17 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
         else if (theTree->GetBranch("Reco_QQ_ctauErr")) { ctauErr->setVal(Reco_QQ_ctauErr[iQQ]); }
         else { cout << "[ERROR] No ctauErr information found in the Onia Tree" << endl; }
 */        
-//        ctauN->setVal(ctau->getVal()/ctauErr->getVal());
-        float ct= fTauz*299792458.e-7*1e1;
-        float ctErr= fTauzErr*299792458.e-7*1e1;
+
+        float ct= fTauz*299792458.e-7*10.;
+	float ctErr= fTauzErr*299792458.e-7*10.;
 	ctau->setVal(ct);
 	ctauErr->setVal(ctErr);
         ctauN->setVal(ctau->getVal()/ctauErr->getVal());
 	ROOT::Math::PtEtaPhiMVector v12(fPt, fEta, fPhi, fMass);
         
-//        ptQQ->setVal(RecoQQ4mom->Pt());
         ptQQ->setVal(fPt);
-//        rapQQ->setVal(RecoQQ4mom->Rapidity());
         rapQQ->setVal(v12.Rapidity());
-//        cent->setVal(Centrality*CentFactor);
-        if (isMC) {
+        if (isMC && fMcDecision) {
 //          if (theTree->GetBranch("Reco_QQ_ctauTrue3D")) { ctauTrue->setVal(Reco_QQ_ctauTrue3D[iQQ]); }
 //          else if (theTree->GetBranch("Reco_QQ_ctauTrue")) { ctauTrue->setVal(Reco_QQ_ctauTrue[iQQ]); }
 //          else { cout << "[ERROR] No ctauTrue information found in the Onia Tree" << endl; }
@@ -215,8 +211,12 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
 
 
           ctauTrue->setVal((Tauz1MC+Tauz2MC)/2);
+//          cout << "!!!!![DEBUG]!!!!! ctauTrue = " << ctauTrue->getVal() << endl;;
           ctauNRes->setVal( (ctau->getValV() - ctauTrue->getValV())/(ctauErr->getValV()) );
           ctauRes->setVal( (ctau->getValV() - ctauTrue->getValV()) );
+          ptQQ->setVal(v12MC.Pt());
+          rapQQ->setVal(v12MC.Rapidity());
+
         }
 
 
@@ -227,18 +227,10 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
           weightCorr->setVal(wCorr);
         }
         
-/*        if (
-            ( RecoQQ::areMuonsInAcceptance2015(0) ) &&  // 2015 Global Muon Acceptance Cuts
-            ( RecoQQ::passQualityCuts2015(0)      ) &&  // 2015 Soft Global Muon Quality Cuts
-            ( isPbPb ? (RecoQQ::isTriggerMatch(0,triggerIndex_PbPb) || (usePeriPD ? RecoQQ::isTriggerMatch(0,HI::HLT_HIL1DoubleMu0_2HF0_Cent30100_v1) : (RecoQQ::isTriggerMatch(0,HI::HLT_HIL1DoubleMu0_2HF_v1) || RecoQQ::isTriggerMatch(0,HI::HLT_HIL1DoubleMu0_2HF0_v1)))) :
-              RecoQQ::isTriggerMatch(0, triggerIndex_PP) )     // if PbPb && !periPD then (HLT_HIL1DoubleMu0_v1 || HLT_HIL1DoubleMu0_2HF_v1)
-            )*/
-	if (!(fMcMask1 & (0x1 << 7)) && !(fMcMask2 & (0x1 << 7))){
+	if (fTauzErr>0 && !isnan(fTauzErr) && !(fMcMask1 & (0x1 << 7)) && !(fMcMask2 & (0x1 << 7))){
 //	if (!(fMcMask1 & (0x1 << 7)) && !(fMcMask2 & (0x1 << 7)) && fMcDecision){
 //	if (fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fChi2MatchMCHMFT1 < 5 && fChi2MatchMCHMFT2 < 5){
-//	if (fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6){
 //	if (fMcDecision && fPt1 > 1. && fPt2 > 1.){
-//	if (fMcDecision){
           if (fSign==0) { // Opposite-Sign dimuons
             if (isMC && isPureSDataset && isMatchedRecoDiMuon(0)) dataOSNoBkg->add(*cols, (applyWeight ? weight->getVal() : 1.0)); // Signal-only dimuons
             else if (applyWeight_Corr) dataOS->add(*cols,weightCorr->getVal()); //Signal and background dimuons

@@ -50,20 +50,30 @@ bool buildCharmoniaCtauResModel(RooWorkspace& ws, struct CharmModel model, map<s
     ws.factory(Form("SUM::%s(%s)", Form("%s_%s_%s", pdfType.c_str(), obj.c_str(), "PP"),
                     Form("%sCOND_%s_%s", pdfType.c_str(), obj.c_str(), "PP")
                     ));
+    cout << "!!!!![DEBUG]!!!!! " << Form("SUM::%s(%s)", Form("%s_%s_%s", pdfType.c_str(), obj.c_str(), "PP"),
+                    Form("%sCOND_%s_%s", pdfType.c_str(), obj.c_str(), "PP")
+                    ) << endl;
   }
   if ( !ws.var(Form("N_%s_%s", obj.c_str(), "PP")) ){ 
     ws.factory( parIni[Form("N_%s_%s", obj.c_str(), "PP")].c_str() ); 
+    cout << "!!!!![DEBUG]!!!!! N_JPSI_PP : " << parIni[Form("N_%s_%s", obj.c_str(), "PP")].c_str() << endl;
   }
   ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_%s_%s", pdfType.c_str(), obj.c_str(), "PP"),
                   Form("%s_%s_%s", pdfType.c_str(), obj.c_str(), "PP"),
                   Form("N_%s_%s", obj.c_str(), "PP")
                   ));
+	cout << "!!!![DEBUG]!!!!! " << Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_%s_%s", pdfType.c_str(), obj.c_str(), "PP"),
+                  Form("%s_%s_%s", pdfType.c_str(), obj.c_str(), "PP"),
+                  Form("N_%s_%s", obj.c_str(), "PP")
+                  ) << endl;
   
   // Total PDF
   RooAbsPdf *themodel = themodel = new RooAddPdf(Form("%s_Tot_%s", pdfType.c_str(), "PP"), Form("%s_Tot_%s", pdfType.c_str(), "PP"),
                                                  *ws.pdf(Form("%s_%s_%s", pdfType.c_str(), obj.c_str(), "PP")),
                                                  *ws.var(Form("N_%s_%s", obj.c_str(), "PP"))
                                                  );
+  cout << "!!!![DEBUG]!!!! total model pdf : " << Form("%s_Tot_%s", pdfType.c_str(), "PP") << " " <<  Form("%s_Tot_%s", pdfType.c_str(), "PP") << " " << Form("%s_%s_%s", pdfType.c_str(), obj.c_str(), "PP")
+                                                 << " " << Form("N_%s_%s", obj.c_str(), "PP") << endl;
   ws.import(*themodel);
   setFixedVarsToContantVars(ws);
   
@@ -103,7 +113,13 @@ bool defineCtauResModel(RooWorkspace& ws, string pdfType, string object, string 
                       (usePerEventError?"ctauErr":"One")
  		      ));
       
-      cout << Form("[INFO] %s Single Gaussian Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl; break;
+      cout << Form("[INFO] %s Single Gaussian Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl;
+	cout << "!!!![DEBUG]!!!! PDF created : " << Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%sCOND_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+                      Form("ctau1_CtauRes_%s", "PP"),
+                      Form("s1_CtauRes_%s", "PP"),
+                      (usePerEventError?"ctauErr":"One")
+                      ) << endl;
+		break;
 
     case (CtauModel::DoubleGaussianResolution):  
 
@@ -291,9 +307,9 @@ bool defineCtauResModel(RooWorkspace& ws, string pdfType, string object, string 
 void setCtauResDefaultParameters(map<string, string> &parIni, double numEntries)
 {
   // DEFAULT RANGE OF NUMBER OF EVENTS
-  if (parIni.count(Form("N_Jpsi_%s", "PP"))==0 || parIni[Form("N_Jpsi_%s", "PP")]=="") { 
-    parIni[Form("N_Jpsi_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Jpsi_%s", "PP"), numEntries, 0.0, numEntries*2.0);
-  }
+//  if (parIni.count(Form("N_Jpsi_%s", "PP"))==0 || parIni[Form("N_Jpsi_%s", "PP")]=="") { 
+    parIni[Form("N_Jpsi_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Jpsi_%s", "PP"), 1000., 0.0, numEntries);
+//  }
 
  // CTAU FIT PARAMETERS
 
@@ -320,7 +336,7 @@ void setCtauResDefaultParameters(map<string, string> &parIni, double numEntries)
     parIni[Form("ctau4_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau4_CtauRes_%s", "PP"), 0.0, -1.0, 1.0);
   }
   if (parIni.count(Form("s1_CtauRes_%s", "PP"))==0 || parIni[Form("s1_CtauRes_%s", "PP")]=="") { 
-    parIni[Form("s1_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("s1_CtauRes_%s", "PP"), 1.0, 0.01, 4.0);
+    parIni[Form("s1_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("s1_CtauRes_%s", "PP"), 5.0, 0.01, 100.0);
   }
   if (parIni.count(Form("rS21_CtauRes_%s", "PP"))==0 || parIni[Form("rS21_CtauRes_%s", "PP")]=="") {
       parIni[Form("rS21_CtauRes_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("rS21_CtauRes_%s", "PP"), 1.5, 1.0, 10.0);

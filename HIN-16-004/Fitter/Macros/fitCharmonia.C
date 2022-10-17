@@ -4,6 +4,7 @@
 #include "Utilities/initClasses.h"
 #include "fitCharmoniaMassModel.C"
 #include "fitCharmoniaCtauModel.C"
+#include "fitCharmoniaCtauModel_test.C"
 #include "fitCharmoniaCtauErrModel.C"
 #include "fitCharmoniaCtauTrueModel.C"
 #include "fitCharmoniaCtauRecoModel.C"
@@ -166,7 +167,7 @@ bool fitCharmonia( const RooWorkspace&  inputWorkspace,  // Workspace with all t
     bool importDS = true;    
     bool useSPlot = true;
     cout << "Fit ctau model" << endl;
-    if ( !fitCharmoniaCtauModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
+    if ( !fitCharmoniaCtauModel_test( myws, inputWorkspace, cut, parIni, opt, outputDir, 
                                  DSTAG, importDS, 
                                  incJpsi, incBkg, incPrompt, incNonPrompt, useTotctauErrPdf, usectauBkgTemplate,
                                  useSPlot, doFit, wantPureSMC, loadFitResult, inputFitDir, numCores, 

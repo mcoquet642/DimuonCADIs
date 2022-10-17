@@ -37,7 +37,7 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
   string pdfName     = "pdfCTAU";
   if (fitMass) { pdfName = "pdfCTAUMASS"; }
   bool isMC = (dsName.find("MC")!=std::string::npos);
-  bool incCtauErrPDF = false;
+  bool incCtauErrPDF = true;
   
   
   if (incJpsi) {
@@ -50,7 +50,8 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
     }
     if (incPrompt && !incNonPrompt) {
       if (incCtauErrPDF) {
-        RooProdPdf pdfJpsi(Form("pdfCTAU_JpsiPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), "PP")),
+//        RooProdPdf pdfJpsi(Form("pdfCTAU_JpsiPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), "PP")),
+        RooProdPdf pdfJpsi("pdfCTAU_JpsiPR_PP", "", *ws.pdf("pdfCTAUERR_Jpsi_PP"),
                        Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                        ); 
         ws.import(pdfJpsi);
@@ -94,7 +95,8 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
     }
     if (incPrompt && incNonPrompt) {
       if (incCtauErrPDF) {
-        RooProdPdf pdfJpsiPR(Form("pdfCTAU_JpsiPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), "PP")),
+//        RooProdPdf pdfJpsiPR(Form("pdfCTAU_JpsiPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Jpsi_%s"), "PP")),
+        RooProdPdf pdfJpsiPR("pdfCTAU_JpsiPR_PP", "", *ws.pdf("pdfCTAUERR_Jpsi_PP"),
                              Conditional( *ws.pdf(Form("pdfCTAUCOND_JpsiPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                              );
         ws.import(pdfJpsiPR);
@@ -152,9 +154,11 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
     {
       if(!defineCtauResolModel(ws, "Bkg", model.CtauRes, parIni)) { cout << "[ERROR] Defining the Prompt Ctau Resolution Model failed" << endl; return false; }
       if (incPrompt) {
+	cout << "Adding prompt component" << endl;
         if(!addBackgroundCtauModel(ws, "BkgPR", model.Bkg.Ctau.Prompt, parIni)) { cout << "[ERROR] Adding Prompt Bkg Ctau Model failed" << endl; return false; }
       }
       if (incNonPrompt) {
+	cout << "Adding nonprompt component" << endl;
         if(!addBackgroundCtauModel(ws, "BkgNoPR", model.Bkg.Ctau.NonPrompt, parIni)) { cout << "[ERROR] Adding NonPrompt Bkg Ctau Model failed" << endl; return false; }
       }
       if (incPrompt && !incNonPrompt) {
@@ -194,7 +198,9 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
                         ));
       }
       if (incPrompt && incNonPrompt) {
+	cout << "Adding prompt+nonprompt component" << endl;
         if (incCtauErrPDF) {
+	cout << "include ctau error" << endl;
           if ( !ws.pdf(Form("pdfCTAUERR_Bkg_%s", "PP")) ) { return false; }
           RooProdPdf pdfPR(Form("pdfCTAU_BkgPR_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), "PP")),
                            Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
@@ -204,16 +210,27 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
                              Conditional( *ws.pdf(Form("pdfCTAUCOND_BkgNoPR_%s", "PP")), RooArgList(*ws.var("ctau")) )
                              );
           ws.import(pdfNoPR);
-        }
+        }else{
+        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_BkgPR_%s", "PP"),
+                        Form("pdfCTAUCOND_BkgPR_%s", "PP")
+                        ));
+        ws.factory(Form("SUM::%s(%s)", Form("pdfCTAU_BkgNoPR_%s", "PP"),
+                        Form("pdfCTAUCOND_BkgNoPR_%s", "PP")
+                        ));
+	}
+	cout << "Defining b" << endl;
         ws.factory( parIni[Form("b_Bkg_%s", "PP")].c_str() );
         if (incCtauErrPDF) {
+	cout << "include ctau error2" << endl;
           ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU_Bkg_%s", "PP"),
                           Form("b_Bkg_%s", "PP"),
                           Form("pdfCTAU_BkgNoPR_%s", "PP"),
                           Form("pdfCTAU_BkgPR_%s", "PP")
                           ));
         } else {
-          ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_Bkg_%s", "PP"),
+	cout << "Not include ctau error" << endl;
+//          ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_Bkg_%s", "PP"),
+          ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU_Bkg_%s", "PP"),
                           Form("b_Bkg_%s", "PP"),
                           Form("pdfCTAUCOND_BkgNoPR_%s", "PP"),
                           Form("pdfCTAUCOND_BkgPR_%s", "PP")
@@ -223,18 +240,22 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
     }
     else if (!fitMass)
     {
+	cout << "Not fitting mass" << endl;
       if (usectauBkgTemplate) {
         if (incPrompt && incNonPrompt ) { if( !createCtauBkgTemplate(ws, dsName, "pdfCTAUCOND", cut, incJpsi, binWidth)) {cout << "[ERROR] Creating the Bkg Ctau Template failed" << endl; return false;}}
         else {cout << "[ERROR] To create the Bkg Ctau Template we need to activate prompt and nonpromt Jpsi" << endl; return false;}
       }
       if ( !ws.pdf(Form("pdfCTAUERR_Bkg_%s", "PP")) ) { return false; }
+	cout << "Defining prod pdf" << endl;
       RooProdPdf pdf(Form("pdfCTAU_Bkg_%s", "PP"), "", *ws.pdf(Form((useTotctauErrPdf?"pdfCTAUERRTot_Tot_%s":"pdfCTAUERR_Bkg_%s"), "PP")),
                      Conditional( *ws.pdf(Form("pdfCTAUCOND_Bkg_%s", "PP")), RooArgList(*ws.var("ctau")) )
                        );
       ws.import(pdf);
     }
     if ( fitMass && ws.pdf(Form("pdfMASS_Bkg_%s", "PP")) ){
+	cout << "Fitting mass with existing var " << Form("pdfMASS_Bkg_%s", "PP") << endl;
       if (!usectauBkgTemplate) {
+	cout << "not use ctau bkg template" << endl;
         ws.factory(Form("PROD::%s(%s, %s)", Form("pdfCTAUMASS_BkgPR_%s", "PP"),
                         Form("%s_BkgPR_%s", (incCtauErrPDF ? "pdfCTAU" : "pdfCTAUCOND"), "PP"),
                         Form("pdfMASS_Bkg_%s","PP")
@@ -261,6 +282,7 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
       }
     }
     if ( !ws.var(Form("N_Bkg_%s", "PP")) ){ ws.factory( parIni[Form("N_Bkg_%s", "PP")].c_str() ); } 
+	cout << "Defining tot extend pdf" << endl;
     ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("%sTot_Bkg_%s", pdfName.c_str(), "PP"),
                     Form("%s_Bkg_%s", pdfName.c_str(), "PP"),
                     Form("N_Bkg_%s", "PP")
@@ -299,6 +321,9 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
                              );
   }
   if (!incJpsi && incBkg) {
+	cout << "Include only Bkg" << endl;
+	cout << "Adding pdfs : " << Form("%s_Tot_%s", pdfName.c_str(), "PP") << ", " << Form("%s_Tot_%s", pdfName.c_str(), "PP") << endl;
+ 	cout << "W/ arg lists " << Form("%s_Bkg%s_%s", pdfName.c_str(), tag.c_str(), "PP") << "; " << Form("N_Bkg_%s", "PP") << endl;
     themodel = new RooAddPdf(Form("%s_Tot_%s", pdfName.c_str(), "PP"), Form("%s_Tot_%s", pdfName.c_str(), "PP"), 
                              RooArgList( 
                                         *ws.pdf(Form("%s_Bkg%s_%s", pdfName.c_str(), tag.c_str(), "PP"))
@@ -561,6 +586,28 @@ bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, ma
 
   switch(model) 
     {  
+    case (CtauModel::SingleSidedDecay): 
+
+      if (!( 
+            parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), "PP")) 
+             )) { 
+ 	cout << Form("[ERROR] Initial parameters where not found for %s Signal Single Sided Decay Ctau Model in %s", object.c_str(), "PP") << endl; return false; 
+      }
+      
+      // create the variables for this model 
+      if ( !ws.var(Form("N_%s_%s", objectInc.c_str(), "PP")) ){ 
+        ws.factory( parIni[Form("N_%s_%s", objectInc.c_str(), "PP")].c_str() ); 
+      }
+      ws.factory( parIni[Form("lambdaDSS_%s_%s", object.c_str(), "PP")].c_str() ); 
+            
+      // create the PDF
+      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"), "ctau", 
+ 		      Form("lambdaDSS_%s_%s", object.c_str(), "PP"),
+ 		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
+ 		      ));
+ 
+      cout << Form("[INFO] %s Signal Single Sided Decay Ctau PDF in %s included", object.c_str(), "PP") << endl; break; 
+
     case (CtauModel::TripleDecay): 
       if (!( 
             parIni.count(Form("lambdaDSS_%s_%s", object.c_str(), "PP")) && 
@@ -597,16 +644,17 @@ bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, ma
  		      ));
 
       // combine the three PDFs
-      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU1_%s_%s", object.c_str(), "PP"), 
+//      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU1_%s_%s", object.c_str(), "PP"), 
+      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"), 
  		      Form("fDFSS_%s_%s", object.c_str(), "PP"),
  		      Form("pdfCTAUDSS_%s_%s", object.c_str(), "PP"),
  		      Form("pdfCTAUDF_%s_%s", object.c_str(), "PP")
  		      ));
-      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"), 
+/*      ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_%s_%s", object.c_str(), "PP"), 
  		      Form("fDLIV_%s_%s", object.c_str(), "PP"),
  		      Form("pdfCTAU1_%s_%s", object.c_str(), "PP"),
  		      Form("pdfCTAUDDS_%s_%s", object.c_str(), "PP")
- 		      ));
+ 		      ));*/
  
       cout << Form("[INFO] %s Background Triple Decay Ctau PDF in %s included", object.c_str(), "PP") << endl; break;
         
@@ -773,7 +821,7 @@ void setCtauDefaultParameters(map<string, string> &parIni, double numEntries)
     parIni[Form("N_Bkg_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Bkg_%s", "PP"), numEntries, 0.0, numEntries*2.0);
   }
   if (parIni.count(Form("b_Jpsi_%s", "PP"))==0 || parIni[Form("b_Jpsi_%s", "PP")]=="") { 
-    parIni[Form("b_Jpsi_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Jpsi_%s", "PP"), 0.2, 0.0, 1.0);
+    parIni[Form("b_Jpsi_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Jpsi_%s", "PP"), 0.1, 0.05, 0.8);
   }
   if (parIni.count(Form("b_Bkg_%s", "PP"))==0 || parIni[Form("b_Bkg_%s", "PP")]=="") { 
     parIni[Form("b_Bkg_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Bkg_%s", "PP"), 0.2, 0.0, 1.0);
@@ -851,7 +899,7 @@ void setCtauDefaultParameters(map<string, string> &parIni, double numEntries)
     parIni[Form("f_BkgNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("f_BkgNoPR_%s", "PP"), 0.3, 0., 1.);
   }
   if (parIni.count(Form("fDFSS_BkgNoPR_%s", "PP"))==0 || parIni[Form("fDFSS_BkgNoPR_%s", "PP")]=="") { 
-    parIni[Form("fDFSS_BkgNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS_BkgNoPR_%s", "PP"), 0.8, 0., 1.);
+    parIni[Form("fDFSS_BkgNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS_BkgNoPR_%s", "PP"), 0.5, 0., 0.65);
   }
   if (parIni.count(Form("fDFSS2_BkgNoPR_%s", "PP"))==0 || parIni[Form("fDFSS2_BkgNoPR_%s", "PP")]=="") {
     parIni[Form("fDFSS2_BkgNoPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("fDFSS2_BkgNoPR_%s", "PP"), 0.8, 0., 1.);
@@ -866,10 +914,10 @@ void setCtauDefaultParameters(map<string, string> &parIni, double numEntries)
     parIni[Form("lambdaDSS2_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDSS2_BkgNoPR_%s", "PP"), 0.45, 0.0001, 5.0);
   }
   if (parIni.count(Form("lambdaDF_BkgNoPR_%s", "PP"))==0 || parIni[Form("lambdaDF_BkgNoPR_%s", "PP")]=="") {
-    parIni[Form("lambdaDF_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDF_BkgNoPR_%s", "PP"), 0.30, 0.00001, 5.0);
+    parIni[Form("lambdaDF_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDF_BkgNoPR_%s", "PP"), 0.45, 0.00001, 5.0);
   }
   if (parIni.count(Form("lambdaDDS_BkgNoPR_%s", "PP"))==0 || parIni[Form("lambdaDDS_BkgNoPR_%s", "PP")]=="") { 
-    parIni[Form("lambdaDDS_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDDS_BkgNoPR_%s", "PP"), 0.06, 0.0001, 5.0);
+    parIni[Form("lambdaDDS_BkgNoPR_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDDS_BkgNoPR_%s", "PP"), 0.45, 0.0001, 5.0);
   }
   if (parIni.count(Form("f_BkgPR_%s", "PP"))==0 || parIni[Form("f_BkgPR_%s", "PP")]=="") { 
     parIni[Form("f_BkgPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("f_BkgPR_%s", "PP"), 0.3, 0., 1.);

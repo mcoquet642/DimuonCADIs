@@ -50,8 +50,8 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
   string obj = "";
   if (incJpsi) obj = "Jpsi";
 
-  double minRange = -10.0;
-  double maxRange = 10.0;
+  double minRange = -50.0;
+  double maxRange = 50.0;
   Double_t outTot = myws.data(dsOSName.c_str())->numEntries();
   Double_t outErr = myws.data(dsOSName.c_str())->reduce(Form("(ctauNRes>%.6f || ctauNRes<%.6f)", range[1], range[0]))->numEntries();
   int nBins = min(int( round((maxRange - minRange)/binWidth) ), 1000);

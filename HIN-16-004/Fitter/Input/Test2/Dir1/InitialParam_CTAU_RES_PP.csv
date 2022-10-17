@@ -1,0 +1,2 @@
+mass;rap;pt;Model_CtauRes_PP;ctauResCut;N_Jpsi_PP;s1_CtauRes_PP;rS21_CtauRes_PP;
+2.0-4.0;2.5-4.0;0.0-30.0;SingleGaussianResolution;;[1000.,0.,10000.];[0.5,0.1,5.];[5.,4.,10.];

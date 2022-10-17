@@ -40,8 +40,8 @@ bool drawCtauResDataPlot(RooWorkspace& myws,   // Local workspace
   string obj = "Bkg";
   if (incJpsi) obj = "Jpsi";
  
-  double minRange = -10.0;
-  double maxRange = 10.0;
+  double minRange = -50.0;
+  double maxRange = 50.0;
   Double_t outTot = myws.data(dsName.c_str())->numEntries();
   Double_t outErr = outTot - (myws.data(dsNameCut.c_str())->numEntries());
   if (outErr<0) { cout << "[ERROR] Number of events is smaller after ctau cut: Total " << outTot << " and cutted " << (myws.data(dsNameCut.c_str())->numEntries()) << endl; return false; }

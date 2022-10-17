@@ -1,5 +1,5 @@
-mass;rap;pt;cent;Model_JpsiNoPR_PP;
-2.0-4.0;2.5-4.0;0.0-30.0;0.0-100.0;SingleSidedDecay;
-2.0-4.0;2.5-4.0;0.0-5.0;0.0-100.0;SingleSidedDecay;
-2.0-4.0;2.5-4.0;5.0-10.0;0.0-100.0;SingleSidedDecay;
-2.0-4.0;2.5-4.0;10.0-30.0;0.0-100.0;SingleSidedDecay;
+mass;rap;pt;Model_JpsiNoPR_PP;
+2.0-4.0;2.5-4.0;0.0-30.0;SingleSidedDecay;
+2.0-4.0;2.5-4.0;0.0-5.0;SingleSidedDecay;
+2.0-4.0;2.5-4.0;5.0-10.0;SingleSidedDecay;
+2.0-4.0;2.5-4.0;10.0-30.0;SingleSidedDecay;

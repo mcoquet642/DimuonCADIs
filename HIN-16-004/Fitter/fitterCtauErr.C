@@ -1,9 +1,10 @@
 #include "Macros/Utilities/initClasses.h"
 #include "Macros/Utilities/RooExtCBShape.h"
 #include "Macros/tree2DataSet.C"
-#include "Macros/fitCharmonia.C"
+#include "Macros/fitCharmoniaMassModel.C"
+#include "Macros/buildCharmoniaCtauErrModel.C"
+#include "Macros/drawCtauErrorPlot.C"
 
-bool checkSettings(bool fitData, bool fitMC, bool fitMass, bool fitCtau, bool fitCtauTrue, bool fitCtauReco, bool fitRes, bool doCtauErrPDF, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt, bool cutCtau, bool doConstrFit, bool wantPureSMC, const char* applyCorr, bool setLogScale, bool incSS, int numCores);
 
 bool parseFile(string FileName, vector< map<string, string> >& data);
 bool parseString(string input, string delimiter, vector<double>& output);
@@ -16,33 +17,23 @@ bool getInputFileNames(const string InputTrees, map<string, vector<string> >& In
 bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, string>& parIni, bool doConstrFit);
 bool addParameters(string InputFile,  vector< struct KinCuts >& cutVector, vector< map<string, string> >&  parIniVector, bool doConstrFit);
 
+void setCtauErrCutParameters(struct KinCuts& cut);
+bool isCtauErrPdfAlreadyFound(RooWorkspace& myws, string FileName, vector<string> pdfNames, bool loadCtauErrPdf=false);
+void setCtauErrFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool cutSideBand);
+void setCtauErrGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, string label, double binWidth, bool useForCtauFits=false);
+void reNormMassVar( RooWorkspace& myws, string obj);
 
-void fitter(
+
+
+void fitterCtauErr(
             const string workDirName="Test", // Working directoryi
-            bool useExtFiles  = true, // Use external fit files as input
-            bool useExtDS     = false, // Use external data/mc DataSets
-            bool usePeriPD    = false, // If yes, use the PERIPHERAL PD provided by the user
-            // Select the type of datasets to fit
-            bool fitData      = true,        // Fits Data datasets
-            bool fitMC        = false,         // Fits MC datasets
-            bool fitMass      = true,       // Fits invariant mass distribution
-            bool fitCtau      = true,       // Fits ctau distribution
-            bool fitCtauTrue  = false,         // Fits ctau true MC distribution
-            bool fitCtauReco  = false,      // Fit ctau reco MC distribution
-            bool doCtauErrPDF = false,         // If yes, it builds the Ctau Error PDFs from data
-            bool fitRes       = false,         // If yes fits the resolution from Data or MC
-            // Select the type of object to fit
             bool incJpsi      = true,          // Includes Jpsi model
             bool incBkg       = true,         // Includes Background model
             bool incPrompt    = true,         // Includes Prompt ctau model
             bool incNonPrompt = true,          // Includes Non Prompt ctau model 
             // Select the fitting options
-            bool useTotctauErrPdf = false,  // If yes use the total ctauErr PDF instead of Jpsi and bkg ones
-            bool usectauBkgTemplate = true,// If yes use a template for Bkg ctau instead of the fitted Pdf
-            bool useCtauRecoPdf = false,     // If yes use the ctauReco PDF (template) instead of ctauTrue one
             bool cutCtau      = false,        // Apply prompt ctau cuts
             bool doConstrFit   = false,        // Do constrained fit
-            bool wantPureSMC  = false,        // Flag to indicate if we want to fit pure signal MC
             const char* applyCorr  = "",     // Apply weight to data for correction (Acceptance & Ef , l_J/psi eff...). No correction if empty variable.
             int  numCores     = 32,           // Number of cores used for fitting
             // Select the drawing options
@@ -75,80 +66,22 @@ void fitter(
   binWidth["CTAURES"]  = 0.25;
   binWidth["CTAUSB"]   = 0.0150;
 
-  if (workDirName.find("Peri")!=std::string::npos) { usePeriPD = true; }
 
   map<string, string> inputFitDir;
-  inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_nominal/" : "DataFitsMassCent_2CB_polBkg_nominal/");
-  //inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_minvRange/" : "DataFitsMassCent_2CB_polBkg_minvRange/");
-  //inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_LLR10/" : "DataFitsMassCent_2CB_polBkg_LLR10/");
-  //inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_LLR25/" : "DataFitsMassCent_2CB_polBkg_LLR25/");
-  //inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_constrained/" : "DataFitsMassCent_2CB_polBkg_constrained/");
-  //inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_expBkg/" : "DataFitsMassCent_2CB_expBkg/");
-  //inputFitDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/MassFits/") + (usePeriPD ? "DataFitsMassPeri_CBG_polBkg/" : "DataFitsMassCent_CBG_polBkg/");
-  
-  inputFitDir["CTAUERR"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauErrFits/") + (usePeriPD ? "DataFitsPeri_ctauErr_nominal/" :  "DataFitsCent_ctauErr_nominal/");
-  inputFitDir["CTAUTRUE"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauTrueFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauTrue/" :  "MCFitsCent_nonPrompt_ctauTrue/");
-  inputFitDir["CTAURECO"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauRecoFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauReco/" :  "MCFitsCent_nonPrompt_ctauReco/");
-  
-  inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauResFits/") + (usePeriPD ? "DataFitsPeri_ctauRes_nominalErr/" :  "DataFitsCent_ctauRes_nominalErr/");
-  //inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauResFits/") + (usePeriPD ? "MCFitsPeri_prompt_ctauRes/" :  "MCFitsCent_prompt_ctauRes/");
-  //inputFitDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauResFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauRes/" :  "MCFitsCent_nonPrompt_ctauRes/");  
-  
-  inputFitDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_dataCTauRes/" : "DataFitsCent_ctauBkg_dataCTauRes/");
-  //inputFitDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_promptCTauRes/" : "DataFitsCent_ctauBkg_promptCTauRes/");
-  //inputFitDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Output/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_nonPromptCTauRes/" : "DataFitsCent_ctauBkg_nonPromptCTauRes/");  
-
-  map<string, string> inputInitialFilesDir;
-  inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_nominal/" :  "DataFitsMassCent_2CB_polBkg_nominal/");
-  //inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_minvRange/" : "DataFitsMassCent_2CB_polBkg_minvRange/");
-  //inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_LLR10/" : "DataFitsMassCent_2CB_polBkg_LLR10/");
-  //inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_LLR25/" : "DataFitsMassCent_2CB_polBkg_LLR25/");
-  //inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_constrained/" : "DataFitsMassCent_2CB_polBkg_constrained/");
-  //inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_expBkg/" : "DataFitsMassCent_2CB_expBkg/");
-  //inputInitialFilesDir["MASS"]     = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_CBG_polBkg/" : "DataFitsMassCent_CBG_polBkg/");
-  
-  inputInitialFilesDir["CTAUTRUE"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauTrueFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauTrue/" :  "MCFitsCent_nonPrompt_ctauTrue/");
-  //inputInitialFilesDir["CTAUTRUE"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauTrueFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauTrue_minvRange/" :  "MCFitsCent_nonPrompt_ctauTrue_minvRange/");  
-
-  inputInitialFilesDir["CTAURECO"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauRecoFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauReco/" :  "MCFitsCent_nonPrompt_ctauReco/");
-  //inputInitialFilesDir["CTAURECO"] = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauRecoFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauReco_minvRange/" :  "MCFitsCent_nonPrompt_ctauReco_minvRange/");  
-
-  inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "DataFitsPeri_ctauRes_nominalErr/" :  "DataFitsCent_ctauRes_nominalErr/");
-  //inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "MCFitsPeri_prompt_ctauRes/" :  "MCFitsCent_prompt_ctauRes/");
-  //inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "MCFitsPeri_nonPrompt_ctauRes/" :  "MCFitsCent_nonPrompt_ctauRes/");  
-  //inputInitialFilesDir["CTAURES"]  = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauResFits/") + (usePeriPD ? "DataFitsPeri_ctauRes_nominalErr_minvRange/" :  "DataFitsCent_ctauRes_nominalErr_minvRange/");  
-
-//  inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_dataCTauRes/" :  "DataFitsCent_ctauBkg_dataCTauRes/");
-  //inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_promptCTauRes/" : "DataFitsCent_ctauBkg_promptCTauRes/");
-  //inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_nonPromptCTauRes/" : "DataFitsCent_ctauBkg_nonPromptCTauRes/");
-  //inputInitialFilesDir["CTAUSB"]   = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/CtauBkgFits/") + (usePeriPD ? "DataFitsPeri_ctauBkg_dataCTauRes_minvRange/" :  "DataFitsCent_ctauBkg_dataCTauRes_minvRange/");  
-
-  inputInitialFilesDir["CTAU"]     = string("");//string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsPeri_2D_nominal/" :  "DataFitsCent_2D_nominal/");
-  inputInitialFilesDir["CTAURES"]     = string("");//string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsPeri_2D_nominal/" :  "DataFitsCent_2D_nominal/");
-  inputInitialFilesDir["CTAUSB"]     = string("");//string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/") + (usePeriPD ? "DataFitsPeri_2D_nominal/" :  "DataFitsCent_2D_nominal/");
-  inputInitialFilesDir["FILES"]    = string("/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/Input/MassFits/") + (usePeriPD ? "DataFitsMassPeri_2CB_polBkg_nominal/" : "DataFitsMassCent_2CB_polBkg_nominal/");
-  
-  
   map<string, string> inputDataSet;
-  inputDataSet["DOUBLEMUON"] = "/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/DataSets/";
-  inputDataSet["PERIPHERAL"] = "/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/DataSets/";
-  inputDataSet["MONTECARLO"] = "/afs/cern.ch/work/j/jmartinb/public/JpsiRAA/DataSets/";
+  map<string, string> inputInitialFilesDir;
 
-  if (workDirName.find("Peri")!=std::string::npos) { usePeriPD = true; }
 
   bool fitTest = (workDirName=="Test");
-  if (doCtauErrPDF || fitTest) { inputFitDir["CTAUERR"] = ""; inputInitialFilesDir["CTAUERR"] = "";}
-  if ((fitMass && !fitCtau) || fitTest) { inputFitDir["MASS"] = ""; inputInitialFilesDir["MASS"] = "";}
-  if (fitCtauTrue || fitTest) { inputFitDir["CTAUTRUE"] = ""; inputInitialFilesDir["CTAUTRUE"] = ""; }
-  if (fitCtauReco || fitTest) { inputFitDir["CTAURECO"] = ""; inputInitialFilesDir["CTAURECO"] = ""; }
-  if (fitRes || fitTest) { inputFitDir["CTAURES"] = ""; inputInitialFilesDir["CTAURES"] = ""; }
-  if ((fitCtau && fitData && incBkg && !incJpsi) || fitTest) { inputFitDir["CTAUSB"] = ""; inputInitialFilesDir["CTAUSB"] = ""; }
   inputFitDir["MASS"] = ""; inputInitialFilesDir["MASS"] = "";
   inputFitDir["CTAUERR"] = ""; inputInitialFilesDir["CTAUERR"] = "";
+  inputFitDir["CTAURES"] = ""; inputInitialFilesDir["CTAURES"] = "";
+  inputFitDir["CTAURECO"] = ""; inputInitialFilesDir["CTAURECO"] = "";
+  inputFitDir["CTAU"] = ""; inputInitialFilesDir["CTAU"] = "";
   inputFitDir["CTAUSB"] = ""; inputInitialFilesDir["CTAUSB"] = "";
+  inputFitDir["CTAUTRUE"] = ""; inputInitialFilesDir["CTAUTRUE"] = "";
   
 
-  if (!checkSettings(fitData, fitMC, fitMass, fitCtau, fitCtauTrue, fitCtauReco, fitRes, doCtauErrPDF, incJpsi, incBkg, incPrompt, incNonPrompt, cutCtau, doConstrFit, wantPureSMC, applyCorr, setLogScale, incSS, numCores)) { return; }
 
   map< string, vector<string> > DIR;
   if(!iniWorkEnv(DIR, workDirName)){ return; }
@@ -188,7 +121,8 @@ void fitter(
     Output: Collection of RooDataSets splitted by tag name, including OS and SS dimuons.
   */
   
-  const string InputTrees = (useExtDS ? inputInitialFilesDir["FILES"] : DIR["input"][0]) + "InputTrees.txt";
+  const string InputTrees = DIR["input"][0] + "InputTrees.txt";
+cout << "INPUT TREE : " << InputTrees << endl;
   map<string, vector<string> > InputFileCollection;
   if(!getInputFileNames(InputTrees, InputFileCollection)){ return; }
   
@@ -208,16 +142,10 @@ void fitter(
     vector<string> InputFileNames = FileCollection->second; 
     string         OutputFileName;
     // If we have data, check if the user wants to fit data
-    bool checkData = (fitCtau && fitMC && (existDir(inputFitDirs[inputFitDirs.size()-1]["CTAUERR"]+"ctauErr/")==false) );
-    if ( (FILETAG.find("DATA")!=std::string::npos) && (fitData==true || checkData==true) ) {
+    if ( (FILETAG.find("DATA")!=std::string::npos)) {
       string dir = DIR["dataset"][0];
       cout << "[INFO] DIR : " << dir << endl;
       
-      bool isPeriPD = false;
-      if (InputFileNames[0].find("HIOniaPeripheral30100")!=std::string::npos) { isPeriPD = true; }
-      
-      if (useExtDS==true && usePeriPD==true  && inputDataSet["PERIPHERAL"]!="" && (existDir(inputDataSet["PERIPHERAL"])==true)) { dir = inputDataSet["PERIPHERAL"]; }
-      if (useExtDS==true && usePeriPD==false && inputDataSet["DOUBLEMUON"]!="" && (existDir(inputDataSet["DOUBLEMUON"])==true)) { dir = inputDataSet["DOUBLEMUON"]; }
       if(strcmp(applyCorr,"")){
         OutputFileName = dir + "DATASET_" + FILETAG + "_" + string(applyCorr) + ".root";
         if(gSystem->AccessPathName(OutputFileName.c_str())) { OutputFileName = DIR["dataset"][0] + "DATASET_" + FILETAG + "_" + string(applyCorr) + ".root"; }
@@ -229,32 +157,12 @@ void fitter(
         if(gSystem->AccessPathName(OutputFileName.c_str())) { OutputFileName = DIR["dataset"][0] + "DATASET_" + FILETAG + ".root"; }
       cout << "[INFO] Outputfile : " << OutputFileName << endl;
         string NAMETAG = DSTAG;
-        if (checkData) { NAMETAG = string("MC")+(incJpsi?"JPSI":"PSI2S")+(incNonPrompt?"NOPR":"PR")+"_PP"; }
       cout << "[INFO] NAMETAG : " << NAMETAG << endl;
         if(!tree2DataSet(Workspace[NAMETAG], InputFileNames, FILETAG, OutputFileName)){ return; }
       }
-      if (fitData && !aDSTAG->FindObject(DSTAG.c_str())) aDSTAG->Add(new TObjString(DSTAG.c_str()));
+      if (!aDSTAG->FindObject(DSTAG.c_str())) aDSTAG->Add(new TObjString(DSTAG.c_str()));
     }
     
-    // If we find MC, check if the user wants to fit MC
-    if ( (FILETAG.find("MC")!=std::string::npos) && fitMC==true  ) {
-	cout << "!!!!![DEBUG]!!!!! Fitting MC " << endl;
-      if ( (FILETAG.find("JPSI")!=std::string::npos)  && !incJpsi   ) continue; // If we find Jpsi MC, check if the user wants to include Jpsi
-      if ( (FILETAG.find("NOPR")!=std::string::npos) ) { if (!incNonPrompt) continue; } // If we find Non-Prompt MC, check if the user wants to include Non-Prompt
-      else if ( (FILETAG.find("PR")!=std::string::npos) && !incPrompt ) continue; // If we find Prompt MC, check if the user wants to include Prompt
-      string dir = DIR["dataset"][0];
-      if (useExtDS==true && inputDataSet["MONTECARLO"]!="" && (existDir(inputDataSet["MONTECARLO"])==true)) { dir = inputDataSet["MONTECARLO"]; }
-      OutputFileName = dir + "DATASET_" + FILETAG + ".root";
-      if(gSystem->AccessPathName(OutputFileName.c_str())) { OutputFileName = DIR["dataset"][0] + "DATASET_" + FILETAG + ".root"; }
-      if(!tree2DataSet(Workspace[DSTAG], InputFileNames, FILETAG, OutputFileName)){ return; }
-      if (fitMC && !aDSTAG->FindObject(DSTAG.c_str())) aDSTAG->Add(new TObjString(DSTAG.c_str()));
-      if (wantPureSMC)
-	{
-	  OutputFileName = dir + "DATASET_" + FILETAG + "_PureS" + ".root";
-	  cout << "!!!!![DEBUG]!!!!! OutputFileName for data set : " << OutputFileName << endl;
-	  if(!tree2DataSet(Workspace[Form("%s_PureS",DSTAG.c_str())], InputFileNames, FILETAG, OutputFileName)){ return; }
-	}
-    }
   }
   if (Workspace.size()==0) {
     cout << "[ERROR] No onia tree files were found matching the user's input settings!" << endl; return;
@@ -274,18 +182,10 @@ void fitter(
   map<string, map<string, bool>> VARMAP = {
     {"MASS", 
      {
-       {"BKG",   ((fitMass  && incBkg) || (fitCtau || doCtauErrPDF || (fitRes && fitData)))}, 
-       {"JPSI",  (((fitMass && incJpsi) || (fitCtau || doCtauErrPDF || (fitRes && fitData))) && incJpsi) || (fitCtau && incBkg)}, 
+       {"BKG",   incBkg}, 
+       {"JPSI",  incJpsi}, 
      }
     },
-    {"CTAU", 
-     {
-       {"BKG",   fitCtau && incBkg && incNonPrompt}, 
-       {"JPSI",  fitCtau && incJpsi && incNonPrompt},
-       {"RES",   (fitCtau || fitRes)},
-       {"TRUE",  (fitCtauTrue || fitCtauReco)},
-     }
-    }
   };
   map<string, bool> COLMAP = {{"PP", true}};
  
@@ -343,52 +243,132 @@ void fitter(
       while ( (soDSTAG = static_cast<TObjString*>(nextDSTAG.Next())) )
         {
           TString DSTAG = (TString)(soDSTAG->GetString());
-          if ( fitMass && fitCtau && !DSTAG.Contains("DATA") ) continue;
-
           TString wsName = "";
-          if (DSTAG.Contains("MC") && wantPureSMC) wsName = Form("%s_PureS",DSTAG.Data());
-          else if (DSTAG.Contains("DATA") && strcmp(applyCorr,"")) wsName = Form("%s_%s",DSTAG.Data(),applyCorr);
+          if (DSTAG.Contains("DATA") && strcmp(applyCorr,"")) wsName = Form("%s_%s",DSTAG.Data(),applyCorr);
           else wsName = DSTAG;
           
           if (Workspace.count(wsName.Data())>0) {
             
-              // If don't want simultaneous fits, then fit PbPb or PP separately
-              if ( DSTAG.Contains("MCJPSIPR")    ) { incJpsi = true;  incPrompt = true;  incNonPrompt = false; }
-              if ( DSTAG.Contains("MCJPSINOPR")  ) { incJpsi = true;  incPrompt = false; incNonPrompt = true;  }
-              
-              bool proceed = false;
-              if (DSTAG.Contains("PP"))   { proceed = true; cout << "Fitting charmonia pp" << endl;}
-              if (proceed && !fitCharmonia( Workspace[wsName.Data()], cutVectors[j].at(i), parIniVectors[j].at(i), outputDir,
-                                            // Select the type of datasets to fit
-                                            DSTAG.Data(),
-                                            // Select the type of object to fit
-                                            fitMass,         // Fit mass distribution
-                                            fitCtau,         // Fit ctau distribution
-                                            fitCtauTrue,     // Fits ctau true MC distribution
-                                            fitCtauReco,     // Fit ctau reco MC distribution
-                                            incJpsi,         // Includes Jpsi model
-                                            incBkg,          // Includes Background model
-                                            incPrompt,       // Includes Prompt ctau model
-                                            incNonPrompt,    // Includes NonPrompt ctau model
-                                            doCtauErrPDF,    // If yes, it builds the Ctau Error PDFs from data
-                                            fitRes,          // If yes fits the resolution from Data or MC
-                                            // Select the fitting options
-                                            useTotctauErrPdf,  // If yes use the total ctauErr PDF instead of Jpsi and bkg ones
-                                            usectauBkgTemplate,// If yes use a template for Bkg ctau instead of the fitted Pdf
-                                            useCtauRecoPdf,  // If yes use the ctauReco PDF (template) instead of ctauTrue one
-                                            cutCtau,         // Apply prompt ctau cuts
-                                            doConstrFit,     // Do constrained fit
-                                            wantPureSMC,           // Flag to indicate if we want to fit pure signal MC
-                                            inputFitDirs[index],// Map of user-defined directory paths of previous fit results
-                                            applyCorr,       // Flag to indicate if we want corrected dataset and which correction
-                                            numCores,        // Number of cores used for fitting
-                                            // Select the drawing options
-                                            setLogScale,     // Draw plot with log scale
-                                            incSS,           // Include Same Sign data
-                                            binWidth,        // Bin width used for plotting
-                                            false            // Compute the mean PT (NEED TO FIX)
-                                            )
-                  ) {cout << "Fitting ok" << endl; return; }
+  RooWorkspace     myws("workspace", "local workspace");
+
+  if (inputFitDir.count("CTAUERR")==0)  { inputFitDir["CTAUERR"]  = ""; }
+  binWidth["CTAUERRFORCUT"]  = 0.0025;
+
+    cutVectors[j].at(i).Centrality.Start = 0;
+    cutVectors[j].at(i).Centrality.End = 200;
+
+  // Setting run information
+  struct InputOpt opt;
+
+  string DSTAG2=DSTAG.Data();
+
+  if (DSTAG2.find("_")!=std::string::npos) DSTAG2.erase(DSTAG2.find("_"));
+
+  bool cutSideBand = (incBkg && !incJpsi);
+
+  setMassCutParameters(cutVectors[j].at(i), incJpsi, false);
+  setCtauErrCutParameters(cutVectors[j].at(i));
+  
+  string pdfType = "pdfCTAUERR";
+  string COLL = "PP";
+
+  // Define pdf and plot names
+  vector<string> pdfNames;
+  string plotLabel = "";
+  pdfNames.push_back(Form("%sTot_Tot_%s", pdfType.c_str(), COLL.c_str()));
+  if (incJpsi)  { plotLabel = plotLabel + "_Jpsi";   pdfNames.push_back(Form("%s_Jpsi_%s", pdfType.c_str(), COLL.c_str()));  }
+  if (incBkg) {plotLabel = plotLabel + "_Bkg";    pdfNames.push_back(Form("%s_Bkg_%s", pdfType.c_str(), COLL.c_str()));}
+
+  // check if we have already done this fit. If yes, do nothing and return true.
+  string FileName = "";
+  setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), DSTAG.Data(), plotLabel, cutVectors[j].at(i), cutSideBand);
+  if (gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAUERR"]!="") {
+    cout << "[WARNING] User Input File : " << FileName << " was not found!" << endl;
+    setCtauErrFileName(FileName, outputDir, DSTAG.Data(), plotLabel, cutVectors[j].at(i), cutSideBand);
+  }
+  bool found =  true;
+  found = found && isPdfAlreadyFound(myws, FileName, pdfNames, false);
+  if (found) {
+      cout << "[INFO] This ctauErr Pdf was already made, so I'll just go to the next one." << endl;
+    return;
+  }
+
+  // Import the local datasets
+  double numEntries = 1000000;
+  string label = ((DSTAG2.find(COLL.c_str())!=std::string::npos) ? DSTAG2.c_str() : Form("%s_%s", DSTAG2.c_str(), COLL.c_str()));
+  string dsName = Form("dOS_%s", label.c_str());
+    if ( !(myws.data(dsName.c_str())) ) {
+      int importID = importDataset(myws, Workspace[wsName.Data()], cutVectors[j].at(i), label, cutSideBand);
+      if (importID<=0) { return; }
+    }
+    numEntries = myws.data(dsName.c_str())->sumEntries(); if (numEntries<=0) { return; }
+  else if (!(myws.data(dsName.c_str()))) { cout << "[ERROR] No local dataset was found to make the ctau Error Pdf!" << endl; return; }
+
+  // Set global parameters
+  setCtauErrGlobalParameterRange(myws, parIniVectors[j].at(i), cutVectors[j].at(i), label, binWidth["CTAUERRFORCUT"]);
+
+  if (incJpsi) { 
+    // Setting extra input information needed by each fitter
+  parIniVectors[j].at(i)["invMassNorm"] = Form("RooFormulaVar::%s('( -1.0 + 2.0*( @0 - @1 )/( @2 - @1) )', {%s, mMin[%.6f], mMax[%.6f]})", "invMassNorm", "invMass", cutVectors[j].at(i).dMuon.M.Min, cutVectors[j].at(i).dMuon.M.Max );
+
+  string plotLabelPP;
+  
+    struct OniaModel model;
+    if (!setMassModel(model, parIniVectors[j].at(i), incJpsi, incBkg)) {cout << "Setting mass model failed" << endl;return; }
+
+    cout << "[INFO] Mass model set" << endl;
+    double numEntries = 1000000;
+    string label = ((DSTAG2.find("PP")!=std::string::npos) ? DSTAG2.c_str() : Form("%s_%s", DSTAG2.c_str(), "PP"));
+    string dsName = Form("dOS_%s", label.c_str());
+    cout << "[INFO] DataSet name : " << dsName.c_str() << endl;
+    if (myws.data(dsName.c_str())) numEntries = myws.data(dsName.c_str())->sumEntries();
+
+    setMassGlobalParameterRange(myws, parIniVectors[j].at(i), cutVectors[j].at(i), incJpsi, incBkg, false);
+
+    if (!buildCharmoniaMassModel(myws, model.PP, parIniVectors[j].at(i), false, incBkg, incJpsi, numEntries))  {cout << "Building mass model failed" << endl;return; }
+
+    if (incJpsi)  { plotLabelPP += Form("_Jpsi_%s", parIniVectors[j].at(i)["Model_Jpsi_PP"].c_str());   }
+    if (incBkg)   { plotLabelPP += Form("_Bkg_%s", parIniVectors[j].at(i)["Model_Bkg_PP"].c_str());     }
+
+    string pdfName = "pdfMASS_Tot_PP";
+    string plotLabel = plotLabelPP;
+
+    string iMassFitDir = inputFitDir["MASS"];
+
+    string FileName = "";
+    setMassFileName(FileName, (iMassFitDir=="" ? outputDir : iMassFitDir), DSTAG2, plotLabel, cutVectors[j].at(i), cutSideBand);
+    if (gSystem->AccessPathName(FileName.c_str()) && iMassFitDir!="") {
+      cout << "[WARNING] User Input File : " << FileName << " was not found!" << endl;
+      return;
+    }
+    bool found =  true;
+    RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(*(myws.var("invMass")));
+    found = found && isFitAlreadyFound(newpars, FileName, pdfName.c_str());
+      if ( loadPreviousFitResult(myws, FileName, DSTAG2, !cutSideBand, true) ) { cout << "[INFO] Mass fit loaded" << endl; } else { cout << "[ERROR] Failed to load mass fit" << endl; return; }
+      myws.saveSnapshot(Form("%s_parLoad", pdfName.c_str()), *newpars, kTRUE);
+
+
+    // Let's set all mass parameters to constant except the yields
+    if (myws.pdf("pdfMASS_Tot_PP")) {
+      cout << "[INFO] Setting mass parameters to constant!" << endl;
+      myws.pdf("pdfMASS_Tot_PP")->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kTRUE); 
+    } else { cout << "[ERROR] Mass PDF was not found!" << endl; return; }
+    std::vector< std::string > objs = {"Bkg", "Jpsi", "Psi2S"};
+    for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str()))) setConstant( myws, Form("N_%s_PP", obj.c_str()), false); }
+  }
+
+    // Create the ctau Error Pdf
+    // Build the Ctau Error Template
+    if (!buildCharmoniaCtauErrModel(myws, parIniVectors[j].at(i), cutVectors[j].at(i), dsName, incJpsi, binWidth["CTAUERR"], numEntries))  { return; }
+    string pdfName = Form("%s_Tot_%s", pdfType.c_str(), COLL.c_str());
+    bool isWeighted = myws.data(dsName.c_str())->isWeighted();
+    drawCtauErrorPlot(myws, outputDir, opt, cutVectors[j].at(i), parIniVectors[j].at(i), plotLabel, DSTAG.Data(), incJpsi, incBkg, false, setLogScale, incSS, binWidth["CTAUERR"]);
+    // Save the results
+    FileName = ""; setCtauErrFileName(FileName, outputDir, DSTAG.Data(), plotLabel, cutVectors[j].at(i), cutSideBand);
+    RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(*(myws.var("ctauErr")));
+    myws.saveSnapshot(Form("%s_parFit", pdfName.c_str()),*newpars,kTRUE);
+    if (!saveWorkSpace(myws, Form("%sctauErr%s/%s/result", outputDir.c_str(), (cutSideBand?"SB":""), DSTAG2.c_str()), FileName)) { return; };
+
           } else {
             cout << "[ERROR] The workspace for " << wsName.Data() << " was not found!" << endl; return;
           }
@@ -783,55 +763,56 @@ bool existDir(string dir)
   return exist;
 };
 
+void setCtauErrGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, string label, double binWidth, bool useForCtauFits)
+{
+  if (!useForCtauFits) {
+    Double_t ctauErrMax; Double_t ctauErrMin;
+    myws.data(Form("dOS_%s", label.c_str()))->getRange(*myws.var("ctauErr"), ctauErrMin, ctauErrMax);
+    ctauErrMin -= 0.0001;  ctauErrMax += 0.0001;
+    int nBins = min(int( round((ctauErrMax - ctauErrMin)/binWidth) ), 1000);
+    TH1D* hTot = (TH1D*)myws.data(Form("dOS_%s", label.c_str()))->createHistogram("TMP", *myws.var("ctauErr"), Binning(nBins, ctauErrMin, ctauErrMax));
+    vector<double> rangeErr; getRange(hTot, (int)(ceil(2)), rangeErr); // KEEP THIS NUMBER WITH 2, JUST KEEP IT LIKE THAT :D
+    hTot->Delete();
+    ctauErrMin = rangeErr[0];
+    ctauErrMax = rangeErr[1];
+    if (ctauErrMin<cut.dMuon.ctauErr.Min) { ctauErrMin = cut.dMuon.ctauErr.Min; }
+    if (ctauErrMax>cut.dMuon.ctauErr.Max) { ctauErrMax = cut.dMuon.ctauErr.Max; }
+    cut.dMuon.ctauErr.Max = ctauErrMax;
+    cut.dMuon.ctauErr.Min = ctauErrMin;
+  }
+  cout << "[INFO] Range from data: ctauErrMin: " << cut.dMuon.ctauErr.Min << "  ctauErrMax: " << cut.dMuon.ctauErr.Max << endl;
+  myws.var("ctauErr")->setRange("CtauErrWindow", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max);
+  parIni["CtauErrRange_Cut"]   = Form("(%.12f <= ctauErr && ctauErr < %.12f)", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max);
+  myws.var("ctauErr")->setRange("CtauErrFullWindow", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max);
+  myws.var("ctauErr")->setRange("FullWindow", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max);
+  myws.var("ctauErr")->setRange("SideBandTOP_FULL", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max); 
+  myws.var("ctauErr")->setRange("SideBandMID_FULL", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max);
+  myws.var("ctauErr")->setRange("SideBandBOT_FULL", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max); 
+  myws.var("ctauErr")->setRange("SideBandMID_JPSI", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max);
+  myws.var("ctauErr")->setRange("SideBandBOT_JPSI", cut.dMuon.ctauErr.Min, cut.dMuon.ctauErr.Max);
 
-bool checkSettings(bool fitData, bool fitMC, bool fitMass, bool fitCtau, bool fitCtauTrue, bool fitCtauReco, bool fitRes, bool doCtauErrPDF, bool incJpsi, bool incBkg, bool incPrompt, bool incNonPrompt, bool cutCtau, bool doConstrFit, bool wantPureSMC, const char* applyCorr, bool setLogScale, bool incSS, int numCores)
-{ 
-  cout << "[INFO] Checking user settings " << endl;
+  return;
+};
 
-  if (!fitMass && !fitCtau && !fitCtauTrue && !doCtauErrPDF && !fitCtauReco && !fitRes) {
-    cout << "[ERROR] At least one distribution has to be selected for fitting, please select either Mass, CtauTrue, CtauErr, Ctau, CtauN or CtauReco!" << endl; return false;
-  }
-  if (fitCtau && fitRes) {
-    cout << "[ERROR] We can not fit Ctau and CtauRes at the same time, please fix your input settings!" << endl; return false;
-  }
-  if (doConstrFit && (fitCtau || fitCtauTrue || fitCtauReco|| fitRes)) {
-    cout << "[ERROR] Constrained fits only implemented for invariant mass!" << endl; return false;
-  }
-  if (fitCtauTrue && fitData) {
-    cout << "[ERROR] We can not fit the truth ctau distribution on data, please select only MC!" << endl; return false;
-  }
-  if (fitCtauTrue && !incNonPrompt) {
-    cout << "[ERROR] The ctau truth distribution is only fitted on Non-Prompt MC, please include the Non-Prompt components!" << endl; return false;
-  }
-  if (!fitData && !fitMC) {
-    cout << "[ERROR] At least one type of dataset has to be selected for fitting, please select either Data or MC!" << endl; return false;
-  }
-/*  if (fitCtau && (!incPrompt && !incNonPrompt)) {
-    cout << "[ERROR] No ctau models were included, please include either Prompt or NonPrompt when fitting ctau!" << endl; return false;
-  }*/
-  if (fitMC && (!incPrompt && !incNonPrompt)) {
-    cout << "[ERROR] No MC datasets were included, please include either Prompt or Non-Prompt MC!" << endl; return false;
-  }
-  if (!incJpsi && !incBkg) {
-    cout << "[ERROR] No models were included for fitting, please include either Jpsi, Psi2S or Bkg" << endl; return false;
-  }
-  if ((!fitData || fitMC) && (!incJpsi)) {
-    cout << "[ERROR] We can't fit only background on MC, please include also either Jpsi or Psi2S!" << endl; return false;
-  }
-  if (fitData && wantPureSMC) {
-    cout << "[WARNING] Pure signal MC will not be fitted since you have selected DATA!" << endl;
-  }
-  if (!fitData && strcmp(applyCorr,"")) {
-    cout << "[WARNING] Correction only to Data, please make fitData = true" << endl; return false;
-  }
-  if (wantPureSMC && (!incJpsi)) {
-    cout << "[ERROR] Pure signal MC can only be fitted if at least one signal model is included, please fix your input settings!" << endl;
-  }
-  if (numCores<=0 || numCores>32) {
-    cout << "[ERROR] Invalid number of cores: " << numCores << " , please select an interger number between 1 and 32." << endl; return false;
-  }
 
-  cout << "[INFO] All user setting are correct " << endl;
-  return true;
+void setCtauErrFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool cutSideBand)
+{
+  if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
+  FileName = Form("%sctauErr%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (cutSideBand?"SB":""), TAG.c_str(), "CTAUERR", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
+
+  return;
+};
+
+void setCtauErrCutParameters(struct KinCuts& cut)
+{
+  // Define the ctau error range
+  if (cut.dMuon.ctauErr.Min==-1000.0 && cut.dMuon.ctauErr.Max==1000.0) { 
+    // Default ctau error values, means that the user did not specify a ctau error range
+    cut.dMuon.ctauErr.Min = 0.0; 
+    cut.dMuon.ctauErr.Max = 10.0;
+  }
+  cout << "[INFO] Setting ctauErr range to min: " << cut.dMuon.ctauErr.Min << " and max " << cut.dMuon.ctauErr.Max << endl;
+
+  return;
 };
 

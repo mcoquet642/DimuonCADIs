@@ -158,20 +158,6 @@ void drawMassPlot(RooWorkspace& myws,   // Local workspace
   
   // Create the pull distribution of the fit 
   RooPlot* frameTMP = (RooPlot*)frame->Clone("TMP");
-//  int nBinsTMP = nBins;
-//  if (plotPureSMC) {
-//    double max = cut.dMuon.M.Max, min = cut.dMuon.M.Min;
-//    if (incJpsi) {
-//      if ( (cut.dMuon.AbsRap.Min >= 1.6) || (cut.dMuon.AbsRap.Max > 1.6) ) max = 3.32;
-//      else  max = 3.26;
-//    }
-//    nBinsTMP = (int)(floor( ((max-min)/(cut.dMuon.M.Max-cut.dMuon.M.Min))*nBins ));
-//    max = cut.dMuon.M.Min + ((cut.dMuon.M.Max-cut.dMuon.M.Min)/((double)nBins))*((double)nBinsTMP);
-//    frameTMP = myws.var("invMass")->frame(Bins(nBinsTMP), Range(min, max));
-//    myws.data(dsOSName.c_str())->plotOn(frameTMP, Name("dOS"), DataError(RooAbsData::SumW2), XErrorSize(0), MarkerColor(kBlack), LineColor(kBlack), MarkerSize(1.2));
-//    myws.pdf(pdfName.c_str())->plotOn(frameTMP,Name("PDF"),  Normalization(norm, RooAbsReal::NumEvent), 
-//                                      LineColor(kBlack), LineStyle(1), Precision(1e-4), Range(cut.dMuon.M.Min, cut.dMuon.M.Max), NormRange("MassWindow"));
-//  }
   RooHist *hpull = frameTMP->pullHist(0, 0, true);
   hpull->SetName("hpull");
   RooPlot* frame2 = myws.var("invMass")->frame(Title("Pull Distribution"), Bins(nBins), Range(cut.dMuon.M.Min, cut.dMuon.M.Max));
@@ -245,7 +231,8 @@ void drawMassPlot(RooWorkspace& myws,   // Local workspace
   t->SetTextSize(0.03);
   if (!paperStyle) { // do not print selection details for paper style
 //     t->DrawLatex(0.20, 0.86-dy, "2015 HI Soft Muon ID"); dy+=0.045;
-     t->DrawLatex(0.20, 0.86-dy, "LHC21i3d2 Prompt J/psi"); dy+=0.045;
+//     t->DrawLatex(0.20, 0.86-dy, "LHC21i3d2 Prompt J/psi"); dy+=0.045;
+     t->DrawLatex(0.20, 0.86-dy, "LHC21i3g2 Non-prompt J/psi"); dy+=0.045;
      if (cutCtau) { t->DrawLatex(0.21, 0.86-dy, "#font[12]{l}_{J/#psi} cuts applied"); dy+=0.045; }
 //        t->DrawLatex(0.20, 0.86-dy, "MCH standalone"); dy+=2.0*0.045;
         t->DrawLatex(0.20, 0.86-dy, "GlobalMuonTracks"); dy+=2.0*0.045;

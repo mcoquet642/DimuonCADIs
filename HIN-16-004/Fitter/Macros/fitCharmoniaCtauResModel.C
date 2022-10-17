@@ -85,7 +85,7 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
 
   string COLL = "PP";
   bool usePerEventError = false;
-  bool incBkg = false;
+  bool incBkg = true;
 
   if (importDS) {
     setCtauResCutParameters(cut, incNonPrompt);

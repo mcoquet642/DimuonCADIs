@@ -91,7 +91,7 @@ bool fitCharmoniaCtauMassModel( RooWorkspace& myws,             // Local Workspa
   bool incPrompt     = true;      // Includes Prompt ctau model
   bool incNonPrompt  = true;     // Includes NonPrompt ctau model
   bool fitSideBand   = false;
-  bool usePerEventError =false;
+  bool usePerEventError =true;
   bool wantPureSMC = false;
   bool fitMass = true;
   bool fitCtau = true;
