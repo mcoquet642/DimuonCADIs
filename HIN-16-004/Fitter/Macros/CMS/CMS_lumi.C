@@ -175,17 +175,17 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label , bool writeExtraText
   latex.SetTextAlign(31); 
   if(iPeriod==1061) latex.SetTextSize(lumiTextSize*t/1.2);
   else latex.SetTextSize(lumiTextSize*t);
-  latex.DrawLatex(1-r,1-t+lumiTextOffset*t,lumiText2);
+//  latex.DrawLatex(1-r,1-t+lumiTextOffset*t,lumiText2);
   // latex.DrawLatex(1-r,1-t+lumiTextOffset*t,lumiText);
   latex.SetTextAlign(11); 
-  latex.DrawLatex(l,1-t+lumiTextOffset*t,lumiText);
+//  latex.DrawLatex(l,1-t+lumiTextOffset*t,lumiText);
 
   if( outOfFrame )
     {
       latex.SetTextFont(cmsTextFont);
       latex.SetTextAlign(11); 
       latex.SetTextSize(cmsTextSize*t);    
-      latex.DrawLatex(l,1-t+lumiTextOffset*t,cmsText);
+//      latex.DrawLatex(l,1-t+lumiTextOffset*t,cmsText);
     }
   
   pad->cd();
@@ -207,7 +207,7 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label , bool writeExtraText
   if (pad->GetTickx()) posX_ -= cmsTextOffset;
   cout << pad->GetTickx() << endl;
   if (pad->GetTicky()) posY_ -= cmsTextOffset;
-  if( !outOfFrame )
+/*  if( !outOfFrame )
     {
       if( drawLogo )
 	{
@@ -241,7 +241,7 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label , bool writeExtraText
 	}
     }
   else if( writeExtraText )
-    {
+    {*/
       if( iPosX==0) 
 	{
 	  posX_ =   l +  relPosX*(1-l-r);
@@ -251,7 +251,7 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX, TString label , bool writeExtraText
       latex.SetTextSize(extraTextSize*t);
       latex.SetTextAlign(align_);
       latex.DrawLatex(posX_, posY_, extraText);      
-    }
+//    }
   return;
 }
 #endif // #ifndef CMS_lumi_C

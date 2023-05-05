@@ -86,7 +86,7 @@ typedef struct EvtPar {
 } EvtPar;
 
 typedef struct DiMuonPar {
-  MinMax ctau, ctauN, ctauNRes, ctauRes, ctauErr, ctauTrue, M, Pt, AbsRap;
+  MinMax ctau, ctauN, ctauNRes, ctauRes, ctauErr, ctauTrue, M, Pt, AbsRap, Chi2;
   string ctauCut;
 } DiMuonPar;
 
@@ -133,6 +133,8 @@ bool isEqualKinCuts(struct KinCuts cutA, struct KinCuts cutB)
   cond = cond && (cutA.dMuon.Pt.Max        == cutB.dMuon.Pt.Max);
   cond = cond && (cutA.dMuon.AbsRap.Min    == cutB.dMuon.AbsRap.Min);
   cond = cond && (cutA.dMuon.AbsRap.Max    == cutB.dMuon.AbsRap.Max);
+  cond = cond && (cutA.dMuon.Chi2.Min    == cutB.dMuon.Chi2.Min);
+  cond = cond && (cutA.dMuon.Chi2.Max    == cutB.dMuon.Chi2.Max);
 
   return cond;
 }
@@ -165,7 +167,8 @@ enum class MassModel
     ExpChebychev5=18,
     ExpChebychev6=19,
     Exponential=20,
-    NA60=21
+    NA60=21,
+    VWG=22
 };
 /*map< string , MassModel > MassModelDictionary = {
   {"InvalidModel",            MassModel::InvalidModel},
@@ -203,7 +206,8 @@ enum class CtauModel
     DoubleSingleSidedDecay=6,
     SingleSidedDecay=7,
     Delta=8,
-    QuadrupleDecay=9
+    QuadrupleDecay=9,
+    SymPwrGaussianResolution=10
 };
 map< string , CtauModel > CtauModelDictionary = {
   {"InvalidModel",             CtauModel::InvalidModel},
@@ -215,7 +219,8 @@ map< string , CtauModel > CtauModelDictionary = {
   {"QuadrupleDecay",           CtauModel::QuadrupleDecay},
   {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
   {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
-  {"Delta",                    CtauModel::Delta}
+  {"Delta",                    CtauModel::Delta},
+  {"SymPwrGaussianResolution", CtauModel::SymPwrGaussianResolution}
 };
 
 typedef struct CtauPNP {
@@ -416,7 +421,7 @@ bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bo
   for (RooRealVar* it = (RooRealVar*)parIt->Next(); it!=NULL; it = (RooRealVar*)parIt->Next() ) {
     string name = it->GetName();
     if ( name=="invMass" || name=="ctau" || name=="ctauErr" || name=="ctauRes" || name=="ctauNRes" || name=="ctauN" ||
-         name=="ctauTrue" || name=="pt" || name=="cent" || 
+         name=="ctauTrue" || name=="pt" || name=="cent" || name=="chi21" || name=="chi22" ||
          name=="rap" || name=="One" ) continue;
     if ( !loadNumberOfEvents && name.find("N_")!=std::string::npos ) continue;
     if (myws.var(name.c_str())) {
@@ -432,7 +437,7 @@ bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bo
   for (RooRealVar* it = (RooRealVar*)parFunIt->Next(); it!=NULL; it = (RooRealVar*)parFunIt->Next() ) {
     string name = it->GetName();
     if ( name=="invMass" || name=="ctau" || name=="ctauErr" || name=="ctauRes" || name=="ctauNRes" || name=="ctauN" ||
-         name=="ctauTrue" || name=="pt" || name=="cent" || 
+         name=="ctauTrue" || name=="pt" || name=="cent" || name=="chi21" || name=="chi22" ||
          name=="rap" || name=="One" ) continue;
     if ( !loadNumberOfEvents && name.find("N_")!=std::string::npos ) continue;
     if (myws.var(name.c_str())) { 
@@ -616,6 +621,8 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
     indMuonMass =  indMuonMass + "&&" + "((2.0 < invMass && invMass < 2.8) || (3.3 < invMass && invMass < 3.5) || (3.9 < invMass && invMass < 5.0))";
   }
   string indMuonRap     = Form("(%.6f <= abs(rap) && abs(rap) < %.6f)",    cut.dMuon.AbsRap.Min,   cut.dMuon.AbsRap.Max);
+  string indMuonChi21     = Form("(%.6f <= chi21 && chi21 < %.6f)",    cut.dMuon.Chi2.Min,   cut.dMuon.Chi2.Max);
+  string indMuonChi22     = Form("(%.6f <= chi22 && chi22 < %.6f)",    cut.dMuon.Chi2.Min,   cut.dMuon.Chi2.Max);
   string indMuonPt      = Form("(%.6f <= pt && pt < %.6f)",                cut.dMuon.Pt.Min,       cut.dMuon.Pt.Max);
   string indMuonCtau    = Form("(%.6f < ctau && ctau <= %.6f)",            cut.dMuon.ctau.Min,     cut.dMuon.ctau.Max); 
   if(cut.dMuon.ctauCut!=""){ indMuonCtau = cut.dMuon.ctauCut; }
@@ -625,7 +632,7 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
   string indMuonCtauRes = Form("(%.12f < ctauRes && ctauRes < %.12f)",     cut.dMuon.ctauRes.Min,  cut.dMuon.ctauRes.Max);
   string indMuonCtauNRes = Form("(%.12f < ctauNRes && ctauNRes < %.12f)",  cut.dMuon.ctauNRes.Min, cut.dMuon.ctauNRes.Max);
   string indMuonCtauN   = Form("(%.12f < ctauN && ctauN < %.12f)",        cut.dMuon.ctauN.Min, cut.dMuon.ctauN.Max);
-  string strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt +"&&"+ indMuonCtau +"&&"+ indMuonCtauErr;
+  string strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt +"&&"+ indMuonCtau +"&&"+ indMuonCtauErr + "&&" + indMuonChi21 + "&&" + indMuonChi22;
   if (label.find("MC")!=std::string::npos){ strCut = strCut +"&&"+ indMuonCtauTrue +"&&"+ indMuonCtauNRes +"&&"+ indMuonCtauRes;  }
   else { strCut = strCut +"&&"+ indMuonCtauN;  }
 
@@ -634,7 +641,7 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
     cout << "[ERROR] The dataset " <<  Form("dOS_%s", label.c_str()) << " was not found!" << endl;
     return -1;
   }
-  strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt;
+  strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt + "&&" + indMuonChi21 + "&&" + indMuonChi22;
   cout << "[INFO] Importing local RooDataSet with cuts: " << strCut << endl;
   RooDataSet* dataOS = (RooDataSet*)inputWS.data(Form("dOS_%s", label.c_str()))->reduce(strCut.c_str());
   if (dataOS->sumEntries()==0){ 
@@ -725,6 +732,10 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
   myws.var("pt")->setMax(cut.dMuon.Pt.Max);
   myws.var("rap")->setMin(cut.dMuon.AbsRap.Min);       
   myws.var("rap")->setMax(cut.dMuon.AbsRap.Max);
+  myws.var("chi21")->setMin(cut.dMuon.Chi2.Min);       
+  myws.var("chi21")->setMax(cut.dMuon.Chi2.Max);
+  myws.var("chi22")->setMin(cut.dMuon.Chi2.Min);       
+  myws.var("chi22")->setMax(cut.dMuon.Chi2.Max);
   myws.var("ctau")->setMin(cut.dMuon.ctau.Min);        
   myws.var("ctau")->setMax(cut.dMuon.ctau.Max);
   myws.var("ctauErr")->setMin(cut.dMuon.ctauErr.Min);  
@@ -742,13 +753,15 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
     myws.var("ctauN")->setMax(cut.dMuon.ctauN.Max);
   }
   cout << "[INFO] Analyzing bin: " << Form(
-                                           "%.3f < pt < %.3f, %.3f < rap < %.3f, %d < cent < %d", 
+                                           "%.3f < pt < %.3f, %.3f < rap < %.3f, %d < cent < %d, %.3f < chi2 < %.3f", 
                                            cut.dMuon.Pt.Min,
                                            cut.dMuon.Pt.Max,
                                            cut.dMuon.AbsRap.Min,
                                            cut.dMuon.AbsRap.Max,
                                            cut.Centrality.Start,
-                                           cut.Centrality.End
+                                           cut.Centrality.End,
+                                           cut.dMuon.Chi2.Min,
+                                           cut.dMuon.Chi2.Max
                                            ) << endl;
 
   return 1;

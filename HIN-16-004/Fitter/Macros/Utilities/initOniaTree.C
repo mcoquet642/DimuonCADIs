@@ -328,6 +328,8 @@ TBranch        *b_Gen_mu_4mom;   //!
    Float_t         fVt2;
 
    UInt_t           fMcDecision;
+   Int_t 	   fIsAmbig1;
+   Int_t 	   fIsAmbig2;
 
 
 
@@ -382,6 +384,9 @@ TBranch        *b_Gen_mu_4mom;   //!
 
 
    TBranch        *b_fMcDecision;   //!
+
+   TBranch	  *b_fIsAmbig1;
+   TBranch	  *b_fIsAmbig2;
 
 
 
@@ -471,6 +476,8 @@ void initOniaTree(TChain *tree, string TreeName)
 
  if (fChain->GetBranch("fMcDecision"))   fChain->SetBranchAddress("fMcDecision", &fMcDecision, &b_fMcDecision);
 
+ if (fChain->GetBranch("fIsAmbig1"))   fChain->SetBranchAddress("fIsAmbig1", &fIsAmbig1, &b_fIsAmbig1);
+ if (fChain->GetBranch("fIsAmbig2"))   fChain->SetBranchAddress("fIsAmbig2", &fIsAmbig2, &b_fIsAmbig2);
 
 
 

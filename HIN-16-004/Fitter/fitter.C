@@ -63,6 +63,7 @@ void fitter(
 
   gROOT->ProcessLine(".L ./Macros/Utilities/RooExtCBShape.cxx+");
   gROOT->ProcessLine(".L ./Macros/Utilities/NA60Shape.cxx+");
+  TGrid::Connect("alien://",0,0,"t");
 //  gSystem->Load("/afs/cern.ch/work/m/mcoquet/DimuonCADIs/HIN-16-004/Fitter/Macros/Utilities/RooExtCBShape_cxx.so");
 
 
@@ -72,7 +73,7 @@ void fitter(
   binWidth["CTAUERR"]  = 0.0025;
   binWidth["CTAUTRUE"] = 0.025;
   binWidth["CTAURECO"] = 0.100;
-  binWidth["CTAURES"]  = 0.25;
+  binWidth["CTAURES"]  = 0.02;
   binWidth["CTAUSB"]   = 0.0150;
 
   if (workDirName.find("Peri")!=std::string::npos) { usePeriPD = true; }
@@ -451,6 +452,8 @@ bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, str
   cut.dMuon.M.Max = 5.0;  
   cut.dMuon.AbsRap.Min = 0.0;
   cut.dMuon.AbsRap.Max = 2.4;
+  cut.dMuon.Chi2.Min = -100000.0;
+  cut.dMuon.Chi2.Max = 100000.0;
   cut.dMuon.Pt.Min  =  0.0;
   cut.dMuon.Pt.Max  =  1000.0;
   cut.Centrality.Start = 0;
@@ -459,7 +462,19 @@ bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, str
   // set parameters from file
   for(map<string, string>::iterator col=row.begin(); col!=row.end(); ++col) {
     string label = col->first;
-    if (label=="rap") {
+    if (label=="chi2") {
+      if (col->second=="" || col->second.find("-")==std::string::npos) {
+        cout << "[ERROR] Input column 'chi2' has invalid value: " << col->second << endl; return false;
+      }  
+      std::vector<double> v; 
+      if(!parseString(col->second, "-", v)) { return false; }
+      if (v.size()!=2) {
+        cout << "[ERROR] Input column 'chi' has incorrect number of values, it should have 2 values but has: " << v.size() << endl; return false;
+      }  
+      cut.dMuon.Chi2.Min = v.at(0); 
+      cut.dMuon.Chi2.Max = v.at(1);
+    } 
+    else if (label=="rap") {
       if (col->second=="" || col->second.find("-")==std::string::npos) {
         cout << "[ERROR] Input column 'rap' has invalid value: " << col->second << endl; return false;
       }  

@@ -122,6 +122,41 @@ bool fitCharmoniaCtauResModel( RooWorkspace& myws,             // Local Workspac
   }
   else if (doFit && !(myws.data(dsName.c_str()))) { cout << "[ERROR] No local dataset was found to perform the fit!" << endl; return false; }
 
+
+//  bool compDS = loadYields(myws, FileName, dsName, pdfName);
+  bool compDS = false;
+  if (!compDS && (incJpsi || incBkg)) {
+    // Setting extra input information needed by each fitter
+    string iMassFitDir = inputFitDir["MASS"];
+    double ibWidth = binWidth["MASS"];
+    bool loadMassFitResult = true;
+    bool doMassFit = false;
+    bool importDS = true;
+    bool getMeanPT = false;
+    const char* applyCorr = "";
+    bool cutCtau = false;
+    bool doConstrFit = false;
+    if ( !fitCharmoniaMassModel( myws, inputWorkspace, cut, parIni, opt, outputDir,
+                                 DSTAG, importDS,
+                                 true, false,
+                                 doMassFit, cutCtau, doConstrFit, false, applyCorr, loadMassFitResult, iMassFitDir, numCores,
+                                 false, incSS, ibWidth, getMeanPT
+                                 )
+         ) { return false; }
+    // Let's set all mass parameters to constant except the yields
+    if (myws.pdf("pdfMASS_Tot_PP")) {
+      cout << "[INFO] Setting mass parameters to constant!" << endl;
+      myws.pdf("pdfMASS_Tot_PP")->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kTRUE);
+    } else { cout << "[ERROR] Mass PDF was not found!" << endl; return false; }
+    std::vector< std::string > objs = {"Bkg", "Jpsi"};
+    for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), "PP"))){ setConstant( myws, Form("N_%s_%s", obj.c_str(), "PP"), false); cout << Form("N_%s_%s", obj.c_str(), "PP") << " set constant to " << myws.var(Form("N_%s_%s", obj.c_str(), "PP"))->getVal() << endl;}}
+    // Let's set the minimum value of the yields to zero
+    for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), "PP"))) myws.var(Form("N_%s_%s", obj.c_str(), "PP"))->setMin(0.0); }
+  }
+
+
+
+
   if (importDS) { 
     // Set global parameters
     setCtauResGlobalParameterRange(myws, parIni, cut, label, binWidth["CTAURES"]);
@@ -286,7 +321,7 @@ void setCtauResGlobalParameterRange(RooWorkspace& myws, map<string, string>& par
 void setCtauResFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut)
 {
   if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
-  FileName = Form("%sctauRes/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), TAG.c_str(), "CTAURES", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
+  FileName = Form("%sctauRes/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d_chi2%.0f%.0f.root", outputDir.c_str(), TAG.c_str(), "CTAURES", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End, (cut.dMuon.Chi2.Min*10.0), (cut.dMuon.Chi2.Max*10.0));
   
   return;
 };

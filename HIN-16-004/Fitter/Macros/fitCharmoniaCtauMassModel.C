@@ -91,7 +91,7 @@ bool fitCharmoniaCtauMassModel( RooWorkspace& myws,             // Local Workspa
   bool incPrompt     = true;      // Includes Prompt ctau model
   bool incNonPrompt  = true;     // Includes NonPrompt ctau model
   bool fitSideBand   = false;
-  bool usePerEventError =true;
+  bool usePerEventError =false;
   bool wantPureSMC = false;
   bool fitMass = true;
   bool fitCtau = true;
@@ -440,7 +440,7 @@ bool fitCharmoniaCtauMassModel( RooWorkspace& myws,             // Local Workspa
 void setCtauMassFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut)
 {
   if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
-  FileName = Form("%sctauMass/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), TAG.c_str(), "CTAUMASS", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
+  FileName = Form("%sctauMass/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d_chi2%.0f%.0f.root", outputDir.c_str(), TAG.c_str(), "CTAUMASS", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End, (cut.dMuon.Chi2.Min*10.0), (cut.dMuon.Chi2.Max*10.0));
 
   return;
 };

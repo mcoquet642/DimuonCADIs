@@ -30,7 +30,6 @@ bool buildCharmoniaMassModel(RooWorkspace& ws, struct CharmModel model, map<stri
   if (incBkg) {
     if(!addBackgroundMassModel(ws, "Bkg", model.Bkg.Mass, parIni)) { cout << "[ERROR] Adding Background Mass Model failed" << endl; return false; }
   }
-
   // Constraint PDFs
   if (doConstrFit) //FIXME: hardcoded values should be moved to input files
   {
@@ -50,7 +49,9 @@ bool buildCharmoniaMassModel(RooWorkspace& ws, struct CharmModel model, map<stri
   ws.import(*themodel);
   ws.pdf(pdfName.c_str())->setNormRange("MassWindow");
 
+  cout << "Model imported" << endl;
   setFixedVarsToContantVars(ws);
+  cout << "Var set constatn" << endl;
 
   // save the initial values of the model we've just created
   RooArgSet* params = (RooArgSet*) themodel->getParameters(RooArgSet(*ws.var("invMass")));
@@ -64,7 +65,7 @@ bool addBackgroundMassModel(RooWorkspace& ws, string object, MassModel model, ma
   cout << Form("[INFO] Implementing %s Background Mass Model", object.c_str()) << endl;
 
   // Import the Yield parameter
-  if (!ws.var(Form("N_%s_%s", object.c_str(), "PP"))) { ws.factory(parIni[Form("N_%s_%s", object.c_str(), "PP")].c_str()); }
+  if (!ws.var(Form("N_%s_%s", object.c_str(), "PP"))) { ws.factory(parIni[Form("N_%s_%s", object.c_str(), "PP")].c_str()); cout << "!!!!!!!!" << parIni[Form("N_%s_%s", object.c_str(), "PP")].c_str() << endl;}
 
   switch(model) 
     {  
@@ -518,6 +519,47 @@ bool addBackgroundMassModel(RooWorkspace& ws, string object, MassModel model, ma
 
       cout << Form("[INFO] %s Background Exponential PDF in %s included", object.c_str(), "PP") << endl; break;
    
+    case (MassModel::VWG):  
+
+      gROOT->ProcessLine(".L ./Macros/Utilities/VWGPdf.cxx+");
+      // check that all input parameters are defined
+      if (!( 
+            parIni.count(Form("a_%s_%s", object.c_str(), "PP")) &&
+            parIni.count(Form("b_%s_%s", object.c_str(), "PP")) &&
+            parIni.count(Form("c_%s_%s", object.c_str(), "PP"))
+             )) {
+	cout << Form("[ERROR] Initial parameters where not found for %s VWG Model in %s", object.c_str(), "PP") << endl; return false; 
+      }
+      // create the variables for this model
+      ws.factory( parIni["invMassNorm"].c_str() );    
+      ws.factory( parIni[Form("a_%s_%s", object.c_str(), "PP")].c_str() );
+      ws.factory( parIni[Form("b_%s_%s", object.c_str(), "PP")].c_str() );
+      ws.factory( parIni[Form("c_%s_%s", object.c_str(), "PP")].c_str() );
+
+      ws.factory(Form("VWGPdf::%s(%s, %s, %s, %s)", Form("pdfMASS_%s_%s", object.c_str(), "PP"), "invMass",
+                      Form("a_%s_%s", object.c_str(), "PP"),
+                      Form("b_%s_%s", object.c_str(), "PP"),
+                      Form("c_%s_%s", object.c_str(), "PP")
+                      ));
+	cout << Form("VWGPdf::%s(%s, %s, %s, %s)", Form("pdfMASS_%s_%s", object.c_str(), "PP"), "invMass",
+                      Form("a_%s_%s", object.c_str(), "PP"),
+                      Form("b_%s_%s", object.c_str(), "PP"),
+                      Form("c_%s_%s", object.c_str(), "PP")
+                      ) << endl;
+
+
+      ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("pdfMASSTot_%s_%s", object.c_str(), "PP"),
+                      Form("pdfMASS_%s_%s", object.c_str(), "PP"),
+                      Form("N_%s_%s", object.c_str(), "PP")
+                      ));
+
+	cout << Form("RooExtendPdf::%s(%s,%s)", Form("pdfMASSTot_%s_%s", object.c_str(), "PP"),
+                      Form("pdfMASS_%s_%s", object.c_str(), "PP"),
+                      Form("N_%s_%s", object.c_str(), "PP")
+                      ) << endl;
+
+      cout << Form("[INFO] %s VWG PDF in %s included", object.c_str(), "PP") << endl; break;
+      
     default :
       
       cout << "[ERROR] Selected Background Mass Model: " << parIni[Form("Model_%s_%s", object.c_str(), "PP")] << " has not been implemented" << endl; return false;
@@ -538,7 +580,7 @@ bool addSignalMassModel(RooWorkspace& ws, string object, MassModel model, map<st
   std::string s2="";
 
   // Import the Yield parameter
-  if (!ws.var(Form("N_%s_%s", object.c_str(), "PP"))) { ws.factory(parIni[Form("N_%s_%s", object.c_str(), "PP")].c_str()); }
+  if (!ws.var(Form("N_%s_%s", object.c_str(), "PP"))) { ws.factory(parIni[Form("N_%s_%s", object.c_str(), "PP")].c_str()); cout << "!!!!!!!" << parIni[Form("N_%s_%s", object.c_str(), "PP")].c_str() << endl;}
 
   switch(model) 
     {    
@@ -705,11 +747,24 @@ cout << "pdf imported" << endl;
                       Form("n2_%s_%s", object.c_str(), "PP")
                       ));
 
+	cout << Form("RooExtCBShape::%s(%s, %s, %s, %s, %s, %s, %s)", Form("pdfMASS_%s_%s", object.c_str(), "PP"), "invMass",
+                      Form("m_%s_%s", object.c_str(), "PP"),
+                      Form("sigma1_%s_%s", object.c_str(), "PP"),
+                      Form("alpha_%s_%s", object.c_str(), "PP"),
+                      Form("n_%s_%s", object.c_str(), "PP"),
+                      Form("alpha2_%s_%s", object.c_str(), "PP"),
+                      Form("n2_%s_%s", object.c_str(), "PP")
+                      ) << endl;
 
       ws.factory(Form("RooExtendPdf::%s(%s,%s)", Form("pdfMASSTot_%s_%s", object.c_str(), "PP"),
                       Form("pdfMASS_%s_%s", object.c_str(), "PP"),
                       Form("N_%s_%s", object.c_str(), "PP")
                       ));
+
+	cout << Form("RooExtendPdf::%s(%s,%s)", Form("pdfMASSTot_%s_%s", object.c_str(), "PP"),
+                      Form("pdfMASS_%s_%s", object.c_str(), "PP"),
+                      Form("N_%s_%s", object.c_str(), "PP")
+                      ) << endl;
 
       cout << Form("[INFO] %s Extended Crystal Ball PDF in %s included", object.c_str(), "PP") << endl; break;
       
@@ -952,6 +1007,16 @@ void setMassDefaultParameters(map<string, string> &parIni, double numEntries)
   }
   if (parIni.count(Form("p3_Jpsi_%s", "PP"))==0 || parIni[Form("p3_Jpsi_%s", "PP")]=="") {
     parIni[Form("p3_Jpsi_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("p3_Jpsi_%s", "PP"), 0.04, 0.01, 10.0);
+  }
+
+  if (parIni.count(Form("a_Bkg_%s", "PP"))==0 || parIni[Form("a_Bkg_%s", "PP")]=="") {
+    parIni[Form("a_Bkg_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("a_Bkg_%s", "PP"), 1., -10., 10.0);
+  }
+  if (parIni.count(Form("b_Bkg_%s", "PP"))==0 || parIni[Form("b_Bkg_%s", "PP")]=="") {
+    parIni[Form("b_Bkg_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("b_Bkg_%s", "PP"), 1., 0.0, 100.0);
+  }
+  if (parIni.count(Form("c_Bkg_%s", "PP"))==0 || parIni[Form("c_Bkg_%s", "PP")]=="") {
+    parIni[Form("c_Bkg_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("c_Bkg_%s", "PP"), 1., -100., 100.0);
   }
 
   if (parIni.count(Form("p12_Jpsi_%s", "PP"))==0 || parIni[Form("p12_Jpsi_%s", "PP")]=="") {

@@ -80,8 +80,8 @@ bool fitCharmoniaCtauModel_test( RooWorkspace& myws,             // Local Worksp
                             )  
 {
   
-  bool usePerEventError = true;
-//  bool usePerEventError = false;
+//  bool usePerEventError = true;
+  bool usePerEventError = false;
   
   if (DSTAG.find("_")!=std::string::npos) DSTAG.erase(DSTAG.find("_"));
 
@@ -124,6 +124,7 @@ bool fitCharmoniaCtauModel_test( RooWorkspace& myws,             // Local Worksp
     numEntries = myws.data(dsName.c_str())->sumEntries(); if (numEntries<=0) { doFit = false; }
 
     // Set global parameters
+    cout << "setting global parameters" << endl;
     setCtauErrGlobalParameterRange(myws, parIni, cut, "", binWidth["CTAUERR"], true);
     setCtauGlobalParameterRange2(myws, parIni, cut, label, binWidth[fitType.c_str()], false);
 
@@ -384,6 +385,7 @@ void setCtauGlobalParameterRange2(RooWorkspace& myws, map<string, string>& parIn
   Double_t ctauMax; Double_t ctauMin;
   myws.data(Form("dOS_%s", label.c_str()))->getRange(*myws.var("ctau"), ctauMin, ctauMax);
   ctauMin -= 0.00001;  ctauMax += 0.00001;
+cout << "ctaumin = " << ctauMin << ", ctaumax = " << ctauMax << endl;
   int nBins = min(int( round((ctauMax - ctauMin)/binWidth) ), 1000);
   if (optimizeRange) {
     TH1D* hTot = (TH1D*)((RooDataSet*)myws.data(Form("dOS_%s", label.c_str()))->Clone("dTMP"))->createHistogram("hTMP", *myws.var("ctau"), Binning(nBins, ctauMin, ctauMax));
@@ -394,7 +396,7 @@ void setCtauGlobalParameterRange2(RooWorkspace& myws, map<string, string>& parIn
     if (ctauMin<cut.dMuon.ctau.Min) { ctauMin = cut.dMuon.ctau.Min; }
     if (ctauMax>cut.dMuon.ctau.Max) { ctauMax = cut.dMuon.ctau.Max; }
     if (ctauMin < -4.0) { ctauMin = -4.0; }
-    ctauMax =  7.0;
+    cout << " optimized range : ctaumin = " << ctauMin << ", ctaumax = " << ctauMax << endl;
   }
   else if (!is2DFit && parIni.count("ctauCut_PP")>0 && parIni["ctauCut_PP"]!="") {
     parIni["ctauCut_PP"].erase(parIni["ctauCut_PP"].find("["), string("[").length());
@@ -406,6 +408,8 @@ void setCtauGlobalParameterRange2(RooWorkspace& myws, map<string, string>& parIn
     delete actauCut;
   }
 
+    ctauMin =  -1.5;
+    ctauMax =  1.5;
   cout << "[INFO] Range from data: ctauMin: " << ctauMin << "  ctauMax: " << ctauMax << endl;
   myws.var("ctau")->setRange("CtauWindow", ctauMin, ctauMax);
   parIni["CtauRange_Cut"]   = Form("(%.12f <= ctau && ctau < %.12f)", ctauMin, ctauMax);
@@ -418,8 +422,6 @@ void setCtauGlobalParameterRange2(RooWorkspace& myws, map<string, string>& parIn
   myws.var("ctau")->setRange("SideBandBOT_FULL", cut.dMuon.ctau.Min, cut.dMuon.ctau.Max); 
   myws.var("ctau")->setRange("SideBandMID_JPSI", cut.dMuon.ctau.Min, cut.dMuon.ctau.Max);
   myws.var("ctau")->setRange("SideBandBOT_JPSI", cut.dMuon.ctau.Min, cut.dMuon.ctau.Max);
-  myws.var("ctau")->setRange("SideBandTOP_PSI2S", cut.dMuon.ctau.Min, cut.dMuon.ctau.Max); 
-  myws.var("ctau")->setRange("SideBandMID_PSI2S", cut.dMuon.ctau.Min, cut.dMuon.ctau.Max);
 
   return;
 };
@@ -428,9 +430,9 @@ void setCtauGlobalParameterRange2(RooWorkspace& myws, map<string, string>& parIn
 void setCtauFileName2(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool fitSideBand, bool usectauBkgTemplate)
 {
   if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
-  if (!usectauBkgTemplate) {FileName = Form("%sctau%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (fitSideBand?"SB":""), TAG.c_str(), "CTAU", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);}
-  else {FileName = Form("%sctau%sTemp/%s/result/FIT_%s_%s_%s_%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (fitSideBand?"SB":""), TAG.c_str(), "CTAU", TAG.c_str(), "PP",
-                        "Bkg", (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);}
+  if (!usectauBkgTemplate) {FileName = Form("%sctau%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d_chi2%.0f%.0f.root", outputDir.c_str(), (fitSideBand?"SB":""), TAG.c_str(), "CTAU", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End, (cut.dMuon.Chi2.Min*10.0), (cut.dMuon.Chi2.Max*10.0));}
+  else {FileName = Form("%sctau%sTemp/%s/result/FIT_%s_%s_%s_%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d_chi2%.0f%.0f.root", outputDir.c_str(), (fitSideBand?"SB":""), TAG.c_str(), "CTAU", TAG.c_str(), "PP",
+                        "Bkg", (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End, (cut.dMuon.Chi2.Min*10.0), (cut.dMuon.Chi2.Max*10.0));}
 
   return;
 };
@@ -444,9 +446,13 @@ void setCtauCutParameters2(struct KinCuts& cut, bool incNonPrompt)
     if (incNonPrompt) {
       cut.dMuon.ctau.Min = -30.0;
       cut.dMuon.ctau.Max = 100.0;
+//      cut.dMuon.ctau.Min = -3.0;
+//      cut.dMuon.ctau.Max = 3.0;
     } else {
       cut.dMuon.ctau.Min = -30.0;
       cut.dMuon.ctau.Max = 100.0;
+//      cut.dMuon.ctau.Min = -3.0;
+//      cut.dMuon.ctau.Max = 3.0;
     }
   }
         

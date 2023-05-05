@@ -24,8 +24,8 @@ int                fCentBins;
 TObjArray*         fcorrArray = NULL; // Array with the 2D correction for weighting
 
 string  findMyTree(string FileName);
-bool    getTChain(TChain* fChain, vector<string> FileNames, string TreeName="DimuonsAll");
-void    iniBranch(TChain* fChain,bool isMC=false, string TreeName="DimuonsAll");
+bool    getTChain(TChain* fChain, vector<string> FileNames, string TreeName="O2rtdimuonall");
+void    iniBranch(TChain* fChain,bool isMC=false, string TreeName="O2rtdimuonall");
 bool    checkDS(RooDataSet* DS, string DSName);
 double  deltaR(TLorentzVector* GenMuon, TLorentzVector* RecoMuon);
 bool    isMatchedRecoDiMuon(int iRecoDiMuon, double maxDeltaR=0.03);
@@ -35,7 +35,8 @@ bool    readCorrection(const char* file);
 
 bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string DSName, string OutputFileName, bool UpdateDS=false)
 {
-  string TreeName("DimuonsAll");
+  string TreeName("O2rtdimuonall");
+//  string TreeName("DimuonsAll");
   RooDataSet* dataOS = NULL; RooDataSet* dataSS = NULL; RooDataSet* dataOSNoBkg = NULL;
   
   bool isMC = false;
@@ -112,6 +113,8 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
     RooRealVar* ctauErr = new RooRealVar("ctauErr","#sigma_{c#tau}", -100000.0, 100000.0, "mm");
     RooRealVar* ptQQ    = new RooRealVar("pt","#mu#mu p_{T}", -1.0, 10000.0, "GeV/c");
     RooRealVar* rapQQ   = new RooRealVar("rap","#mu#mu y", -2.5, 2.5, "");
+    RooRealVar* chi21   = new RooRealVar("chi21","#chi^2_{MFT-MCH}", -1000,1000000, "");
+    RooRealVar* chi22   = new RooRealVar("chi22","#chi^2_{MFT-MCH}", -1000,1000000, "");
     RooRealVar* cent    = new RooRealVar("cent","centrality", -1.0, 1000.0, "");
     RooRealVar* weight  = new RooRealVar("weight","MC weight", 0.0, 10000000.0, "");
     RooRealVar* weightCorr   = new RooRealVar("weightCorr","Data correction weight", 0.0, 10000000.0, "");
@@ -120,11 +123,11 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
     if (applyWeight_Corr)
     {
       if (isMC) {
-        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ctauTrue, *ptQQ, *rapQQ, *cent, *weightCorr);
+        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ctauTrue, *ptQQ, *rapQQ, *cent, *weightCorr, *chi21, *chi22);
         cols->add(*ctauNRes);
         cols->add(*ctauRes);
       } else {
-        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ptQQ, *rapQQ, *cent, *weightCorr);
+        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ptQQ, *rapQQ, *cent, *weightCorr, *chi21, *chi22);
         cols->add(*ctauN);
       }
       if (!readCorrection(Form("%s/Input/%s",gSystem->ExpandPathName(gSystem->pwd()),corrFileName.Data()))){ return false; }
@@ -135,11 +138,11 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
     else
     {
       if (isMC) {
-        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ctauTrue, *ptQQ, *rapQQ, *cent);
+        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ctauTrue, *ptQQ, *rapQQ, *cent, *chi21, *chi22);
         cols->add(*ctauNRes);
         cols->add(*ctauRes);
       } else {
-        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ptQQ, *rapQQ, *cent);
+        cols = new RooArgSet(*mass, *ctau, *ctauErr, *ptQQ, *rapQQ, *cent, *chi21, *chi22);
         cols->add(*ctauN);
       }  
       dataOS = new RooDataSet(Form("dOS_%s", DSName.c_str()), "dOS", *cols, StoreAsymError(*mass));
@@ -175,8 +178,8 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
       //for (int iQQ=0; iQQ<Reco_QQ_size; iQQ++) {
 //        TLorentzVector *RecoQQ4mom = (TLorentzVector*) Reco_QQ_4mom->At(iQQ);
 //        mass->setVal(RecoQQ4mom->M());
-              ROOT::Math::PtEtaPhiMVector v1_part(fPt1, fEtaMC1, fPhi1, 0.105658);
-              ROOT::Math::PtEtaPhiMVector v2_part(fPt2, fEtaMC2, fPhi2, 0.105658);
+              ROOT::Math::PtEtaPhiMVector v1_part(fPt1, fEtaMC1, fPhiMC1, 0.105658);
+              ROOT::Math::PtEtaPhiMVector v2_part(fPt2, fEtaMC2, fPhiMC2, 0.105658);
               ROOT::Math::PtEtaPhiMVector v12_part = v1_part + v2_part;
 //        mass->setVal(v12_part.M());
         mass->setVal(fMass);
@@ -190,13 +193,19 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
 */        
 
         float ct= fTauz*299792458.e-7*10.;
+//	cout << "ctau = " << ct << ", tau = " << fTauz << endl;
 	float ctErr= fTauzErr*299792458.e-7*10.;
 	ctau->setVal(ct);
 	ctauErr->setVal(ctErr);
-        ctauN->setVal(ctau->getVal()/ctauErr->getVal());
+	
+//	cout << "[DEBUG] ctau : " << ct << ", ctauErr : " << ctErr << ", ctauN : " << ctau->getVal()/ctauErr->getVal() << endl;
+//        ctauN->setVal(ctau->getVal()/ctauErr->getVal());
+        ctauN->setVal(ctau->getVal());
 	ROOT::Math::PtEtaPhiMVector v12(fPt, fEta, fPhi, fMass);
         
         ptQQ->setVal(fPt);
+        chi21->setVal(fChi2MatchMCHMFT1);
+        chi22->setVal(fChi2MatchMCHMFT2);
         rapQQ->setVal(v12.Rapidity());
         if (isMC && fMcDecision) {
 //          if (theTree->GetBranch("Reco_QQ_ctauTrue3D")) { ctauTrue->setVal(Reco_QQ_ctauTrue3D[iQQ]); }
@@ -212,7 +221,7 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
 
           ctauTrue->setVal((Tauz1MC+Tauz2MC)/2);
 //          cout << "!!!!![DEBUG]!!!!! ctauTrue = " << ctauTrue->getVal() << endl;;
-          ctauNRes->setVal( (ctau->getValV() - ctauTrue->getValV())/(ctauErr->getValV()) );
+          ctauNRes->setVal( (ctauN->getValV() - ctauTrue->getValV())/(ctauErr->getValV()) );
           ctauRes->setVal( (ctau->getValV() - ctauTrue->getValV()) );
           ptQQ->setVal(v12MC.Pt());
           rapQQ->setVal(v12MC.Rapidity());
@@ -226,12 +235,34 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
           double wCorr = 1/Corr;
           weightCorr->setVal(wCorr);
         }
-        
-	if (fTauzErr>0 && !isnan(fTauzErr) && !(fMcMask1 & (0x1 << 7)) && !(fMcMask2 & (0x1 << 7))){
+        float pplus = 0;
+        float pminus = 0;
+	if (fSign1 > 0 && fSign2 < 0){
+		pplus = fPt1*cosh(fEta1);
+		pminus = fPt2*cosh(fEta2);
+	}else if (fSign1 < 0 && fSign2 > 0){
+		pminus = fPt1*cosh(fEta1);
+		pplus = fPt2*cosh(fEta2);
+	}
+	float delta = pplus - pminus;
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 1 && fPt2 > 1 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6){
+	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -3.0 && fEta1 > - 3.6 && fEta2 < -3.0 && fEta2 > - 3.6){
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && !fIsAmbig1 && !fIsAmbig2){
+
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fPt1 > 0.5 && fPt2 > 0.5 && fChi2MatchMCHMFT1 < 0 && fChi2MatchMCHMFT2 < 0){
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fChi2MatchMCHMFT1 > 0 && fChi2MatchMCHMFT2 > 0){
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fMcDecision){
+//	if (fTauzErr>0 && !isnan(fTauzErr) &&  fChi2MatchMCHMFT1 < 25 && fChi2MatchMCHMFT2 < 25 && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6){
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fMcDecision && !(fMcMask1 & (0x1 << 7)) && !(fMcMask2 & (0x1 << 7))){
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fMcDecision){
+//	if (fTauzErr>0 && !isnan(fTauzErr) && !(fMcMask1 & (0x1 << 7)) && !(fMcMask2 & (0x1 << 7)) && fPt1 > 0.5 && fPt2 > 0.5){
 //	if (!(fMcMask1 & (0x1 << 7)) && !(fMcMask2 & (0x1 << 7)) && fMcDecision){
 //	if (fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fChi2MatchMCHMFT1 < 5 && fChi2MatchMCHMFT2 < 5){
 //	if (fMcDecision && fPt1 > 1. && fPt2 > 1.){
+//	&& !fIsAmbig1 && !fIsAmbig2
+//
           if (fSign==0) { // Opposite-Sign dimuons
+//		cout << "delta = " << delta << endl;
             if (isMC && isPureSDataset && isMatchedRecoDiMuon(0)) dataOSNoBkg->add(*cols, (applyWeight ? weight->getVal() : 1.0)); // Signal-only dimuons
             else if (applyWeight_Corr) dataOS->add(*cols,weightCorr->getVal()); //Signal and background dimuons
             else dataOS->add(*cols, ( applyWeight ? weight->getVal() : 1.0)); //Signal and background dimuons            
@@ -290,8 +321,8 @@ string findMyTree(string FileName)
   TFile *f = TFile::Open(FileName.c_str(), "READ");
   string name = "";
   if(f->GetListOfKeys()->Contains("hionia")){ name = "hionia/myTree"; }
-//  else if(f->GetListOfKeys()->Contains("myTree")){ name = "myTree"; }
-  else if(f->GetListOfKeys()->Contains("DimuonsAll")){ name = "DimuonsAll"; }
+  else if(f->GetListOfKeys()->Contains("O2rtdimuonall")){ name = "O2rtdimuonall"; }
+//  else if(f->GetListOfKeys()->Contains("DimuonsAll")){ name = "DimuonsAll"; }
   else { cout << "[ERROR] myTree was not found in: " << FileName << endl; }
   f->Close(); delete f;
   return name;
@@ -303,16 +334,24 @@ bool getTChain(TChain *fChain, vector<string> FileNames, string TreeName)
 
   for (vector<string>::iterator FileName = FileNames.begin() ; FileName != FileNames.end(); ++FileName){
   TFile *inputFile = TFile::Open(FileName->c_str());
+  cout << "opening file " << FileName->c_str() << endl;
   TIter keyList(inputFile->GetListOfKeys());
+	cout << "got list of keys" << endl;
   TKey *key;
 
   while ((key = (TKey*)keyList())) {
     TClass *cl = gROOT->GetClass(key->GetClassName());
     if (!cl->InheritsFrom("TDirectoryFile")) continue;
     string dir = key->GetName();
+	cout << "dir : " << dir.c_str() << endl;
+    string nb = dir;
+    nb.erase(0,9);
+//    int nb_int = std::stoi(nb);
+    //if (nb_int%2!=0 && nb_int < 9400000){
+    cout << "file name : " << dir.c_str() << endl;
     cout << "[INFO] Adding TFile " << FileName->c_str() << dir.c_str() << endl;
     fChain->Add(Form("%s/%s/%s",FileName->c_str(),dir.c_str(),TreeName.c_str()));
-//    fChain->Add(Form("%s/%s", FileName->c_str(),  TreeName3.c_str()));
+    //}
   }
   }
   if (!fChain) { cout << "[ERROR] fChain was not created, some input files are missing" << endl; return false; }
@@ -397,6 +436,10 @@ void iniBranch(TChain* fChain, bool isMC, string TreeName)
  if (fChain->GetBranch("fVt2"))   fChain->GetBranch("fVt2")->SetAutoDelete(false);
  if (fChain->GetBranch("fMcDecision"))   fChain->GetBranch("fMcDecision")->SetAutoDelete(false);
 
+ if (fChain->GetBranch("fIsAmbig1"))   fChain->GetBranch("fIsAmbig1")->SetAutoDelete(false);
+ if (fChain->GetBranch("fIsAmbig2"))   fChain->GetBranch("fIsAmbig2")->SetAutoDelete(false);
+
+
  if (fChain->GetBranch("fMass"))   fChain->SetBranchStatus("fMass", 1);
  if (fChain->GetBranch("fPt"))   fChain->SetBranchStatus("fPt", 1);
  if (fChain->GetBranch("fEta"))   fChain->SetBranchStatus("fEta", 1);
@@ -443,6 +486,9 @@ void iniBranch(TChain* fChain, bool isMC, string TreeName)
  if (fChain->GetBranch("fVz2"))   fChain->SetBranchStatus("fVz2", 1);
  if (fChain->GetBranch("fVt2"))   fChain->SetBranchStatus("fVt2", 1);
  if (fChain->GetBranch("fMcDecision"))   fChain->SetBranchStatus("fMcDecision", 1);
+
+ if (fChain->GetBranch("fIsAmbig1"))   fChain->SetBranchStatus("fIsAmbig1", 1);
+ if (fChain->GetBranch("fIsAmbig2"))   fChain->SetBranchStatus("fIsAmbig2", 1);
 
 };
 

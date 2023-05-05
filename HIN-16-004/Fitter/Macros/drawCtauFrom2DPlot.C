@@ -48,6 +48,7 @@ void drawCtauFrom2DPlot(RooWorkspace& myws,   // Local workspace
 
   double minRange = -4.0;
   double maxRange = 7.0;
+  Double_t numTot = myws.data(dsOSName.c_str())->sumEntries();
   Double_t outTot = myws.data(dsOSName.c_str())->numEntries();
   Double_t outErr = myws.data(dsOSName.c_str())->reduce(Form("(ctau>%.6f || ctau<%.6f)", range[1], range[0]))->numEntries();
   int nBins = min(int( round((maxRange - minRange)/binWidth) ), 1000);
@@ -64,23 +65,27 @@ void drawCtauFrom2DPlot(RooWorkspace& myws,   // Local workspace
   
   myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("PDF"),
                                        ProjWData(RooArgSet(*myws.var("ctauErr")), *myws.data(dsOSNameCut.c_str()), kTRUE),
-                                       Normalization(normDSTot, RooAbsReal::NumEvent),
+//                                       Normalization(normDSTot, RooAbsReal::NumEvent),
+                                       Normalization(numTot, RooAbsReal::NumEvent),
                                        FillStyle(1001), FillColor(kViolet+6), VLines(), DrawOption("LF"), NumCPU(32), LineColor(kBlack)
                                        );
   myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("BKG"),Components(RooArgSet( *myws.pdf(Form("pdfCTAUMASS_Bkg_%s", "PP")) )),
                                        ProjWData(RooArgSet(*myws.var("ctauErr")), *myws.data(dsOSName.c_str()), kTRUE),
-                                       Normalization(normDSTot, RooAbsReal::NumEvent),
+//                                       Normalization(normDSTot, RooAbsReal::NumEvent),
+                                       Normalization(numTot, RooAbsReal::NumEvent),
                                        FillStyle(1001), FillColor(kAzure-9), VLines(), DrawOption("LF"), NumCPU(32)
                                        );
   if (incJpsi) {
     myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("JPSIPR"),Components(RooArgSet( *myws.pdf(Form("pdfCTAUMASS_JpsiPR_%s", "PP")) )),
                                          ProjWData(RooArgSet(*myws.var("ctauErr")), *myws.data(dsOSName.c_str()), kTRUE),
-                                         Normalization(normDSTot, RooAbsReal::NumEvent),
+//                                         Normalization(normDSTot, RooAbsReal::NumEvent),
+                                         Normalization(numTot, RooAbsReal::NumEvent),
                                          LineColor(kRed+3), Precision(1e-5), NumCPU(32)
                                          );
     myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("JPSINOPR"),Components(RooArgSet( *myws.pdf(Form("pdfCTAUMASS_JpsiNoPR_%s", "PP")) )),
                                          ProjWData(RooArgSet(*myws.var("ctauErr")), *myws.data(dsOSName.c_str()), kTRUE),
-                                         Normalization(normDSTot, RooAbsReal::NumEvent),
+//                                         Normalization(normDSTot, RooAbsReal::NumEvent),
+                                         Normalization(numTot, RooAbsReal::NumEvent),
                                          LineColor(kGreen+3), Precision(1e-5), NumCPU(32)
                                          );
   }

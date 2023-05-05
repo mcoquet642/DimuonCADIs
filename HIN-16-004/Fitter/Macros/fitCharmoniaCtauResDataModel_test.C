@@ -199,7 +199,7 @@ bool loadCtauErrRange_ctaures(string FileName, struct KinCuts& cut)
   return true;
 };
 
-bool fitCharmoniaCtauResDataModel( RooWorkspace& myws,             // Local Workspace
+bool fitCharmoniaCtauResDataModel_test( RooWorkspace& myws,             // Local Workspace
                                const RooWorkspace& inputWorkspace,   // Workspace with all the input RooDatasets
                                struct KinCuts& cut,            // Variable containing all kinematic cuts
                                map<string, string>&  parIni,   // Variable containing all initial parameters
@@ -225,58 +225,27 @@ bool fitCharmoniaCtauResDataModel( RooWorkspace& myws,             // Local Work
                                )  
 {
 
-//  bool usePerEventError = true;
   bool usePerEventError = false;
-  incBkg=true;
+  incBkg=false;
 
   if (DSTAG.find("_")!=std::string::npos) DSTAG.erase(DSTAG.find("_"));
 
-  // Check if input dataset is MC
-  if (DSTAG.find("MC")!=std::string::npos) {
-    cout << "[ERROR] We can only fit resolution from Data using Data" << endl; return false;
-  }
-  
   string COLL = "PP";
   string label = ((DSTAG.find(COLL.c_str())!=std::string::npos) ? DSTAG.c_str() : Form("%s_%s", DSTAG.c_str(), COLL.c_str()));
 
-  if (importDS) {
-	cout << "import DS" << endl;
     setMassCutParameters(cut, incJpsi, false, false);
     setCtauResDataCutParameters(cut);
-    if (usePerEventError) {
-      // check if we have already done the ctauErr fits. If yes, load their parameters
-      string FileName = "";
-      string pdfName = "pdfCTAUERR_Tot_PP";
-      string plotLabel = "";
-      bool incJpsi = true;
-      bool fitSideBand = false;
-      if (incJpsi)  { plotLabel = plotLabel + "_Jpsi";     }
-      plotLabel = plotLabel + "_Bkg";
-      setCtauErrFileName(FileName, (inputFitDir["CTAUERR"]=="" ? outputDir : inputFitDir["CTAUERR"]), "DATA", plotLabel, cut, fitSideBand);
-      bool foundFit = false;
-      if ( loadCtauErrRange_ctaures(FileName, cut) ) { foundFit = true; }
-      if (foundFit) { cout << "[INFO] The ctauErr fit was found and I'll load the ctau Error range used." << endl; }
-//      else { cout << "[ERROR] The ctauErr fit was not found!" << endl; return false; }
-      else { cout << "[ERROR] The ctauErr fit was not found!" << endl; }
-      // Importing SPLOT DS from ctauErr results
-      string sPlotDSName = Form("dOS_%s_SPLOT", label.c_str());
-      if (useSPlot) { loadSPlotDS(myws, FileName, sPlotDSName); }
-    }
     setCtauErrCutParameters(cut);
-  }
 
   // Import the local datasets
   double numEntries = 1000000;
   string dsName = Form("dOS_%s", label.c_str());
-  if (importDS) {
     if ( !(myws.data(dsName.c_str())) ) {
       int importID = importDataset_Res(myws, inputWorkspace, cut, label);
       if (importID<0) { return false; }
       else if (importID==0) { doFit = false; }
     }
     numEntries = myws.data(dsName.c_str())->sumEntries(); if (numEntries<=0) { doFit = false; }
-  }
-  else if (doFit && !(myws.data(dsName.c_str()))) { cout << "[ERROR] No local dataset was found to perform the fit!" << endl; return false; }
 
   string dsName2Fit = dsName;
   if (incJpsi) dsName2Fit += "_JPSI";
@@ -286,14 +255,13 @@ bool fitCharmoniaCtauResDataModel( RooWorkspace& myws,             // Local Work
 
   // Define pdf and plot names
   string plotLabel = "";
-  plotLabel = plotLabel + Form("_CtauRes_%s", parIni[Form("Model_CtauRes_%s", COLL.c_str())].c_str());
+  plotLabel = plotLabel + Form("_CtauRes_%s", parIni["Model_CtauRes_PP"].c_str());
   string pdfName = "pdfCTAURES_Jpsi_PP";
 
   string FileName = "";
   setCtauResDataFileName(FileName, (inputFitDir["CTAURES"]=="" ? outputDir : inputFitDir["CTAURES"]), DSTAG, plotLabel, cut);
   if (gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAURES"]!="") {
     cout << "[WARNING] User Input File : " << FileName << " was not found!" << endl;
-    if (loadFitResult) return false;
     setCtauResDataFileName(FileName, outputDir, DSTAG, plotLabel, cut);
   }
 
@@ -334,13 +302,11 @@ bool fitCharmoniaCtauResDataModel( RooWorkspace& myws,             // Local Work
 
 
   if (createSignalDS) {
-    if (importDS && !myws.data(dsName2Fit.c_str())) {
+    if (!myws.data(dsName2Fit.c_str())) {
       string pdfMassName = "pdfMASS_Tot_PP";
       if (!createSignalCtauDSUsingSPLOT(myws, dsName, parIni, cut, incJpsi, incBkg, useSPlot)){ cout << "[ERROR] Creating the Signal Ctau Resolution Templates using sPLOT failed" << endl; return false; }
     }
   }
-  if (importDS) {
-    // Set global parameters
     setCtauResDataGlobalParameterRange(myws, parIni, cut, dsName2Fit, binWidth["CTAURES"]);
     if (!myws.data(dsName2FitCut.c_str())) {
       RooDataSet* dataToFit = (RooDataSet*)(myws.data(dsName2Fit.c_str())->reduce(parIni["CtauNRange_Cut"].c_str()))->Clone(dsName2FitCut.c_str());
@@ -349,64 +315,26 @@ bool fitCharmoniaCtauResDataModel( RooWorkspace& myws,             // Local Work
       cout << "!!!!![DEBUG]!!!!! dsName2Fit : " << dsName2Fit <<  ", num entries : " << myws.data(dsName2Fit.c_str())->sumEntries() << endl;
       cout << "!!!!![DEBUG]!!!!! dsName2FitCut : " << dsName2FitCut <<  ", num entries : " << myws.data(dsName2FitCut.c_str())->sumEntries() << endl;
     }
-  }
-//  myws.var("N_Jpsi_PP")->setVal(100);
-//  myws.var("N_Jpsi_PP")->setVal(myws.data(dsName2FitCut.c_str())->sumEntries());
-//  myws.var("N_Jpsi_PP")->setMax(myws.data(dsName2FitCut.c_str())->sumEntries()*0.5);
 
-  if (!loadFitResult) {
     // Set models based on initial parameters
     struct OniaModel model;
     if (!setCtauResDataModel(model, parIni)) { return false; }
 
-    //// LOAD CTAU ERROR PDF
-    if (usePerEventError) {
-      // Setting extra input information needed by each fitter
-      bool loadCtauErrFitResult = true;
-      bool doCtauErrFit = true;
-      bool importDS = true;
-      bool incJpsi = true;
-      string DSTAG = "DATA_PP";
-  
-      if ( !fitCharmoniaCtauErrModel( myws, inputWorkspace, cut, parIni, opt, outputDir, 
-                                      DSTAG, importDS, 
-                                      incJpsi, incBkg, 
-                                      doCtauErrFit, false, loadCtauErrFitResult, inputFitDir, numCores,
-                                      true, incSS, binWidth
-                                      ) 
-           ) { return false; }
-    }
-
     // Build the Fit Model
-    if (!buildCharmoniaCtauResModel(myws, model.PP, parIni, dsName2FitCut, "ctau", "pdfCTAURES", usePerEventError, useTotctauErrPdf, numEntries))  { return false; }
+    if (!buildCharmoniaCtauResModel(myws, model.PP, parIni, dsName2FitCut, "ctau", "pdfCTAURES", false, useTotctauErrPdf, numEntries))  { return false; }
     if (!buildCharmoniaCtauResModel(myws, model.PP, parIni, dsName2FitCut, "ctauN", "pdfCTAUNRES", false, useTotctauErrPdf, numEntries))  { return false; }
     cout << "Building res model" << endl;
-//    if (!buildCharmoniaCtauResModel(myws, model.PP, parIni, dsName2FitCut, "ctau", "pdfCTAURES", false, false, numEntries))  { return false; }
-//    if (!buildCharmoniaCtauResModel(myws, model.PP, parIni, dsName2FitCut, "ctauN", "pdfCTAUNRES", false, false, numEntries))  { return false; }
 
     // save the initial values of the model we've just created
     RooArgSet* params = (RooArgSet*) myws.pdf(pdfName.c_str())->getParameters(RooArgSet(*myws.var("ctauN"), *myws.var("ctauErr"), *myws.var("ctau")));
     myws.saveSnapshot(Form("%s_parIni", pdfName.c_str()),*params,kTRUE);
     delete params;
-  }
 
   // check if we have already done this fit. If yes, do nothing and return true.
-  bool found =  true; bool skipFit = !doFit;
   RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(RooArgSet(*myws.var("ctau"), *myws.var("ctauErr"), *myws.var("ctauN")));
-  found = found && isFitAlreadyFound(newpars, FileName, pdfName.c_str());
-  if (loadFitResult) {
-    if ( loadPreviousFitResult(myws, FileName, DSTAG, false, false) ) { skipFit = true; } else  { skipFit = false; }
-    if (skipFit) { cout << "[INFO] This ctau fit was already done, so I'll load the fit results." << endl; }
-    myws.saveSnapshot(Form("%s_parLoad", pdfName.c_str()),*newpars,kTRUE);
-  } else if (found) {
-    cout << "[INFO] This ctau fit was already done, so I'll just go to the next one." << endl;
-    return true;
-  }
   
   // Fit the Datasets
-  if (skipFit==false) {
     bool isWeighted = myws.data(dsName2FitCut.c_str())->isWeighted();
-    cout << "!!!!![DEBUG]!!!!! fitting pdf " << pdfName.c_str() << endl;
     RooFitResult* fitResult = myws.pdf(pdfName.c_str())->fitTo(*myws.data(dsName2FitCut.c_str()), Extended(kTRUE), NumCPU(numCores), SumW2Error(isWeighted), Save());
     fitResult->Print("v");
     myws.import(*fitResult, Form("fitResult_%s", pdfName.c_str()));
@@ -414,10 +342,9 @@ bool fitCharmoniaCtauResDataModel( RooWorkspace& myws,             // Local Work
     // Draw the mass plot
     if(!drawCtauResDataPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, dsName2Fit.c_str(), setLogScale, incSS, binWidth["CTAURES"])) { return false; }
     // Save the results
-    string FileName = ""; setCtauResDataFileName(FileName, outputDir, DSTAG, plotLabel, cut);
+    string FileName2 = ""; setCtauResDataFileName(FileName2, outputDir, DSTAG, plotLabel, cut);
     myws.saveSnapshot(Form("%s_parFit", pdfName.c_str()),*newpars,kTRUE);
-    saveWorkSpace(myws, Form("%sctauRes/%s/result", outputDir.c_str(), DSTAG.c_str()), FileName);
-  }
+    saveWorkSpace(myws, Form("%sctauRes/%s/result", outputDir.c_str(), DSTAG.c_str()), FileName2);
   
   return true;
 };
@@ -435,8 +362,7 @@ bool setCtauResDataModel( struct OniaModel& model, map<string, string>&  parIni)
   {"QuadrupleDecay",           CtauModel::QuadrupleDecay},
   {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
   {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
-  {"Delta",                    CtauModel::Delta},
-  {"SymPwrGaussianResolution", CtauModel::SymPwrGaussianResolution}
+  {"Delta",                    CtauModel::Delta}
 };
  
     if (parIni.count("Model_CtauRes_PP")>0) {
@@ -464,24 +390,10 @@ void setCtauResDataGlobalParameterRange(RooWorkspace& myws, map<string, string>&
   getRange(hTot, (int)(ceil(5)), rangeCtauN);
   hTot->Delete();
   ctauNMin = rangeCtauN[0];
-//___________________________________________
-  if (ctauNMin<-0.5){ ctauNMin = -0.5; }
-//  if (ctauNMax>  -0.001){ ctauNMax =   -0.001; }
-  if (ctauNMax>  0.05){ ctauNMax =   0.05; }
-//________________________________________________
-  if (parIni.count("ctauNCut")>0 && parIni["ctauNCut"]!="") {
-    parIni["ctauNCut"].erase(parIni["ctauNCut"].find("["), string("[").length());
-    parIni["ctauNCut"].erase(parIni["ctauNCut"].find("]"), string("]").length());
-    double ctauNCut = 0.0;
-    try {
-      ctauNCut = std::stod(parIni["ctauNCut"].c_str());
-    } catch (const std::invalid_argument&) {
-      cout << "[WARNING] ctauNCut is not a number, will ignore it!" << endl;
-    }
-    ctauNCut = abs(ctauNCut); if(ctauNCut>0.0) { ctauNMin = -1.0*abs(ctauNCut); }
-  }
-//  ctauNMin = -20.0;
-//  ctauNMax =   -0.001;
+  if (ctauNMin<-100.0){ ctauNMin = -2.0; }
+  if (ctauNMax>100.0){ ctauNMax =  2.0; }
+  ctauNMin = -10.0;
+  ctauNMin = 10.0;
   cout << "[INFO] Selected range: ctauNMin: " << ctauNMin << "  ctauNMax: " << ctauNMax << endl;
   myws.var("ctauN")->setRange("CtauNWindow", ctauNMin, ctauNMax);
   parIni["CtauNRange_Cut"]   = Form("(%.12f <= ctauN && ctauN <= %.12f)", ctauNMin, ctauNMax);
@@ -492,7 +404,7 @@ void setCtauResDataGlobalParameterRange(RooWorkspace& myws, map<string, string>&
   Double_t ctauMax; Double_t ctauMin;
   myws.data(dsName.c_str())->getRange(*myws.var("ctau"), ctauMin, ctauMax);
   ctauMin -= 0.00000001; ctauMax += 0.00000001;
-  if (ctauMax >  0.0){ ctauMax =   0.0; }
+//  if (ctauMax >  0.0){ ctauMax =   0.0; }
   cout << "[INFO] Range from data: ctauMin: " << ctauMin << "  ctauMax: " << ctauMax << endl;
   myws.var("ctau")->setRange("CtauWindow", ctauMin, ctauMax);
   parIni["CtauRange_Cut"]   = Form("(%.12f <= ctau && ctau <= %.12f)", ctauMin, ctauMax);
@@ -541,46 +453,15 @@ bool createSignalCtauDSUsingSPLOT(RooWorkspace& ws, string dsName, map<string, s
       if (incJpsi) {
         cout <<  "[INFO] Jpsi yield -> Mass Fit: " << ws.var("N_Jpsi_PP")->getVal() << " , sWeights: " << sData.GetYieldFromSWeight("N_Jpsi_PP") << std::endl;
       }
-      if (incBkg) {
-        cout <<  "[INFO] Bkg yield -> Mass Fit: " << ws.var("N_Bkg_PP")->getVal() << " , sWeights: " << sData.GetYieldFromSWeight("N_Bkg_PP") << std::endl;
-      }
-//      if (!isCompatibleDataset(*data, *(RooDataSet*)ws.data(dsName.c_str()))){ cout << "[ERROR] sPlot and original Datasets are inconsistent!" << endl; return false; }
-    }
-    if (incBkg) {
-      RooDataSet* dataw_Bkg  = new RooDataSet("TMP_BKG_DATA","TMP_BKG_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("invMass"), *ws.var("ctau"), *ws.var("ctauN"), *ws.var("ctauErr"), *ws.var("N_Bkg_PP_sw")), 0, "N_Bkg_PP_sw");
-//      RooDataSet* dataw_Bkg_reduced = (RooDataSet*)dataw_Bkg->reduce("(invMass<3.4)&&(ctau<=0)");
-      RooDataSet* dataw_Bkg_reduced = (RooDataSet*)dataw_Bkg->reduce("(invMass<3.4)");
-      ws.import(*dataw_Bkg_reduced, Rename((dsName+"_BKG").c_str()));
-      cout <<  "[INFO] sPLOT_BKG_DS Events: " << ws.data((dsName+"_BKG").c_str())->sumEntries() << std::endl;
-	cout << "New SPLOT Data set : " << (dsName+"_BKG").c_str() << endl;
-      delete dataw_Bkg;
     }
     if (incJpsi) {
       RooDataSet* dataw_Jpsi  = new RooDataSet("TMP_JPSI_DATA","TMP_JPSI_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("invMass"), *ws.var("ctau"), *ws.var("ctauN"), *ws.var("ctauErr"), *ws.var("N_Jpsi_PP_sw")), 0, "N_Jpsi_PP_sw");
 //      RooDataSet* dataw_Jpsi_reduced = (RooDataSet*)dataw_Jpsi->reduce("(invMass<3.4)&&(ctau<=0)");
-      RooDataSet* dataw_Jpsi_reduced = (RooDataSet*)dataw_Jpsi->reduce("(invMass<3.4)");
-      ws.import(*dataw_Jpsi_reduced, Rename((dsName+"_JPSI").c_str()));
+//      ws.import(*dataw_Jpsi_reduced, Rename((dsName+"_JPSI").c_str()));
+      ws.import(*dataw_Jpsi, Rename((dsName+"_JPSI").c_str()));
       cout <<  "[INFO] sPLOT_JPSI_DS Events: " << ws.data((dsName+"_JPSI").c_str())->sumEntries() << std::endl;
 	cout << "New SPLOT Data set : " << (dsName+"_JPSI").c_str() << endl;
       delete dataw_Jpsi;
-    }
-  }
-  else {
-    if (incJpsi) {
-      cout <<  "[INFO] Using mass window: " << (parIni["JpsiMassRange_Cut"]+"&&(ctau<=0)") <<  std::endl;
-      cout <<  "[INFO] Number of entries in Jpsi mass window: " << ((RooDataSet*)data->reduce((parIni["JpsiMassRange_Cut"]+"&&(ctau<=0)").c_str()))->numEntries() <<  std::endl;
-      RooDataSet* dataw_Jpsi_reduced = (RooDataSet*)data->reduce((parIni["JpsiMassRange_Cut"]+"&&(ctau<=0)").c_str());
-      ws.var("N_Jpsi_PP")->setVal(((RooDataSet*)data->reduce((parIni["JpsiMassRange_Cut"]+"&&(ctau<=0)").c_str()))->numEntries());
-      ws.import(*dataw_Jpsi_reduced, Rename((dsName+"_JPSI").c_str()));
-      cout <<  "[INFO] MASSCUT_JPSI_DS Events: " << ws.data((dsName+"_JPSI").c_str())->sumEntries() << std::endl;
-    }
-    if (incBkg) {
-      cout <<  "[INFO] Using mass window: " << (parIni["BkgMassRange_FULL_Cut"]+"&&(ctau<=0)") <<  std::endl;
-      cout <<  "[INFO] Number of entries in sideband mass window: " << ((RooDataSet*)data->reduce((parIni["BkgMassRange_FULL_Cut"]+"&&(ctau<=0)").c_str()))->numEntries() <<  std::endl;
-      RooDataSet* dataw_Bkg_reduced = (RooDataSet*)data->reduce((parIni["BkgMassRange_FULL_Cut"]+"&&(ctau<=0)").c_str());
-      ws.var("N_Bkg_PP")->setVal(((RooDataSet*)data->reduce((parIni["BkgMassRange_FULL_Cut"]+"&&(ctau<=0)").c_str()))->numEntries());
-      ws.import(*dataw_Bkg_reduced, Rename((dsName+"_BKG").c_str()));
-      cout <<  "[INFO] MASSCUT_BKG_DS Events: " << ws.data((dsName+"_BKG").c_str())->sumEntries() << std::endl;
     }
   }
   delete data; delete pdf;

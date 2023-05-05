@@ -123,7 +123,9 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
     }
     bool found =  true; bool skipFit = !doFit;
     RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(*(myws.var("invMass")));
+	cout << "parameters got" << endl;
     found = found && isFitAlreadyFound(newpars, FileName, pdfName.c_str());
+	cout << "fit found" << endl;
     if (loadFitResult) {
       if ( loadPreviousFitResult(myws, FileName, DSTAG, (!isMC && !cutSideBand && loadFitResult==1), loadFitResult==1) ) { skipFit = true; } else { skipFit = false; } 
       if (skipFit) { cout << "[INFO] This mass fit was already done, so I'll load the fit results." << endl; }
@@ -201,7 +203,8 @@ map< string , MassModel > MassModelDictionary = {
   {"ExpChebychev5",           MassModel::ExpChebychev5},
   {"ExpChebychev6",           MassModel::ExpChebychev6},
   {"Exponential",             MassModel::Exponential},
-  {"NA60",             MassModel::NA60}
+  {"NA60",             MassModel::NA60},
+  {"VWG",             MassModel::VWG}
 };
 
 
@@ -286,7 +289,7 @@ void setMassGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni
 void setMassFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool cutSideBand) 
 {
   if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
-  FileName = Form("%smass%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (cutSideBand?"SB":""), TAG.c_str(), "MASS", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
+  FileName = Form("%smass%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d_chi2%.0f%.0f.root", outputDir.c_str(), (cutSideBand?"SB":""), TAG.c_str(), "MASS", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End, (cut.dMuon.Chi2.Min*10.0), (cut.dMuon.Chi2.Max*10.0));
 };
 
 
