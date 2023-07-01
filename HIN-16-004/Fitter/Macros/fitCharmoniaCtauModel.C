@@ -375,7 +375,8 @@ map< string , CtauModel > CtauModelDictionary = {
   {"QuadrupleDecay",           CtauModel::QuadrupleDecay},
   {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
   {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
-  {"Delta",                    CtauModel::Delta}
+  {"Delta",                    CtauModel::Delta},
+  {"DoubleGaussianExp",        CtauModel::DoubleGaussianExp}
 };
 
     if (parIni.count("Model_CtauRes_PP")>0) {
@@ -462,15 +463,15 @@ void setCtauGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni
     delete actauCut;
   }
 
-  ctauMax = 2.0;
-  ctauMin = -2.0;
+  ctauMax = 4.0;
+  ctauMin = -3.0;
   cout << "[INFO] Range from data: ctauMin: " << ctauMin << "  ctauMax: " << ctauMax << endl;
   myws.var("ctau")->setRange("CtauWindow", ctauMin, ctauMax);
   parIni["CtauRange_Cut"]   = Form("(%.12f <= ctau && ctau < %.12f)", ctauMin, ctauMax);
   cut.dMuon.ctau.Max = ctauMax;
   cut.dMuon.ctau.Min = ctauMin;
-  cut.dMuon.ctau.Max = 2.0;
-  cut.dMuon.ctau.Min = -2.0;
+  cut.dMuon.ctau.Max = 4.0;
+  cut.dMuon.ctau.Min = -3.0;
   myws.var("ctau")->setRange("CtauFullWindow", cut.dMuon.ctau.Min, cut.dMuon.ctau.Max);
   myws.var("ctau")->setRange("FullWindow", cut.dMuon.ctau.Min, cut.dMuon.ctau.Max);
   myws.var("ctau")->setRange("SideBandTOP_FULL", cut.dMuon.ctau.Min, cut.dMuon.ctau.Max); 

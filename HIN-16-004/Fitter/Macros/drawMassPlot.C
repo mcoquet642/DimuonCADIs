@@ -36,7 +36,7 @@ void drawMassPlot(RooWorkspace& myws,   // Local workspace
 {
 
 
-	paperStyle=false;
+	paperStyle=true;
   LoadLibs();
 
 
@@ -248,7 +248,7 @@ void drawMassPlot(RooWorkspace& myws,   // Local workspace
   t->SetTextSize(0.03);
   if (!paperStyle) { // do not print selection details for paper style
 //     t->DrawLatex(0.20, 0.86-dy, "LHC22o_pass1_subset"); dy+=0.045;
-     t->DrawLatex(0.20, 0.86-dy, "LHC22o_pass2"); dy+=0.045;
+     t->DrawLatex(0.20, 0.86-dy, "LHC22o_pass4"); dy+=0.045;
 //     t->DrawLatex(0.20, 0.86-dy, "LHC21i3d2"); dy+=0.045;
      if (cutCtau) { t->DrawLatex(0.21, 0.86-dy, "#font[12]{l}_{J/#psi} cuts applied"); dy+=0.045; }
         t->DrawLatex(0.20, 0.86-dy, "GlobalMuonTracks"); dy+=2.0*0.045;
@@ -260,11 +260,14 @@ void drawMassPlot(RooWorkspace& myws,   // Local workspace
 	dy=0;
   if (cut.dMuon.AbsRap.Min>0.1) {t->DrawLatex(0.5175, 0.69-dy, Form("%.1f < |y^{#mu#mu}| < %.1f",cut.dMuon.AbsRap.Min,cut.dMuon.AbsRap.Max)); dy+=0.045;}
   else {t->DrawLatex(0.5175, 0.69-dy, Form("|y^{#mu#mu}| < %.1f",cut.dMuon.AbsRap.Max)); dy+=0.045;}
+//  else {t->DrawLatex(0.20, 0.69-dy, Form("|y^{#mu#mu}| < %.1f",cut.dMuon.AbsRap.Max)); dy+=0.045;}
   t->DrawLatex(0.5175, 0.69-dy, Form("%g < p_{T}^{#mu#mu} < %g GeV/c",cut.dMuon.Pt.Min,cut.dMuon.Pt.Max)); dy+=0.045;
+//  t->DrawLatex(0.20, 0.69-dy, Form("%g < p_{T}^{#mu#mu} < %g GeV/c",cut.dMuon.Pt.Min,cut.dMuon.Pt.Max)); dy+=0.045;
 //  t->DrawLatex(0.5175, 0.86-dy, Form("%1.f < #chi^{2}_{MFT-MCH} < %1.f",cut.dMuon.Chi2.Min,cut.dMuon.Chi2.Max)); dy+=0.045;
 //  t->DrawLatex(0.5175, 0.69-dy, Form("#chi^{2}_{MFT-MCH} < %1.f",cut.dMuon.Chi2.Max)); dy+=0.045;
 
 TString extraText   = "ALICE Preliminary";
+//TString extraText   = "ALICE Performance";
 float extraTextFont = 42;  // default is helvetica-italics
       t->SetTextFont(extraTextFont);
 //      t->SetTextSize(0.033);

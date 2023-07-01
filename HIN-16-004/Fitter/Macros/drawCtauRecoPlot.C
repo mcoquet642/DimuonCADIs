@@ -62,7 +62,7 @@ void drawCtauRecoPlot(RooWorkspace& myws,   // Local workspace
   frame2->addPlotable(hpull, "PX");	
 ;
   // set the CMS style
-  setTDRStyle();
+//  setTDRStyle();
   
   // Create the main canvas
   TCanvas *cFig  = new TCanvas(Form("cCtauRecoFig_%s", "PP"), "cCtauRecoFig",800,800);

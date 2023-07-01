@@ -1,0 +1,4 @@
+chi2;mass;rap;pt;Model_Bkg_PP;N_Bkg_PP;lambda1_Bkg_PP;lambda2_Bkg_PP;lambda3_Bkg_PP;lambda4_Bkg_PP
+0.0-40.0;2.6-3.5;2.5-4.0;0.0-2.0;VWG;;;;;;;
+0.0-40.0;2.6-3.5;2.5-4.0;2.0-6.0;VWG;;;;;;;
+0.0-40.0;2.6-3.5;2.5-4.0;6.0-30.0;VWG;;;;;;;

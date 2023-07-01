@@ -73,8 +73,8 @@ void fitter(
   binWidth["CTAUERR"]  = 0.0025;
   binWidth["CTAUTRUE"] = 0.025;
   binWidth["CTAURECO"] = 0.100;
-  binWidth["CTAURES"]  = 0.02;
-  binWidth["CTAUSB"]   = 0.0150;
+  binWidth["CTAURES"]  = 0.05;
+  binWidth["CTAUSB"]   = 0.1;
 
   if (workDirName.find("Peri")!=std::string::npos) { usePeriPD = true; }
 
@@ -433,8 +433,8 @@ bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, str
   // set initial parameters
   cut.sMuon.Pt.Min  =  0.0;
   cut.sMuon.Pt.Max  = 100000.0;
-  cut.sMuon.Eta.Min = -2.4;
-  cut.sMuon.Eta.Max = 2.4;
+  cut.sMuon.Eta.Min = -5.;
+  cut.sMuon.Eta.Max = 5.;
   cut.dMuon.ctauErr.Min = -1000.0;
   cut.dMuon.ctauErr.Max = 1000.0;
   cut.dMuon.ctau.Min = -1000.0;
@@ -451,7 +451,7 @@ bool setParameters(map<string, string> row, struct KinCuts& cut, map<string, str
   cut.dMuon.M.Min = 2.0; 
   cut.dMuon.M.Max = 5.0;  
   cut.dMuon.AbsRap.Min = 0.0;
-  cut.dMuon.AbsRap.Max = 2.4;
+  cut.dMuon.AbsRap.Max = 5.;
   cut.dMuon.Chi2.Min = -100000.0;
   cut.dMuon.Chi2.Max = 100000.0;
   cut.dMuon.Pt.Min  =  0.0;

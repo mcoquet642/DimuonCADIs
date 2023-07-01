@@ -57,7 +57,7 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
   parIni["invMassNorm"] = Form("RooFormulaVar::%s('( -1.0 + 2.0*( @0 - @1 )/( @2 - @1) )', {%s, mMin[%.6f], mMax[%.6f]})", "invMassNorm", "invMass", cut.dMuon.M.Min, cut.dMuon.M.Max );
   cout << "[INFO] RooFormula defined" << endl;
   // Apply the ctau cuts to reject non-prompt charmonia
-  if (cutCtau) { setCtauCuts(cut); }
+//  if (cutCtau) { setCtauCuts(cut); }
   
   string COLL = "PP";
   string plotLabelPP;

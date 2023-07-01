@@ -18,14 +18,10 @@ ClassImp(SymPwr);
 
  SymPwr::SymPwr(const char *name, const char *title, 
                         RooAbsReal& _x,
-                        RooAbsReal& _A,
-                        RooAbsReal& _B,
-                        RooAbsReal& _C) :
+                        RooAbsReal& _A) :
    RooAbsPdf(name,title), 
    x("x","x",this,_x),
-   A("A","A",this,_A),
-   B("B","B",this,_B),
-   C("C","C",this,_C)
+   A("A","A",this,_A)
  { 
  } 
 
@@ -33,9 +29,7 @@ ClassImp(SymPwr);
  SymPwr::SymPwr(const SymPwr& other, const char* name) :  
    RooAbsPdf(other,name), 
    x("x",this,other.x),
-   A("A",this,other.A),
-   B("B",this,other.B),
-   C("C",this,other.C)
+   A("A",this,other.A)
  { 
  } 
 
@@ -44,17 +38,8 @@ ClassImp(SymPwr);
  Double_t SymPwr::evaluate() const 
  { 
    // ENTER EXPRESSION IN TERMS OF VARIABLE ARGUMENTS HERE 
-    Double_t t = TMath::Abs(x - A);
-
-    Double_t absAlpha = TMath::Abs(B);
-//    if (t >= absAlpha){
-//        return TMath::Power(t, -C)*(C-1)/(2*C);
-        return TMath::Exp(-t*C)/(C);
-//    }
-
-/*    if (t < absAlpha){
-        return (C-1)/(2*absAlpha*C);
-    }*/
+    Double_t t = TMath::Abs(x);
+        return TMath::Exp(-t/A);
 
  } 
 

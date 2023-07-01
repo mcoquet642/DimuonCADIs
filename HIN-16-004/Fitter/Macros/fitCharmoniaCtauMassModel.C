@@ -366,7 +366,7 @@ bool fitCharmoniaCtauMassModel( RooWorkspace& myws,             // Local Workspa
         cout << "[INFO] Setting NonPrompt Background parameters to constant!" << endl;
         myws.pdf("pdfCTAU_BkgNoPR_PP")->getParameters(RooArgSet(*myws.var("ctau"), *myws.var("ctauErr")))->setAttribAll("Constant", kTRUE); 
       } else { cout << "[ERROR] NonPrompt Background PDF was not found!" << endl; return false; }
-      if (!setConstant(myws, Form("b_Bkg_%s", COLL.c_str()), true)) { return false; }
+      if (!setConstant(myws, Form("b_BkgNoPR_%s", COLL.c_str()), true)) { return false; }
       if (!setConstant(myws, Form("s1_CtauRes_%s", COLL.c_str()), true)) { return false; }
     }
   }
@@ -379,20 +379,29 @@ bool fitCharmoniaCtauMassModel( RooWorkspace& myws,             // Local Workspa
       string ModelName = Form("Model_JpsiNoPR_%s", COLL.c_str());
       string plotLabel = Form("_CtauTrue_%s", parIni[ModelName.c_str()].c_str());
       string DSTAG = "MCJPSINOPR_PP";
+      string DSTAG2 = "MC_PP";
       setCtauTrueFileName(FileName, (inputFitDir["CTAUTRUE"]=="" ? outputDir : inputFitDir["CTAUTRUE"]), DSTAG, plotLabel, cut);
       bool found = false;
       if (!found && gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAUTRUE"]!="") {
+cout << "here ?" << FileName << endl;
         plotLabel = string(Form("_CtauTrue_%s_NoBkg", parIni[ModelName.c_str()].c_str()));
         setCtauTrueFileName(FileName, (inputFitDir["CTAUTRUE"]=="" ? outputDir : inputFitDir["CTAUTRUE"]), DSTAG, plotLabel, cut);
-      } else if (inputFitDir["CTAUTRUE"]!="") { found = true; }
+      } else if (inputFitDir["CTAUTRUE"]!="") { 
+found = true; }
       if (!found && gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAUTRUE"]!="") {
+cout << "here ???" <<  FileName << endl;
         plotLabel = string(Form("_CtauTrue_%s", parIni[ModelName.c_str()].c_str()));
         setCtauTrueFileName(FileName, outputDir, DSTAG, plotLabel, cut);
-      } else if (inputFitDir["CTAUTRUE"]!="") { found = true; }
+      } else if (inputFitDir["CTAUTRUE"]!="") { 
+found = true; }
       if (!found && gSystem->AccessPathName(FileName.c_str())) {
-        plotLabel = string(Form("_CtauTrue_%s_NoBkg", parIni[ModelName.c_str()].c_str()));
-        setCtauTrueFileName(FileName, outputDir, DSTAG, plotLabel, cut);
-      } else { found = true; }
+cout << "here ?????" <<  FileName << endl;
+//        plotLabel = string(Form("_CtauTrue_%s_NoBkg", parIni[ModelName.c_str()].c_str()));
+        plotLabel = string(Form("_CtauTrue_%s", parIni[ModelName.c_str()].c_str()));
+        setCtauTrueFileName(FileName, outputDir, DSTAG2, plotLabel, cut);
+cout << "here ?????" <<  FileName << endl;
+      } else { 
+found = true; }
       if (!found && gSystem->AccessPathName(FileName.c_str())) {
         cout << "[ERROR] User Input File : " << FileName << " was not found!" << endl;
         return false;

@@ -18,9 +18,7 @@ public:
   SymPwr() {} ; 
   SymPwr(const char *name, const char *title,
 	      RooAbsReal& _x,
-	      RooAbsReal& _A,
-	      RooAbsReal& _B,
-	      RooAbsReal& _C);
+	      RooAbsReal& _A);
   SymPwr(const SymPwr& other, const char* name=0) ;
   virtual TObject* clone(const char* newname) const { return new SymPwr(*this,newname); }
   inline virtual ~SymPwr() { }
@@ -29,8 +27,6 @@ protected:
 
   RooRealProxy x ;
   RooRealProxy A ;
-  RooRealProxy B ;
-  RooRealProxy C ;
   
   Double_t evaluate() const ;
 

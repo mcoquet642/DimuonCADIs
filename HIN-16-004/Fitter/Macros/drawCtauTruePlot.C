@@ -64,7 +64,7 @@ void drawCtauTruePlot(RooWorkspace& myws,   // Local workspace
   frame2->addPlotable(hpull, "PX");	
 
   // set the CMS style
-  setTDRStyle();
+//  setTDRStyle();
   
   // Create the main canvas
   TCanvas *cFig  = new TCanvas("cCtauTrueFig_PP", "cCtauTrueFig",800,800);
@@ -95,8 +95,7 @@ void drawCtauTruePlot(RooWorkspace& myws,   // Local workspace
   pad1->Draw();
   pad1->cd(); 
   frame->Draw();
-
-  printCtauTrueParameters(myws, pad1, pdfTotName, isWeighted);
+//  printCtauTrueParameters(myws, pad1, pdfTotName, isWeighted);
   pad1->SetLogy(setLogScale);
 
   // Drawing the text in the plot
@@ -104,10 +103,10 @@ void drawCtauTruePlot(RooWorkspace& myws,   // Local workspace
   float dy = 0; 
   
   t->SetTextSize(0.03);
-  t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq p_{T}^{#mu#mu} < %.1f GeV/c",cut.dMuon.Pt.Min,cut.dMuon.Pt.Max)); dy+=0.045;
+/*  t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq p_{T}^{#mu#mu} < %.1f GeV/c",cut.dMuon.Pt.Min,cut.dMuon.Pt.Max)); dy+=0.045;
   t->DrawLatex(0.21, 0.86-dy, Form("%.1f #leq |y^{#mu#mu}| < %.1f",cut.dMuon.AbsRap.Min,cut.dMuon.AbsRap.Max)); dy+=1.5*0.045;
   t->DrawLatex(0.21, 0.86-dy, Form("%.1f < #chi^{2}_{MFT-MCH} < %.1f GeV/c",cut.dMuon.Chi2.Min,cut.dMuon.Chi2.Max)); dy+=0.045;
-
+*/
 
   // Drawing the Legend
   double ymin = 0.7802;
@@ -160,8 +159,9 @@ void drawCtauTruePlot(RooWorkspace& myws,   // Local workspace
 
   frame2->Draw(); 
   
+cout << "draw text" << endl;
   // *** Print chi2/ndof 
-  printChi2(myws, pad2, frame, "ctauTrue", dsOSName.c_str(), pdfTotName.c_str(), nBins);
+//  printChi2(myws, pad2, frame, "ctauTrue", dsOSName.c_str(), pdfTotName.c_str(), nBins);
   
   pline->Draw("same");
   pad2->Update();

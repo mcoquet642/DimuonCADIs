@@ -207,7 +207,8 @@ enum class CtauModel
     SingleSidedDecay=7,
     Delta=8,
     QuadrupleDecay=9,
-    SymPwrGaussianResolution=10
+    SymPwrGaussianResolution=10,
+    DoubleGaussianExp=11
 };
 map< string , CtauModel > CtauModelDictionary = {
   {"InvalidModel",             CtauModel::InvalidModel},
@@ -220,7 +221,8 @@ map< string , CtauModel > CtauModelDictionary = {
   {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
   {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
   {"Delta",                    CtauModel::Delta},
-  {"SymPwrGaussianResolution", CtauModel::SymPwrGaussianResolution}
+  {"SymPwrGaussianResolution", CtauModel::SymPwrGaussianResolution},
+  {"DoubleGaussianExp",        CtauModel::DoubleGaussianExp}
 };
 
 typedef struct CtauPNP {

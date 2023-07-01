@@ -228,6 +228,7 @@ bool fitCharmoniaCtauResDataModel( RooWorkspace& myws,             // Local Work
 //  bool usePerEventError = true;
   bool usePerEventError = false;
   incBkg=true;
+//  useSPlot=false;
 
   if (DSTAG.find("_")!=std::string::npos) DSTAG.erase(DSTAG.find("_"));
 
@@ -436,7 +437,9 @@ bool setCtauResDataModel( struct OniaModel& model, map<string, string>&  parIni)
   {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
   {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
   {"Delta",                    CtauModel::Delta},
-  {"SymPwrGaussianResolution", CtauModel::SymPwrGaussianResolution}
+  {"SymPwrGaussianResolution", CtauModel::SymPwrGaussianResolution},
+  {"DoubleGaussianExp",        CtauModel::DoubleGaussianExp}
+
 };
  
     if (parIni.count("Model_CtauRes_PP")>0) {
@@ -465,9 +468,11 @@ void setCtauResDataGlobalParameterRange(RooWorkspace& myws, map<string, string>&
   hTot->Delete();
   ctauNMin = rangeCtauN[0];
 //___________________________________________
-  if (ctauNMin<-0.5){ ctauNMin = -0.5; }
-//  if (ctauNMax>  -0.001){ ctauNMax =   -0.001; }
+//  if (ctauNMin<-0.5){ ctauNMin = -0.5; }
+  if (ctauNMin<-2.){ ctauNMin = -2.; }
+  ctauNMin = -2.;
   if (ctauNMax>  0.05){ ctauNMax =   0.05; }
+//  if (ctauNMax>  0.2){ ctauNMax =   0.2; }
 //________________________________________________
   if (parIni.count("ctauNCut")>0 && parIni["ctauNCut"]!="") {
     parIni["ctauNCut"].erase(parIni["ctauNCut"].find("["), string("[").length());
@@ -559,7 +564,9 @@ bool createSignalCtauDSUsingSPLOT(RooWorkspace& ws, string dsName, map<string, s
       RooDataSet* dataw_Jpsi  = new RooDataSet("TMP_JPSI_DATA","TMP_JPSI_DATA", (RooDataSet*)ws.data((dsName+"_SPLOT").c_str()), RooArgSet(*ws.var("invMass"), *ws.var("ctau"), *ws.var("ctauN"), *ws.var("ctauErr"), *ws.var("N_Jpsi_PP_sw")), 0, "N_Jpsi_PP_sw");
 //      RooDataSet* dataw_Jpsi_reduced = (RooDataSet*)dataw_Jpsi->reduce("(invMass<3.4)&&(ctau<=0)");
       RooDataSet* dataw_Jpsi_reduced = (RooDataSet*)dataw_Jpsi->reduce("(invMass<3.4)");
-      ws.import(*dataw_Jpsi_reduced, Rename((dsName+"_JPSI").c_str()));
+//!!!!!!!!!!!!!Only signal      
+    ws.import(*dataw_Jpsi_reduced, Rename((dsName+"_JPSI").c_str()));
+//      ws.import(*data, Rename((dsName+"_JPSI").c_str()));
       cout <<  "[INFO] sPLOT_JPSI_DS Events: " << ws.data((dsName+"_JPSI").c_str())->sumEntries() << std::endl;
 	cout << "New SPLOT Data set : " << (dsName+"_JPSI").c_str() << endl;
       delete dataw_Jpsi;

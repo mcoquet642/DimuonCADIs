@@ -65,8 +65,8 @@ bool usePerEventError = false;
   if (!incNonPrompt) {
     if (abs(maxRange)>abs(minRange)) { minRange = -1.0*abs(maxRange); } else { maxRange = abs(minRange); }
   } else {
-    minRange = -4.0;
-    maxRange = 7.0;
+    minRange = -3.0;
+    maxRange = 4.0;
   }
   Double_t numTot = myws.data(dsOSName2Fit.c_str())->sumEntries();
   Double_t outTot = myws.data(dsOSName2Fit.c_str())->numEntries();
@@ -121,6 +121,10 @@ cout << "normBkg : " << normBkg << ", normTot : " << normTot << ", numTot : " <<
 //                                           FillStyle(1001), FillColor(kAzure-9), VLines(), DrawOption("LCF"), Precision(1e-4)
                                            LineColor(kAzure-9), Precision(1e-4)
                                            );
+//      myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("PDF"),  Normalization(normBkg, RooAbsReal::NumEvent), NumCPU(32),
+      myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("PDF"),  Normalization(numTot, RooAbsReal::NumEvent), NumCPU(32),
+                                           LineColor(kBlack), Precision(1e-4)
+                                           );
       myws.data(dsOSName2Fit.c_str())->plotOn(frame, Name("dOS"), DataError(RooAbsData::SumW2), XErrorSize(0), MarkerColor(kBlack), LineColor(kBlack), MarkerSize(1.2));
       if (myws.pdf(Form("pdfCTAUCOND_BkgPR_%s", "PP"))) {myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("BKGPR"),Components(RooArgSet(*myws.pdf(Form("pdfCTAUCOND_BkgPR_%s", "PP")))),
                                                                                                           Normalization(numTot, RooAbsReal::NumEvent),
@@ -147,9 +151,6 @@ cout << "normBkg : " << normBkg << ", normTot : " << normTot << ", numTot : " <<
                                                                                                             LineColor(kGreen+10), Precision(1e-4), NumCPU(32)
                                                                                                             );
       }else{ cout << "pdfCTAUCOND_BkgNoPR nt found" << endl;}
-      myws.pdf(pdfTotName.c_str())->plotOn(frame,Name("PDF"),  Normalization(normBkg, RooAbsReal::NumEvent), NumCPU(32),
-                                           LineColor(kBlack), Precision(1e-4)
-                                           );
 	}
     }
     else

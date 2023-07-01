@@ -322,7 +322,9 @@ map< string , CtauModel > CtauModelDictionary = {
   {"QuadrupleDecay",           CtauModel::QuadrupleDecay},
   {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
   {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
-  {"Delta",                    CtauModel::Delta}
+  {"Delta",                    CtauModel::Delta},
+  {"SymPwrGaussianResolution", CtauModel::SymPwrGaussianResolution},
+  {"DoubleGaussianExp",        CtauModel::DoubleGaussianExp}
 };
 
     if (parIni.count("Model_CtauRes_PP")>0) {
@@ -408,8 +410,8 @@ cout << "ctaumin = " << ctauMin << ", ctaumax = " << ctauMax << endl;
     delete actauCut;
   }
 
-    ctauMin =  -1.5;
-    ctauMax =  1.5;
+    ctauMin =  -3;
+    ctauMax =  4;
   cout << "[INFO] Range from data: ctauMin: " << ctauMin << "  ctauMax: " << ctauMax << endl;
   myws.var("ctau")->setRange("CtauWindow", ctauMin, ctauMax);
   parIni["CtauRange_Cut"]   = Form("(%.12f <= ctau && ctau < %.12f)", ctauMin, ctauMax);

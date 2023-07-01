@@ -1,0 +1,15 @@
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD11.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD13.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD14.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD16.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD18.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD1.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD20.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD22.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD2.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD3.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD4.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD5.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD7.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD8.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22q_pass3_reassoc/dileptonAOD9.root

@@ -35,6 +35,27 @@ bool    readCorrection(const char* file);
 
 bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string DSName, string OutputFileName, bool UpdateDS=false)
 {
+
+  auto hCtau = new TH1F("ctau","ctau",200,-2,2);
+  auto hCtau_02 = new TH1F("ctau","ctau",200,-2,2);
+  auto hCtau_26 = new TH1F("ctau","ctau",200,-2,2);
+  auto hCtau_630 = new TH1F("ctau","ctau",200,-2,2);
+  auto hDz = new TH1F("Dz","Dz",200,-50,50);
+  auto hDz_02 = new TH1F("Dz","Dz",200,-50,50);
+  auto hDz_26 = new TH1F("Dz","Dz",200,-50,50);
+  auto hDz_630 = new TH1F("Dz","Dz",200,-50,50);
+  auto hDca = new TH1F("Dca","Dca",200,0,2);
+  auto hPt = new TH1F("Pt","Pt",200,0,20);
+  auto hPt_mu = new TH1F("Pt_mu","Pt_mu",200,0,20);
+  auto hEta_mu = new TH1F("Eta_mu","Eta_mu",200,0,20);
+  auto hY = new TH1F("Y","Y",200,-5,-1);
+  auto hPosZ = new TH1F("PosZ","PosZ",400,-200,200);
+  auto hSndZ = new TH1F("SndZ","SndZ",400,-200,200);
+  auto hChi2 = new TH1F("Chi2","Chi2",200,0,200);
+  auto hChi2pca = new TH1F("Chi2pca","Chi2pca",200,0,200);
+
+
+
   string TreeName("O2rtdimuonall");
 //  string TreeName("DimuonsAll");
   RooDataSet* dataOS = NULL; RooDataSet* dataSS = NULL; RooDataSet* dataOSNoBkg = NULL;
@@ -112,13 +133,15 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
     RooRealVar* ctauRes = new RooRealVar("ctauRes","c_{#tau}", -100000.0, 100000.0, "");
     RooRealVar* ctauErr = new RooRealVar("ctauErr","#sigma_{c#tau}", -100000.0, 100000.0, "mm");
     RooRealVar* ptQQ    = new RooRealVar("pt","#mu#mu p_{T}", -1.0, 10000.0, "GeV/c");
-    RooRealVar* rapQQ   = new RooRealVar("rap","#mu#mu y", -2.5, 2.5, "");
+    RooRealVar* rapQQ   = new RooRealVar("rap","#mu#mu y", -5., 5., "");
     RooRealVar* chi21   = new RooRealVar("chi21","#chi^2_{MFT-MCH}", -1000,1000000, "");
     RooRealVar* chi22   = new RooRealVar("chi22","#chi^2_{MFT-MCH}", -1000,1000000, "");
     RooRealVar* cent    = new RooRealVar("cent","centrality", -1.0, 1000.0, "");
     RooRealVar* weight  = new RooRealVar("weight","MC weight", 0.0, 10000000.0, "");
     RooRealVar* weightCorr   = new RooRealVar("weightCorr","Data correction weight", 0.0, 10000000.0, "");
     RooArgSet*  cols    = NULL;
+	
+cout << "var init " << endl;
     
     if (applyWeight_Corr)
     {
@@ -137,17 +160,21 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
     }
     else
     {
+cout << "no corr " << endl;
       if (isMC) {
         cols = new RooArgSet(*mass, *ctau, *ctauErr, *ctauTrue, *ptQQ, *rapQQ, *cent, *chi21, *chi22);
         cols->add(*ctauNRes);
         cols->add(*ctauRes);
       } else {
+cout << "no MC " << endl;
         cols = new RooArgSet(*mass, *ctau, *ctauErr, *ptQQ, *rapQQ, *cent, *chi21, *chi22);
         cols->add(*ctauN);
+cout << "RooArgSet " << endl;
       }  
       dataOS = new RooDataSet(Form("dOS_%s", DSName.c_str()), "dOS", *cols, StoreAsymError(*mass));
       dataSS = new RooDataSet(Form("dSS_%s", DSName.c_str()), "dSS", *cols, StoreAsymError(*mass));
       if (isMC && isPureSDataset) dataOSNoBkg = new RooDataSet(Form("dOS_%s_NoBkg", DSName.c_str()), "dOSNoBkg", *cols, StoreAsymError(*mass));
+cout << "DataSet " << endl;
     }
     
     Long64_t nentries = theTree->GetEntries();
@@ -206,7 +233,8 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
         ptQQ->setVal(fPt);
         chi21->setVal(fChi2MatchMCHMFT1);
         chi22->setVal(fChi2MatchMCHMFT2);
-        rapQQ->setVal(v12.Rapidity());
+        rapQQ->setVal(std::abs(v12.Rapidity()));
+//	cout << v12.Rapidity() << endl;
         if (isMC && fMcDecision) {
 //          if (theTree->GetBranch("Reco_QQ_ctauTrue3D")) { ctauTrue->setVal(Reco_QQ_ctauTrue3D[iQQ]); }
 //          else if (theTree->GetBranch("Reco_QQ_ctauTrue")) { ctauTrue->setVal(Reco_QQ_ctauTrue[iQQ]); }
@@ -220,7 +248,7 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
 
 
           ctauTrue->setVal((Tauz1MC+Tauz2MC)/2);
-//          cout << "!!!!![DEBUG]!!!!! ctauTrue = " << ctauTrue->getVal() << endl;;
+          cout << "!!!!![DEBUG]!!!!! ctauTrue = " << ctauTrue->getVal() << endl;;
           ctauNRes->setVal( (ctauN->getValV() - ctauTrue->getValV())/(ctauErr->getValV()) );
           ctauRes->setVal( (ctau->getValV() - ctauTrue->getValV()) );
           ptQQ->setVal(v12MC.Pt());
@@ -245,9 +273,16 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
 		pplus = fPt2*cosh(fEta2);
 	}
 	float delta = pplus - pminus;
-//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 1 && fPt2 > 1 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6){
-	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -3.0 && fEta1 > - 3.6 && fEta2 < -3.0 && fEta2 > - 3.6){
-//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && !fIsAmbig1 && !fIsAmbig2){
+	float dca1 = sqrt(fFwdDcaX1*fFwdDcaX1+fFwdDcaY1*fFwdDcaY1);
+	float dca2 = sqrt(fFwdDcaX2*fFwdDcaX2+fFwdDcaY2*fFwdDcaY2);
+	float svz = fPosZ*10.-ct*abs(v12.Pz())/fMass;
+//	if (fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && !fIsAmbig1 && !fIsAmbig2 && fNumContrib > 3 && abs(svz) < 130 && dca1 < 0.2 && dca2 < 0.2){
+//	if (fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && !fIsAmbig1 && !fIsAmbig2 && fNumContrib > 5 && fChi2pca < 4 && dca1 < 0.1 && dca2 < 0.1){
+	if (fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && !fIsAmbig1 && !fIsAmbig2){
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 1. && fPt2 > 1. && fEta1 < -3.0 && fEta1 > - 3.6 && fEta2 < -3.0 && fEta2 > - 3.6 && !fIsAmbig1 && !fIsAmbig2 && fNumContrib > 5 && dca1 < 0.5 && dca2 < 0.5){
+//		cout << "dca1 = " << dca1 << endl;
+//		cout << "dca2 = " << dca2 << endl;
+//	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6){
 
 //	if (fTauzErr>0 && !isnan(fTauzErr) && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fPt1 > 0.5 && fPt2 > 0.5 && fChi2MatchMCHMFT1 < 0 && fChi2MatchMCHMFT2 < 0){
 //	if (fTauzErr>0 && !isnan(fTauzErr) && fPt1 > 0.5 && fPt2 > 0.5 && fEta1 < -2.5 && fEta1 > - 3.6 && fEta2 < -2.5 && fEta2 > - 3.6 && fChi2MatchMCHMFT1 > 0 && fChi2MatchMCHMFT2 > 0){
@@ -263,6 +298,41 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
 //
           if (fSign==0) { // Opposite-Sign dimuons
 //		cout << "delta = " << delta << endl;
+		
+
+/*	if (fMass < 3.2 && fMass > 2.95){
+		hCtau->Fill(ct);
+		hDz->Fill(ct*abs(v12.Pz())/fMass);
+		hDca->Fill(dca1);
+		hDca->Fill(dca2);
+		hPt->Fill(fPt);
+		hY->Fill(v12.Rapidity());
+		hSndZ->Fill(fPosZ*10.-ct*abs(v12.Pz())/fMass);
+		hPosZ->Fill(fPosZ*10.);
+
+		hPt_mu->Fill(fPt1);
+		hPt_mu->Fill(fPt2);
+		hEta_mu->Fill(fEta1);
+		hEta_mu->Fill(fEta2);
+		hChi2->Fill(fChi2MatchMCHMFT1);
+		hChi2->Fill(fChi2MatchMCHMFT2);
+		hChi2pca->Fill(fChi2pca);
+		if (fPt>0 && fPt<2){
+			hCtau_02->Fill(ct);
+			hDz_02->Fill(ct*abs(v12.Pz())/fMass);
+		}else if (fPt>2 && fPt<6){
+			hCtau_26->Fill(ct);
+			hDz_26->Fill(ct*abs(v12.Pz())/fMass);
+		}else if (fPt>6 && fPt<30){
+			hCtau_630->Fill(ct);
+			hDz_630->Fill(ct*abs(v12.Pz())/fMass);
+		}
+	}
+*/
+
+
+
+		
             if (isMC && isPureSDataset && isMatchedRecoDiMuon(0)) dataOSNoBkg->add(*cols, (applyWeight ? weight->getVal() : 1.0)); // Signal-only dimuons
             else if (applyWeight_Corr) dataOS->add(*cols,weightCorr->getVal()); //Signal and background dimuons
             else dataOS->add(*cols, ( applyWeight ? weight->getVal() : 1.0)); //Signal and background dimuons            
@@ -306,7 +376,25 @@ bool tree2DataSet(RooWorkspace& Workspace, vector<string> InputFileNames, string
     Workspace.import(*dataOS);
     Workspace.import(*dataSS);
   }
-  
+/*  TFile myfile("output.root","RECREATE");
+  hCtau->Write();
+  hCtau_02->Write();
+  hCtau_26->Write();
+  hCtau_630->Write();
+  hDz->Write();
+  hDz_02->Write();
+  hDz_26->Write();
+  hDz_630->Write();
+  hDca->Write();
+  hPt->Write();
+  hPt_mu->Write();
+  hEta_mu->Write();
+  hY->Write();
+  hChi2->Write();
+  hChi2pca->Write();
+  hPosZ->Write();
+  hSndZ->Write();
+*/ 
   // delete the local datasets
   delete dataSS; delete dataOS; delete dataOSNoBkg;
   
@@ -439,6 +527,17 @@ void iniBranch(TChain* fChain, bool isMC, string TreeName)
  if (fChain->GetBranch("fIsAmbig1"))   fChain->GetBranch("fIsAmbig1")->SetAutoDelete(false);
  if (fChain->GetBranch("fIsAmbig2"))   fChain->GetBranch("fIsAmbig2")->SetAutoDelete(false);
 
+ if (fChain->GetBranch("fNumContrib"))   fChain->GetBranch("fNumContrib")->SetAutoDelete(false);
+
+ if (fChain->GetBranch("fFwdDcaX1"))   fChain->GetBranch("fFwdDcaX1")->SetAutoDelete(false);
+ if (fChain->GetBranch("fFwdDcaX2"))   fChain->GetBranch("fFwdDcaX2")->SetAutoDelete(false);
+ if (fChain->GetBranch("fFwdDcaY1"))   fChain->GetBranch("fFwdDcaY1")->SetAutoDelete(false);
+ if (fChain->GetBranch("fFwdDcaY2"))   fChain->GetBranch("fFwdDcaY2")->SetAutoDelete(false);
+
+ if (fChain->GetBranch("fChi21"))   fChain->GetBranch("fChi21")->SetAutoDelete(false);
+ if (fChain->GetBranch("fChi22"))   fChain->GetBranch("fChi22")->SetAutoDelete(false);
+
+ if (fChain->GetBranch("fChi2pca"))   fChain->GetBranch("fChi2pca")->SetAutoDelete(false);
 
  if (fChain->GetBranch("fMass"))   fChain->SetBranchStatus("fMass", 1);
  if (fChain->GetBranch("fPt"))   fChain->SetBranchStatus("fPt", 1);
@@ -490,6 +589,18 @@ void iniBranch(TChain* fChain, bool isMC, string TreeName)
  if (fChain->GetBranch("fIsAmbig1"))   fChain->SetBranchStatus("fIsAmbig1", 1);
  if (fChain->GetBranch("fIsAmbig2"))   fChain->SetBranchStatus("fIsAmbig2", 1);
 
+ if (fChain->GetBranch("fNumContrib"))   fChain->SetBranchStatus("fNumContrib", 1);
+
+ if (fChain->GetBranch("fFwdDcaX1"))   fChain->SetBranchStatus("fFwdDcaX1", 1);
+ if (fChain->GetBranch("fFwdDcaX2"))   fChain->SetBranchStatus("fFwdDcaX2", 1);
+ if (fChain->GetBranch("fFwdDcaY1"))   fChain->SetBranchStatus("fFwdDcaY1", 1);
+ if (fChain->GetBranch("fFwdDcaY2"))   fChain->SetBranchStatus("fFwdDcaY2", 1);
+
+ if (fChain->GetBranch("fChi21"))   fChain->SetBranchStatus("fChi21", 1);
+ if (fChain->GetBranch("fChi22"))   fChain->SetBranchStatus("fChi22", 1);
+
+ if (fChain->GetBranch("fChi2pca"))   fChain->SetBranchStatus("fChi2pca", 1);
+cout << "done init branches" << endl;
 };
 
 bool checkDS(RooDataSet* DS, string DSName)

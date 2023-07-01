@@ -219,11 +219,11 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
                         ));
 	}
 	cout << "Defining b" << endl;
-        ws.factory( parIni[Form("b_Bkg_%s", "PP")].c_str() );
+        ws.factory( parIni[Form("b_BkgNoPR_%s", "PP")].c_str() );
         if (incCtauErrPDF) {
 	cout << "include ctau error2" << endl;
           ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU_Bkg_%s", "PP"),
-                          Form("b_Bkg_%s", "PP"),
+                          Form("b_BkgNoPR_%s", "PP"),
                           Form("pdfCTAU_BkgNoPR_%s", "PP"),
                           Form("pdfCTAU_BkgPR_%s", "PP")
                           ));
@@ -231,7 +231,7 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
 	cout << "Not include ctau error" << endl;
 //          ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUCOND_Bkg_%s", "PP"),
           ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAU_Bkg_%s", "PP"),
-                          Form("b_Bkg_%s", "PP"),
+                          Form("b_BkgNoPR_%s", "PP"),
                           Form("pdfCTAUCOND_BkgNoPR_%s", "PP"),
                           Form("pdfCTAUCOND_BkgPR_%s", "PP")
                           ));
@@ -265,7 +265,7 @@ bool buildCharmoniaCtauModel(RooWorkspace& ws, struct CharmModel model, map<stri
                         Form("pdfMASS_Bkg_%s","PP")
                         ));
         ws.factory(Form("SUM::%s(%s*%s, %s)", Form("pdfCTAUMASS_Bkg_%s", "PP"),
-                        Form("b_Bkg_%s", "PP"),
+                        Form("b_BkgNoPR_%s", "PP"),
                         Form("pdfCTAUMASS_BkgNoPR_%s", "PP"),
                         Form("pdfCTAUMASS_BkgPR_%s", "PP")
                         ));
@@ -553,7 +553,131 @@ bool defineCtauResolModel(RooWorkspace& ws, string object, CtauModel model, map<
  		      ));
 
       cout << Form("[INFO] %s Quadruple Gaussian Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl; break;
-  
+
+    case (CtauModel::DoubleGaussianExp):  
+
+      if (!( 
+            parIni.count(Form("ctau1_CtauRes_%s", "PP")) && 
+            parIni.count(Form("s1_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("s2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau3_CtauRes_%s", "PP")) &&
+	    parIni.count(Form("lambdaDDS_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f2_CtauRes_%s", "PP"))
+             )) { 
+ 	cout << Form("[ERROR] Initial parameters where not found for DoubleGaussianExp Ctau Resolution Model in %s", "PP") << endl; return false; 
+      }
+      
+      // create the variables for this model  
+      if (!ws.var("One")) { ws.factory("One[1.0]"); }
+      if (!ws.var(Form("ctau1_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau1_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s1_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s1_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau2_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau2_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s2_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s2_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau3_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau3_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("lambdaDDS_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("lambdaDDS_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("f_CtauRes_%s", "PP")))       { ws.factory( parIni[Form("f_CtauRes_%s", "PP")].c_str() );      }
+      if (!ws.var(Form("f2_CtauRes_%s", "PP")))      { ws.factory( parIni[Form("f2_CtauRes_%s", "PP")].c_str() );     }
+      
+      // create the three PDFs
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau1_CtauRes_%s", "PP"),
+ 		      Form("s1_CtauRes_%s", "PP"),
+                      (usePerEventError?"ctauErr":"One")
+ 		      ));
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau2_CtauRes_%s", "PP"), 
+ 		      Form("s2_CtauRes_%s", "PP"),
+                      (usePerEventError?"ctauErr":"One")
+ 		      ));
+	cout << "create truth model " << endl;
+      ws.factory(Form("RooTruthModel::%s(%s)", Form("%sDelta_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str()  
+		      ));
+	cout << "create decay model " << endl;
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+//      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::DoubleSided)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau3_CtauRes_%s", "PP"), 
+                      Form("lambdaDDS_CtauRes_%s", "PP"),
+		      "One"
+//		      Form("%sDelta_%s_%s", pdfType.c_str(), object.c_str(), "PP")
+                      ));
+
+
+
+      // combine the two PDFs
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s23_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+		      Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"),
+ 		      Form("f2_CtauRes_%s", "PP")
+ 		      ));
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s23_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f_CtauRes_%s", "PP")
+ 		      ));
+
+      cout << Form("[INFO] %s DoubleGaussianExp Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl; break;
+
+   case (CtauModel::SymPwrGaussianResolution):  
+
+      gROOT->ProcessLine(".L ./Macros/Utilities/SymPwr.cxx+");
+      if (!( 
+            parIni.count(Form("ctau1_CtauRes_%s", "PP")) && 
+            parIni.count(Form("s1_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("s2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f_CtauRes_%s", "PP")) &&
+            parIni.count(Form("f2_CtauRes_%s", "PP")) &&
+            parIni.count(Form("ctau3_CtauRes_%s", "PP")) &&
+            parIni.count(Form("alpha_sympwr_%s", "PP")) &&
+            parIni.count(Form("lambda_sympwr_%s", "PP"))
+             )) { 
+ 	cout << Form("[ERROR] Initial parameters where not found for Sym Pwr Gaussian Ctau Resolution Model in %s", "PP") << endl; return false; 
+      }
+      
+      // create the variables for this model  
+      if (!ws.var("One")) { ws.factory("One[1.0]"); }
+      if (!ws.var(Form("ctau1_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau1_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s1_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s1_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("ctau2_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau2_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("s2_CtauRes_%s", "PP")))  { ws.factory( parIni[Form("s2_CtauRes_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("f_CtauRes_%s", "PP")))       { ws.factory( parIni[Form("f_CtauRes_%s", "PP")].c_str() );      }
+      if (!ws.var(Form("f2_CtauRes_%s", "PP")))      { ws.factory( parIni[Form("f2_CtauRes_%s", "PP")].c_str() );     }
+
+      if (!ws.var(Form("ctau3_CtauRes_%s", "PP")))   { ws.factory( parIni[Form("ctau3_CtauRes_%s", "PP")].c_str()  ); }
+      if (!ws.var(Form("alpha_sympwr_%s", "PP")))  { ws.factory( parIni[Form("alpha_sympwr_%s", "PP")].c_str() ); }
+      if (!ws.var(Form("lambda_sympwr_%s", "PP")))  { ws.factory( parIni[Form("lambda_sympwr_%s", "PP")].c_str() ); }
+      
+      // create the three PDFs
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau1_CtauRes_%s", "PP"),
+ 		      Form("s1_CtauRes_%s", "PP"),
+                      (usePerEventError?"ctauErr":"One")
+ 		      ));
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau2_CtauRes_%s", "PP"), 
+ 		      Form("s2_CtauRes_%s", "PP"),
+                      (usePerEventError?"ctauErr":"One")
+ 		      ));
+      ws.factory(Form("SymPwr::%s(%s,%s)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("lambda_sympwr_%s", "PP")
+ 		      ));
+
+      // combine the two PDFs
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s23_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s2_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f2_CtauRes_%s", "PP")
+ 		      ));
+      ws.factory(Form("AddModel::%s({%s, %s}, {%s})", Form("%s_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s1_%s_%s", pdfType.c_str(), object.c_str(), "PP"), 
+ 		      Form("%s23_%s_%s", pdfType.c_str(), object.c_str(), "PP"),  
+ 		      Form("f_CtauRes_%s", "PP")
+ 		      ));
+
+      cout << Form("[INFO] %s Sym Pwr Gaussian Ctau Resolution PDF in %s included", object.c_str(), "PP") << endl; break;
+
     default :
 
       cout<< "[ERROR] Selected Ctau Resolution Model has not been implemented"<< endl; return false;
@@ -626,12 +750,14 @@ bool addBackgroundCtauModel(RooWorkspace& ws, string object, CtauModel model, ma
       ws.factory( parIni[Form("lambdaDDS_%s_%s", object.c_str(), "PP")].c_str() ); 
       ws.factory( parIni[Form("fDFSS_%s_%s", object.c_str(), "PP")].c_str()     ); 
       ws.factory( parIni[Form("fDLIV_%s_%s", object.c_str(), "PP")].c_str()     );
+	cout << "param defined" << endl;
 
       // create the three PDFs
       ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::SingleSided)", Form("pdfCTAUDSS_%s_%s", object.c_str(), "PP"), "ctau", 
  		      Form("lambdaDSS_%s_%s", object.c_str(), "PP"),
  		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
  		      ));
+	cout << "DSS PDF" << endl;
       ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::Flipped)", Form("pdfCTAUDF_%s_%s", object.c_str(), "PP"), "ctau", 
  		      Form("lambdaDF_%s_%s", object.c_str(), "PP"),
  		      Form("pdfCTAURES_%s_%s", objectInc.c_str(), "PP")
@@ -824,6 +950,9 @@ void setCtauDefaultParameters(map<string, string> &parIni, double numEntries)
   if (parIni.count(Form("b_Bkg_%s", "PP"))==0 || parIni[Form("b_Bkg_%s", "PP")]=="") { 
     parIni[Form("b_Bkg_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_Bkg_%s", "PP"), 0.1, 0.0, 0.25);
   }
+  if (parIni.count(Form("b_BkgNoPR_%s", "PP"))==0 || parIni[Form("b_BkgNoPR_%s", "PP")]=="") { 
+    parIni[Form("b_BkgNoPR_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("b_BkgNoPR_%s", "PP"), 0.1, 0.0, 0.25);
+  }
 
  // CTAU FIT PARAMETERS
 
@@ -832,6 +961,13 @@ void setCtauDefaultParameters(map<string, string> &parIni, double numEntries)
     parIni[Form("ctau1_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("ctau1_CtauRes_%s", "PP"), 0.0, -1.0, 1.0);
     
   }
+  if (parIni.count(Form("alpha_sympwr_%s", "PP"))==0 || parIni[Form("alpha_sympwr_%s", "PP")]=="") {
+    parIni[Form("alpha_sympwr_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("alpha_sympwr_%s", "PP"), 0.3, 0.01, 20.0);
+  }
+  if (parIni.count(Form("lambda_sympwr_%s", "PP"))==0 || parIni[Form("lambda_sympwr_%s", "PP")]=="") {
+    parIni[Form("lambda_sympwr_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambda_sympwr_%s", "PP"), 0.3, 0.01, 20.0);
+  }
+
   if (parIni.count(Form("ctau2_CtauRes_%s", "PP"))==0) {
     parIni[Form("ctau2_CtauRes_%s", "PP")] = Form("RooFormulaVar::%s('@0',{%s})", Form("ctau2_CtauRes_%s", "PP"), Form("ctau1_CtauRes_%s", "PP" ));
   } else if (parIni[Form("ctau2_CtauRes_%s", "PP")]=="") {
@@ -936,6 +1072,10 @@ void setCtauDefaultParameters(map<string, string> &parIni, double numEntries)
   if (parIni.count(Form("lambdaDDS_BkgPR_%s", "PP"))==0 || parIni[Form("lambdaDDS_BkgPR_%s", "PP")]=="") { 
     parIni[Form("lambdaDDS_BkgPR_%s", "PP")] = Form("%s[%.4f,%.4f,%.4f]", Form("lambdaDDS_BkgPR_%s", "PP"), 0.69, 0.02, 5.0);
   }
+  if (parIni.count(Form("lambdaDDS_CtauRes_%s", "PP"))==0 || parIni[Form("lambdaDDS_CtauRes_%s", "PP")]=="") {
+    parIni[Form("lambdaDDS_CtauRes_%s", "PP")] = Form("%s[%.12f,%.12f,%.12f]", Form("lambdaDDS_CtauRes_%s", "PP"), 0.45, 0.0001, 10.0);
+  }
+
 
 };
 
