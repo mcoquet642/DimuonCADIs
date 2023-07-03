@@ -64,7 +64,7 @@ void fitter(
   gROOT->ProcessLine(".L ./Macros/Utilities/RooExtCBShape.cxx+");
   gROOT->ProcessLine(".L ./Macros/Utilities/NA60Shape.cxx+");
   TGrid::Connect("alien://",0,0,"t");
-//  gSystem->Load("/afs/cern.ch/work/m/mcoquet/DimuonCADIs/HIN-16-004/Fitter/Macros/Utilities/RooExtCBShape_cxx.so");
+  gSystem->Load("/afs/cern.ch/work/m/mcoquet/DimuonCADIs/HIN-16-004/Fitter/Macros/Utilities/RooExtCBShape_cxx.so");
 
 
   map<string, double> binWidth;

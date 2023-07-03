@@ -11,6 +11,39 @@ void setMassFileName(string& FileName, string outputDir, string TAG, string plot
 void setMassGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, bool incJpsi, bool incBkg, bool wantPureSMC=false);
 void setMassCutParameters(struct KinCuts& cut, bool incJpsi, bool isMC=false, bool useForCtauFits=false);
 
+bool isFitAlreadyFound2(RooArgSet *newpars, string FileName, string pdfName)
+{
+	cout << "In ufnction" << endl;
+  if (gSystem->AccessPathName(FileName.c_str())) {
+    cout << "[INFO] FileName: " << FileName << " was not found" << endl;
+    return false; // File was not found
+  }
+  TFile *file = new TFile(FileName.c_str());
+  if (!file) return false;
+	cout << "getting ws from file " << FileName.c_str() << endl;
+  RooWorkspace *ws2 = (RooWorkspace*) file->Get("workspace");
+	cout << "ws created" << endl;
+  if (!ws2) {
+    cout << "[INFO] Workspace was not found" << endl;
+    file->Close(); delete file;
+    return false;
+  }
+  string snapShotName = Form("%s_parIni", pdfName.c_str());
+  const RooArgSet *params = ws2->getSnapshot(snapShotName.c_str());
+  if (!params) {
+    cout << "[INFO] Snapshot parIni was not found" << endl;
+    delete ws2;
+    file->Close(); delete file;
+    return false;
+  }
+  bool result = compareSnapshots(newpars, params);
+  delete ws2;
+  file->Close(); delete file;
+
+  return result;
+};
+
+
 
 bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
                             const RooWorkspace& inputWorkspace,  // Workspace with all the input RooDatasets
@@ -124,10 +157,47 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
     bool found =  true; bool skipFit = !doFit;
     RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(*(myws.var("invMass")));
 	cout << "parameters got" << endl;
-    found = found && isFitAlreadyFound(newpars, FileName, pdfName.c_str());
+    found = found && isFitAlreadyFound2(newpars, FileName, pdfName.c_str());
 	cout << "fit found" << endl;
+    bool cont = true;
+//__________________________________________________________________________
+  if (gSystem->AccessPathName(FileName.c_str())) {
+    cout << "[INFO] FileName: " << FileName << " was not found" << endl;
+    found=false; // File was not found
+  }
+if(found){
+  TFile *file = new TFile(FileName.c_str());
+  if (!file)  {found=false;
+  }else{
+  RooWorkspace *ws = (RooWorkspace*) file->Get("workspace");
+	cout << "MAss : ws created" << endl;
+  if (!ws) {
+    cout << "[INFO] Workspace was not found" << endl;
+    file->Close(); delete file;
+    found= false;
+  }else{
+  string snapShotName = Form("%s_parIni", pdfName.c_str());
+  const RooArgSet *params = ws->getSnapshot(snapShotName.c_str());
+  if (!params) {
+    cout << "[INFO] Snapshot parIni was not found" << endl;
+    delete ws;
+    file->Close(); delete file;
+    found=false;
+  }else{
+  bool result = compareSnapshots(newpars, params);
+  delete ws;
+  file->Close(); delete file; 
+  found=result;
+}
+}
+}
+}
+//__________________________________________________________________________
+	cout << "fit found" << endl;
+//    found = false;
     if (loadFitResult) {
       if ( loadPreviousFitResult(myws, FileName, DSTAG, (!isMC && !cutSideBand && loadFitResult==1), loadFitResult==1) ) { skipFit = true; } else { skipFit = false; } 
+//      skipFit = false;
       if (skipFit) { cout << "[INFO] This mass fit was already done, so I'll load the fit results." << endl; }
       myws.saveSnapshot(Form("%s_parLoad", pdfName.c_str()), *newpars, kTRUE);
     } else if (found) {

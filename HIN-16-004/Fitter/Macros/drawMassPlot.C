@@ -11,6 +11,9 @@ void SetStyle(Bool_t graypalette=kFALSE);
 void myPadSetUp(TPad *currentPad, float currentLeft=0.11, float currentTop=0.04, float currentRight=0.04, float currentBottom=0.15);
 void LoadLibs();
 
+void printMassParametersPaper2(RooWorkspace myws, string pdfName)
+{
+};
 
 void drawMassPlot(RooWorkspace& myws,   // Local workspace
                   string outputDir,     // Output directory
@@ -234,11 +237,48 @@ void drawMassPlot(RooWorkspace& myws,   // Local workspace
   pad1->cd(); 
   frame->Draw();
 
+	cout << "printing parameters" << endl;
   if (paperStyle){
-	  printMassParametersPaper(myws, pad1, pdfName, isWeighted);
+		cout << "paper " <<endl;
+  	  pad1->cd(); 
+//	  printMassParametersPaper2(myws, pdfName);
+//_________________________________________________________
+  TLatex *t = new TLatex(); t->SetNDC(); t->SetTextSize(0.03); float dy = 0.025; 
+  RooArgSet* Parameters =  myws.pdf(pdfName.c_str())->getParameters(*myws.var("invMass"));
+  TIterator* parIt = Parameters->createIterator(); 
+  for (RooRealVar* it = (RooRealVar*)parIt->Next(); it!=NULL; it = (RooRealVar*)parIt->Next() ) {
+    stringstream ss(it->GetName()); string s1, s2, s3, label; 
+    getline(ss, s1, '_'); getline(ss, s2, '_'); getline(ss, s3, '_');
+    if(s1=="invMass"){continue;} 
+    else if(s1=="One"){continue;} else if(s1=="mMin"){continue;} else if(s1=="mMax"){continue;}
+    if(s1.find("sigma")!=std::string::npos || s1.find("lambda")!=std::string::npos || s1.find("alpha")!=std::string::npos){
+      s1=Form("#%s",s1.c_str());
+    }
+    if(s2=="Jpsi")  { s2="J/#psi";   } 
+    else if(s2=="Bkg")   { s2="bkg";      }
+    if(s3!=""){
+      label=Form("%s_{%s}^{%s}", s1.c_str(), s2.c_str(), s3.c_str());
+    } 
+    else {
+      label=Form("%s^{%s}", s1.c_str(), s2.c_str());
+    }
+    if(s1=="N" && s2=="J/#psi"){ 
+      t->DrawLatex(0.20, 0.74-dy, Form(("%s = %.0f#pm%.0f "), label.c_str(), it->getValV(), it->getError())); dy+=0.045; 
+    }
+    else if(s1.find("sigma")!=std::string::npos){ 
+      t->DrawLatex(0.20, 0.74-dy, Form("%s = %.2f#pm%.2f MeV/c^{2}", label.c_str(), it->getValV()*1000., it->getError()*1000.)); dy+=0.045; 
+    }
+    else if(s1.find("m")!=std::string::npos){ 
+      t->DrawLatex(0.20, 0.74-dy, Form("%s = %.3f#pm%.3f GeV/c^{2}", label.c_str(), it->getValV(), it->getError())); dy+=0.045; 
+    }
+  }
+//_________________________________________________________
+
   }else{
+	cout << "no paper" << endl;
 	  printMassParameters(myws, pad1, pdfName, isWeighted);
   }
+	cout << "logcale set" << endl;
   pad1->SetLogy(setLogScale);
 
   // Drawing the text in the plot
@@ -487,8 +527,7 @@ void printMassParametersPaper(RooWorkspace myws, TPad* Pad, string pdfName, bool
     // Parse the parameter's labels
     if(s1=="invMass"){continue;} else if(s1=="MassRatio"){continue;} 
     else if(s1=="One"){continue;} else if(s1=="mMin"){continue;} else if(s1=="mMax"){continue;}
-    if(s1=="RFrac2Svs1S"){ s1="R_{#psi(2S)/J/#psi}"; } 
-    else if(s1=="rSigma21"){ s1="(#sigma_{2}/#sigma_{1})"; } 
+    if(s1=="rSigma21"){ s1="(#sigma_{2}/#sigma_{1})"; } 
     else if(s1.find("sigma")!=std::string::npos || s1.find("lambda")!=std::string::npos || s1.find("alpha")!=std::string::npos){
       s1=Form("#%s",s1.c_str());
     }

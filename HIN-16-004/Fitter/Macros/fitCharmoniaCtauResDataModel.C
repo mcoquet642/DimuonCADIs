@@ -14,6 +14,48 @@ void setCtauResDataGlobalParameterRange(RooWorkspace& myws, map<string, string>&
 bool setCtauResDataModel( struct OniaModel& model, map<string, string>&  parIni);
 bool createSignalCtauDSUsingSPLOT(RooWorkspace& ws, string dsName, map<string, string>  parIni, struct KinCuts cut, bool incJpsi, bool incBkg, bool useSPlot);
 
+bool isSPlotDSAlreadyFoundRes(RooWorkspace& myws, string FileName, vector<string> dsNames, bool loadDS)
+{
+	cout << "in function" << endl;
+  if (gSystem->AccessPathName(FileName.c_str())) {
+    cout << "[INFO] Results not found for: " << FileName << endl;
+    return false; // File was not found
+  }
+	cout << "opening file" << endl;
+  TFile *file = new TFile(FileName.c_str());
+  if (!file) return false;
+
+	cout << "creating ws" << endl;
+  RooWorkspace *ws = (RooWorkspace*) file->Get("workspace");
+	cout << "checking ws1" << endl;
+	cout << "checking ws" << endl;
+  if (!ws) {
+    cout << "[INFO] Workspace not found in: " << FileName << endl;
+    file->Close(); delete file;
+    return false;
+  }
+
+  bool found = true;
+  for (unsigned int i=0; i<dsNames.size(); i++) {
+    string dsName = dsNames.at(i);
+    if ( !(ws->data(dsName.c_str())) ) {
+      cout << "[INFO] " << dsName << " was not found in: " << FileName << endl; found = false;
+    }
+    if (loadDS && found) {
+      myws.import(*(ws->data(dsName.c_str())));
+      if (myws.data(dsName.c_str())) { cout << "[INFO] sPlot DataSet " << dsName << " succesfully imported!" << endl; }
+      else {  cout << "[ERROR] sPlot DataSet " << dsName << " import failed!" << endl; found = false; }
+    }
+  }
+
+  delete ws;
+  file->Close(); delete file;
+
+  return found;
+};
+
+
+
 int importDataset_Res(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCuts cut, string label, bool cutSideBand=false)
 {
   cout << "Import data set" << endl;
@@ -292,15 +334,19 @@ bool fitCharmoniaCtauResDataModel( RooWorkspace& myws,             // Local Work
 
   string FileName = "";
   setCtauResDataFileName(FileName, (inputFitDir["CTAURES"]=="" ? outputDir : inputFitDir["CTAURES"]), DSTAG, plotLabel, cut);
+	cout << "Looking for file" << endl;
   if (gSystem->AccessPathName(FileName.c_str()) && inputFitDir["CTAURES"]!="") {
     cout << "[WARNING] User Input File : " << FileName << " was not found!" << endl;
     if (loadFitResult) return false;
     setCtauResDataFileName(FileName, outputDir, DSTAG, plotLabel, cut);
   }
 
+	cout << "Check file" << endl;
   // Check if we have already made the Signal DataSet
   vector<string> dsNames = { dsName2Fit };
-  bool createSignalDS = ( !isSPlotDSAlreadyFound(myws, FileName, dsNames, true) );
+	cout << "SPlot found ?" << endl;
+  bool createSignalDS = ( !isSPlotDSAlreadyFoundRes(myws, FileName, dsNames, true) );
+	cout << "load yield" << endl;
   bool compDS = loadYields(myws, FileName, dsName, pdfName);
   if (!compDS && (incJpsi || incBkg)) {
     // Setting extra input information needed by each fitter
@@ -471,8 +517,8 @@ void setCtauResDataGlobalParameterRange(RooWorkspace& myws, map<string, string>&
 //  if (ctauNMin<-0.5){ ctauNMin = -0.5; }
   if (ctauNMin<-2.){ ctauNMin = -2.; }
   ctauNMin = -2.;
-  if (ctauNMax>  0.05){ ctauNMax =   0.05; }
-//  if (ctauNMax>  0.2){ ctauNMax =   0.2; }
+//  if (ctauNMax>  0.05){ ctauNMax =   0.05; }
+  if (ctauNMax>  0.5){ ctauNMax =   0.5; }
 //________________________________________________
   if (parIni.count("ctauNCut")>0 && parIni["ctauNCut"]!="") {
     parIni["ctauNCut"].erase(parIni["ctauNCut"].find("["), string("[").length());

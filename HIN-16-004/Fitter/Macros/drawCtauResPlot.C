@@ -5,6 +5,7 @@
 
 void setCtauResRange(RooWorkspace& myws, RooPlot* frame, string dsName, string varName, bool setLogScale, vector<double> rangeErr, double excEvts=0.0);
 void printCtauResParameters(RooWorkspace myws, TPad* Pad, string pdfName, bool isWeighted);
+void SetStyle3(Bool_t graypalette=kFALSE);
 
 
 void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
@@ -88,7 +89,7 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
   
   // set the CMS style
 //  setTDRStyle();
-	SetStyle();  
+	SetStyle3();  
 
   // Create the pull distribution of the fit 
   RooHist *hpull = frame->pullHist(0, "PDF", true);
@@ -136,6 +137,7 @@ void drawCtauResPlot(RooWorkspace& myws,   // Local workspace
   pad1->cd(); 
   frame->Draw();
 
+	cout << "PRUINTING PARAMS" << endl;
   printCtauResParameters(myws, pad1, pdfTotName, isWeighted);
   pad1->SetLogy(setLogScale);
 
@@ -299,5 +301,47 @@ void printCtauResParameters(RooWorkspace myws, TPad* Pad, string pdfName, bool i
     }
   }
 };
+
+
+void SetStyle3(Bool_t graypalette) {
+  cout << "Setting style!" << endl;
+
+  gStyle->Reset("Plain");
+  gStyle->SetOptTitle(0);
+  gStyle->SetOptStat(0);
+  if(graypalette) gStyle->SetPalette(8,0);
+  else gStyle->SetPalette(1);
+  gStyle->SetCanvasColor(10);
+  gStyle->SetCanvasBorderMode(0);
+  gStyle->SetFrameLineWidth(1);
+  gStyle->SetFrameFillColor(kWhite);
+  gStyle->SetPadColor(10);
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
+  gStyle->SetPadBottomMargin(0.15);
+  gStyle->SetPadLeftMargin(0.15);
+  gStyle->SetHistLineWidth(1);
+  gStyle->SetHistLineColor(kRed);
+  gStyle->SetFuncWidth(2);
+  gStyle->SetFuncColor(kGreen);
+  gStyle->SetLineWidth(2);
+  gStyle->SetLabelSize(0.045,"xyz");
+  gStyle->SetLabelOffset(0.01,"y");
+  gStyle->SetLabelOffset(0.01,"x");
+  gStyle->SetLabelColor(kBlack,"xyz");
+  gStyle->SetTitleSize(0.05,"xyz");
+  gStyle->SetTitleOffset(1.25,"y");
+  gStyle->SetTitleOffset(1.2,"x");
+  gStyle->SetTitleFillColor(kWhite);
+  gStyle->SetTextSizePixels(26);
+  gStyle->SetTextFont(42);
+
+  gStyle->SetLegendBorderSize(0);
+  gStyle->SetLegendFillColor(kWhite);
+  gStyle->SetLegendFont(42);
+
+
+};
+
 
 #endif // #ifndef drawCtauResPlot_C

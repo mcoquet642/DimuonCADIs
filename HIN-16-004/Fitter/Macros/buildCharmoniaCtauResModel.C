@@ -258,14 +258,20 @@ bool defineCtauResModel(RooWorkspace& ws, string pdfType, string object, string 
                       (usePerEventError?"ctauErr":"One")
  		      ));
 	cout << "create truth model " << endl;
-      ws.factory(Form("RooTruthModel::%s(%s)", Form("%sDelta_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str()  
-		      ));
+//      ws.factory(Form("RooTruthModel::%s(%s)", Form("%sDelta_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str());
+
 	cout << "create decay model " << endl;
+//      ws.factory(Form("RooFormulaVar::%s(@0-@1,{%s,%s})", Form("%sDelta_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(), "ctau3_CtauRes_PP"));
+
+      ws.factory(Form("%s[%.12f,%.12f,%.12f]", Form("deltaRes_%s", "PP"), 0.0001, 0.0001, 0.0001));	
+      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, One)", Form("%sDelta_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
+ 		      Form("ctau3_CtauRes_%s", "PP"), 
+		      Form("deltaRes_%s", "PP")
+ 		      ));
+
       ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::DoubleSided)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
-//      ws.factory(Form("GaussModel::%s(%s, %s, %s, One, %s)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), varName.c_str(),
-// 		      Form("ctau3_CtauRes_%s", "PP"), 
+//      ws.factory(Form("Decay::%s(%s, %s, %s, RooDecay::DoubleSided)", Form("%s3_%s_%s", pdfType.c_str(), object.c_str(), "PP"), Form("%s4_%s_%s", pdfType.c_str(), object.c_str(), "PP"),
                       Form("lambdaDDS_CtauRes_%s", "PP"),
-//		      "One"
 		      Form("%sDelta_%s_%s", pdfType.c_str(), object.c_str(), "PP")
                       ));
 

@@ -5,6 +5,7 @@
 
 void setCtauResDataRange(RooWorkspace& myws, RooPlot* frame, string dsName, string varName, bool setLogScale, vector<double> rangeErr, double excEvts=0.0);
 void printCtauResDataParameters(RooWorkspace myws, TPad* Pad, string pdfName, bool isWeighted);
+void SetStyle2(Bool_t graypalette=kFALSE);
 
 bool drawCtauResDataPlot(RooWorkspace& myws,   // Local workspace
                      string outputDir,     // Output directory
@@ -75,13 +76,51 @@ LoadLibs();
 
   // set the CMS style
 //  setTDRStyle();
-  SetStyle();  
+//  SetStyle2();  
+//  __________________________________________________________________
+  gStyle->Reset("Plain");
+  gStyle->SetOptTitle(0);
+  gStyle->SetOptStat(0);
+  gStyle->SetPalette(1);
+  gStyle->SetCanvasColor(10);
+  gStyle->SetCanvasBorderMode(0);
+  gStyle->SetFrameLineWidth(1);
+  gStyle->SetFrameFillColor(kWhite);
+  gStyle->SetPadColor(10);
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
+  gStyle->SetPadBottomMargin(0.15);
+  gStyle->SetPadLeftMargin(0.15);
+  gStyle->SetHistLineWidth(1);
+  gStyle->SetHistLineColor(kRed);
+  gStyle->SetFuncWidth(2);
+  gStyle->SetFuncColor(kGreen);
+  gStyle->SetLineWidth(2);
+  gStyle->SetLabelSize(0.045,"xyz");
+  gStyle->SetLabelOffset(0.01,"y");
+  gStyle->SetLabelOffset(0.01,"x");
+  gStyle->SetLabelColor(kBlack,"xyz");
+  gStyle->SetTitleSize(0.05,"xyz");
+  gStyle->SetTitleOffset(1.25,"y");
+  gStyle->SetTitleOffset(1.2,"x");
+  gStyle->SetTitleFillColor(kWhite);
+  gStyle->SetTextSizePixels(26);
+  gStyle->SetTextFont(42);
+
+  gStyle->SetLegendBorderSize(0);
+  gStyle->SetLegendFillColor(kWhite);
+  gStyle->SetLegendFont(42);
+
+//  _________________________________________________________________
   
   // Create the pull distribution of the fit
+cout << "ici ?" << endl;
   RooHist *hpull = frame->pullHist(0, "PDF", true);
   hpull->SetName("hpull");
   RooPlot* frame2 = myws.var(varName.c_str())->frame(Title("Pull Distribution"), Bins(nBins), Range(minRange, maxRange));
   frame2->addPlotable(hpull, "PX"); 
+
+cout << "ici ??" << endl;
   // Create the main canvas
 //  TCanvas *cFig  = new TCanvas("cCtauFig_PP", "cCtauFig",800,800);
   TCanvas *cFig  = new TCanvas("cCtauFig_PP", "cCtauFig",800,600);
@@ -91,6 +130,7 @@ LoadLibs();
   
   frame->SetTitle("");
   frame->GetXaxis()->CenterTitle(kTRUE);
+cout << "ici ???" << endl;
 /*
   frame->GetXaxis()->SetTitleSize(0.045);
   frame->GetXaxis()->SetTitleFont(42);
@@ -105,6 +145,7 @@ LoadLibs();
 
   setCtauResDataRange(myws, frame, dsName, varName, setLogScale, range, outErr);
 
+cout << "ici ????" << endl;
   cFig->cd();
   pad2->SetTopMargin(0.02);
   pad2->SetBottomMargin(0.4);
@@ -116,7 +157,47 @@ LoadLibs();
   pad1->cd(); 
   frame->Draw();
 
-  printCtauResDataParameters(myws, pad1, pdfTotName, (isWeighted&&isMC));
+cout << "ici ???? ?" << endl;
+//  printCtauResDataParameters(myws, pad1, pdfTotName, (isWeighted&&isMC));
+//________________________________________________________________________
+  pad1->cd(); 
+  TLatex *t2 = new TLatex(); t2->SetNDC(); t2->SetTextSize(0.027); float dy2 = 0.045;
+  RooArgSet* Parameters = (RooArgSet*)myws.pdf(pdfTotName.c_str())->getParameters(RooArgSet(*myws.var("ctauErr"), *myws.var("ctau"), *myws.var("ctauN")))->selectByAttrib("Constant",kFALSE);
+  TIterator* parIt = Parameters->createIterator();
+  for (RooRealVar* it = (RooRealVar*)parIt->Next(); it!=NULL; it = (RooRealVar*)parIt->Next() ) {
+    stringstream ss(it->GetName()); string s1, s2, s3, label; 
+    getline(ss, s1, '_'); getline(ss, s2, '_'); getline(ss, s3, '_');
+    // Parse the parameter's labels
+    if(s1=="invMass"){continue;} else if(s1=="ctau"){continue;}
+    else if(s1=="ctauN"){continue;} else if(s1=="ctauErr"){continue;} else if(s1=="MassRatio"){continue;}
+    else if(s1=="One"){continue;} else if(s1=="mMin"){continue;} else if(s1=="mMax"){continue;}
+    else if(s1.find("sigma")!=std::string::npos || s1.find("lambda")!=std::string::npos || s1.find("alpha")!=std::string::npos){
+      s1=Form("#%s",s1.c_str());
+    }
+    else if(s1=="rS21"){ s1="(s_{2}/s_{1})"; }
+    else if(s1=="rS32"){ s1="(s_{3}/s_{2})"; }
+    else if(s1=="rS43"){ s1="(s_{4}/s_{3})"; }
+
+    if(s2=="CtauRes")  { s2="Res";   }
+    else if(s2=="Jpsi" && (s1=="N" || s1=="b"))  { s2="J/#psi";   }
+    else if(s2=="Psi2S" && (s1=="N" || s1=="b"))  { s2="#psi(2S)";   }
+    else if(s2=="Bkg" && (s1=="N" || s1=="b"))  { s2="Bkg";   }
+    else {continue;}
+    if(s3!=""){
+      label=Form("%s_{%s}^{%s}", s1.c_str(), s2.c_str(), s3.c_str());
+    }
+    // Print the parameter's results
+    if(s1=="N"){ 
+      t2->DrawLatex(0.655, 0.72-dy2, Form("%s = %.0f#pm%.0f ", label.c_str(), it->getValV(), it->getError())); dy2+=0.045; 
+    }
+    else if(s1.find("ctau")!=std::string::npos){ 
+      t2->DrawLatex(0.655, 0.72-dy2, Form("%s = %.4f#pm%.4f mm", (label.insert(1, string("#"))).c_str(), it->getValV(), it->getError())); dy2+=0.045; 
+    }
+    else { 
+      t2->DrawLatex(0.655, 0.72-dy2, Form("%s = %.4f#pm%.4f", label.c_str(), it->getValV(), it->getError())); dy2+=0.045; 
+    }
+  }
+//________________________________________________________________________
   pad1->SetLogy(setLogScale);
 
   // Drawing the text in the plot
@@ -163,6 +244,7 @@ t->DrawLatex(0.20, 0.86-dy, "GlobalMuonTracks"); dy+=2.0*0.045;
   pad1->Update();
   cFig->cd(); 
 
+cout << "ici ???? ??" << endl;
 if (!paperStyle) {    
   //---plot pull
   pad2->Draw();
@@ -187,6 +269,7 @@ if (!paperStyle) {
   // *** Print chi2/ndof 
   printChi2(myws, pad2, frame, varName.c_str(), dsName.c_str(), pdfTotName.c_str(), nBins);
   
+cout << "ici ???? ???" << endl;
   pline->Draw("same");
   pad2->Update();
   }
@@ -281,6 +364,47 @@ void printCtauResDataParameters(RooWorkspace myws, TPad* Pad, string pdfName, bo
       t->DrawLatex(0.655, 0.72-dy, Form("%s = %.4f#pm%.4f", label.c_str(), it->getValV(), it->getError())); dy+=0.045; 
     }
   }
+};
+
+
+void SetStyle2(Bool_t graypalette) {
+  cout << "Setting style!" << endl;
+
+  gStyle->Reset("Plain");
+  gStyle->SetOptTitle(0);
+  gStyle->SetOptStat(0);
+  if(graypalette) gStyle->SetPalette(8,0);
+  else gStyle->SetPalette(1);
+  gStyle->SetCanvasColor(10);
+  gStyle->SetCanvasBorderMode(0);
+  gStyle->SetFrameLineWidth(1);
+  gStyle->SetFrameFillColor(kWhite);
+  gStyle->SetPadColor(10);
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
+  gStyle->SetPadBottomMargin(0.15);
+  gStyle->SetPadLeftMargin(0.15);
+  gStyle->SetHistLineWidth(1);
+  gStyle->SetHistLineColor(kRed);
+  gStyle->SetFuncWidth(2);
+  gStyle->SetFuncColor(kGreen);
+  gStyle->SetLineWidth(2);
+  gStyle->SetLabelSize(0.045,"xyz");
+  gStyle->SetLabelOffset(0.01,"y");
+  gStyle->SetLabelOffset(0.01,"x");
+  gStyle->SetLabelColor(kBlack,"xyz");
+  gStyle->SetTitleSize(0.05,"xyz");
+  gStyle->SetTitleOffset(1.25,"y");
+  gStyle->SetTitleOffset(1.2,"x");
+  gStyle->SetTitleFillColor(kWhite);
+  gStyle->SetTextSizePixels(26);
+  gStyle->SetTextFont(42);
+
+  gStyle->SetLegendBorderSize(0);
+  gStyle->SetLegendFillColor(kWhite);
+  gStyle->SetLegendFont(42);
+
+
 };
 
 

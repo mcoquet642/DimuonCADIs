@@ -1,16 +1,2 @@
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D10.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D11.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D12.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D13.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D14.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D15.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D2.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D3.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D4.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D5.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D6.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D7.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D8.root
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/LHC22o_pass4_reassoc2_full/full/AO2D16.root
-MC_PP          ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/MC_np/dileptonAOD_np.root
+DATA_PP          ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/MC_np/dileptonAOD_np.root
 
