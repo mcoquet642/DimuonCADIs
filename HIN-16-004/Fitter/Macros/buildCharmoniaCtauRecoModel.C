@@ -4,7 +4,7 @@
 #include "Utilities/initClasses.h"
 
 bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, struct KinCuts cut, bool incJpsi, double binWidth);
-void setCtauRecoDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries);
+void setCtauRecoDefaultParameters(map<string, string> &parIni, double numEntries);
 bool ctauHistToPdf(RooWorkspace& ws, TH1D* hist, string pdfName, string dsName, vector<double> range, bool useDataSet=true);
 TH1* rebinctauhist(TH1 *hist, double xmin=1e99, double xmax=-1e99);
 
@@ -17,16 +17,14 @@ bool buildCharmoniaCtauRecoModel(RooWorkspace& ws, map<string, string>  parIni,
                                  double  numEntries = 300000. // Number of entries in the dataset
                                  )
 {
-  bool isPbPb = false;
-  if (dsName.find("PbPb")!=std::string::npos) { isPbPb = true; }
 
   // If the initial parameters are empty, set defaul parameter values
-  setCtauRecoDefaultParameters(parIni, isPbPb, numEntries);
+  setCtauRecoDefaultParameters(parIni, numEntries);
 
   // C r e a t e   m o d e l
   // Total PDF
   string pdfType = "pdfCTAU";
-  string pdfName = Form("%s_%s_%s", pdfType.c_str(), incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP"));
+  string pdfName = Form("%s_%s_%s", pdfType.c_str(), "JpsiNoPR", "PP");
   
   if(!createCtauRecoTemplate(ws, dsName, pdfType, cut, incJpsi, binWidth)) { cout << "[ERROR] Creating the Ctau Reco Template failed" << endl; return false; }
 
@@ -50,8 +48,6 @@ bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, str
   string hType = pdfType;
   hType.replace(hType.find("pdf"), string("pdf").length(), "h");
   
-  bool isPbPb = false;
-  if (dsName.find("PbPb")!=std::string::npos) { isPbPb = true; }
   if (dsName.find("MC")==std::string::npos)   { std::cout << "[ERROR] Ctau Reco templates can not be build using data!" << std::endl; return false;  }  // Only accept MC
   
   // create weighted data sets
@@ -59,9 +55,9 @@ bool createCtauRecoTemplate(RooWorkspace& ws, string dsName, string pdfType, str
   vector<double> rangeErr; rangeErr.push_back(cut.dMuon.ctauTrue.Min); rangeErr.push_back(cut.dMuon.ctauTrue.Max);
   int nBins = min(int( round((ctauRecoMax - ctauRecoMin)/binWidth) ), 1000);
 
-  TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_%s_%s", hType.c_str(), incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP")), *ws.var("ctau"), Binning(nBins, ctauRecoMin, ctauRecoMax));
+  TH1D* hTot = (TH1D*)ws.data(dsName.c_str())->createHistogram(Form("%s_%s_%s", hType.c_str(), "JpsiNoPR", "PP"), *ws.var("ctau"), Binning(nBins, ctauRecoMin, ctauRecoMax));
   RooDataHist* dataHist = new RooDataHist("tmp", "", *ws.var("ctau"), hTot); delete dataHist; // KEEP THIS LINE, IT IS A FIX FOR ROOKEYS
-  if ( !ctauHistToPdf(ws, hTot, Form("%s_%s_%s", pdfType.c_str(), incJpsi?"JpsiNoPR":"Psi2SNoPR", (isPbPb?"PbPb":"PP")), dsName, rangeErr)) { return false; }
+  if ( !ctauHistToPdf(ws, hTot, Form("%s_%s_%s", pdfType.c_str(), "JpsiNoPR", "PP"), dsName, rangeErr)) { return false; }
   hTot->Delete();
   
   return true;
@@ -155,17 +151,14 @@ TH1* rebinctauhist(TH1 *hist, double xmin, double xmax)
 };
 
 
-void setCtauRecoDefaultParameters(map<string, string> &parIni, bool isPbPb, double numEntries)
+void setCtauRecoDefaultParameters(map<string, string> &parIni, double numEntries)
 {
   
   cout << "[INFO] Setting user undefined initial parameters to their default values" << endl;
   
   // DEFAULT RANGE OF NUMBER OF EVENTS
-  if (parIni.count(Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Jpsi_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
-  }
-  if (parIni.count(Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")))==0 || parIni[Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))]=="") { 
-    parIni[Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP"))]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Psi2S_%s", (isPbPb?"PbPb":"PP")), numEntries, 0.0, numEntries*2.0);
+  if (parIni.count(Form("N_Jpsi_%s", "PP"))==0 || parIni[Form("N_Jpsi_%s", "PP")]=="") { 
+    parIni[Form("N_Jpsi_%s", "PP")]  = Form("%s[%.12f,%.12f,%.12f]", Form("N_Jpsi_%s", "PP"), numEntries, 0.0, numEntries*2.0);
   }
   
 };

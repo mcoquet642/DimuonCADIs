@@ -244,12 +244,14 @@ anabin binFromFile(const char* filename) {
    }
    RooRealVar *pt = (RooRealVar*) ws->var("pt");
    RooRealVar *rap = (RooRealVar*) ws->var("rap");
+   RooRealVar *chi21 = (RooRealVar*) ws->var("chi21");
+   RooRealVar *chi22 = (RooRealVar*) ws->var("chi22");
    RooRealVar *cent = (RooRealVar*) ws->var("cent");
    if (!pt || !rap || !cent) {
       cout << "Error, file " << filename << " is bad." << endl;
       return anabin(0,0,0,0,0,0);
    }
-   anabin ans(rap->getMin(),rap->getMax(),pt->getMin(),pt->getMax(),cent->getMin(),cent->getMax());
+   anabin ans(rap->getMin(),rap->getMax(),pt->getMin(),pt->getMax(),cent->getMin(),cent->getMax(),chi21->getMin(),chi21->getMax(),chi22->getMin(),chi22->getMax());
    delete ws;
    delete f;
    return ans;

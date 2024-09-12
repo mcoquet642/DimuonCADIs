@@ -1,0 +1,4 @@
+chi2;mass;rap;pt;Model_CtauRes_PP;ctauResCut;N_Jpsi_PP;s1_CtauRes_PP;rS21_CtauRes_PP;f_CtauRes_PP;ctau1_CtauRes_PP;
+0.0-30.0;2.6-3.5;2.5-4.0;0.0-2.0;TripleGaussianResolution;;;[0.2,0.0,1.];[1.,0.1,100.];[0.90, 0.01, 1.];[0.0024, -0.01, 0.1];
+0.0-30.0;2.6-3.5;2.5-4.0;2.0-6.0;TripleGaussianResolution;;;[0.06,0.02,0.12];[3.0, 0.1,10.];[0.40, 0.01, 1.];[0.025, 0.0, 0.1];
+0.0-30.0;2.6-3.5;2.5-4.0;6.0-30.0;TripleGaussianResolution;;;[0.04,0.03,0.06];[5., 0.1,100.];[0.66, 0.01, 1.];[0.012, 0.0, 0.1];

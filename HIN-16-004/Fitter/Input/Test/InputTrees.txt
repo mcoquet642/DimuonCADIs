@@ -1,2 +1,2 @@
-DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/dileptonAOD_p.root
+DATA_PP        ;  /afs/cern.ch/work/m/mcoquet/ReducedAODs/dileptonAOD_np_new.root
 

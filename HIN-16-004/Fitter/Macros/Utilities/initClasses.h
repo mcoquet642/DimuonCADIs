@@ -86,7 +86,7 @@ typedef struct EvtPar {
 } EvtPar;
 
 typedef struct DiMuonPar {
-  MinMax ctau, ctauN, ctauNRes, ctauRes, ctauErr, ctauTrue, M, Pt, AbsRap;
+  MinMax ctau, ctauN, ctauNRes, ctauRes, ctauErr, ctauTrue, M, Pt, AbsRap, Chi2;
   string ctauCut;
 } DiMuonPar;
 
@@ -96,7 +96,7 @@ typedef struct SiMuonPar {
 
 typedef struct InputOpt {
   int        oniaMode;
-  EvtPar     PbPb, pp;
+  EvtPar     pp;
 } InputOpt;
 
 typedef struct KinCuts {
@@ -105,14 +105,10 @@ typedef struct KinCuts {
   DiMuonPar  dMuon;
 } KinCuts;
 
-bool isEqualKinCuts(struct KinCuts cutA, struct KinCuts cutB, bool isPbPb) 
+bool isEqualKinCuts(struct KinCuts cutA, struct KinCuts cutB) 
 {
   bool cond = true;
 
-  if (isPbPb) {
-    cond = cond && (cutA.Centrality.Start    == cutB.Centrality.Start);
-    cond = cond && (cutA.Centrality.End      == cutB.Centrality.End);
-  }
   cond = cond && (cutA.sMuon.Pt.Min        == cutB.sMuon.Pt.Min);
   cond = cond && (cutA.sMuon.Pt.Max        == cutB.sMuon.Pt.Max);
   cond = cond && (cutA.sMuon.Eta.Min       == cutB.sMuon.Eta.Min);
@@ -137,6 +133,8 @@ bool isEqualKinCuts(struct KinCuts cutA, struct KinCuts cutB, bool isPbPb)
   cond = cond && (cutA.dMuon.Pt.Max        == cutB.dMuon.Pt.Max);
   cond = cond && (cutA.dMuon.AbsRap.Min    == cutB.dMuon.AbsRap.Min);
   cond = cond && (cutA.dMuon.AbsRap.Max    == cutB.dMuon.AbsRap.Max);
+  cond = cond && (cutA.dMuon.Chi2.Min    == cutB.dMuon.Chi2.Min);
+  cond = cond && (cutA.dMuon.Chi2.Max    == cutB.dMuon.Chi2.Max);
 
   return cond;
 }
@@ -169,7 +167,8 @@ enum class MassModel
     ExpChebychev5=18,
     ExpChebychev6=19,
     Exponential=20,
-    NA60=21
+    NA60=21,
+    VWG=22
 };
 /*map< string , MassModel > MassModelDictionary = {
   {"InvalidModel",            MassModel::InvalidModel},
@@ -207,7 +206,9 @@ enum class CtauModel
     DoubleSingleSidedDecay=6,
     SingleSidedDecay=7,
     Delta=8,
-    QuadrupleDecay=9
+    QuadrupleDecay=9,
+    SymPwrGaussianResolution=10,
+    DoubleGaussianExp=11
 };
 map< string , CtauModel > CtauModelDictionary = {
   {"InvalidModel",             CtauModel::InvalidModel},
@@ -219,7 +220,9 @@ map< string , CtauModel > CtauModelDictionary = {
   {"QuadrupleDecay",           CtauModel::QuadrupleDecay},
   {"DoubleSingleSidedDecay",   CtauModel::DoubleSingleSidedDecay},
   {"SingleSidedDecay",         CtauModel::SingleSidedDecay},
-  {"Delta",                    CtauModel::Delta}
+  {"Delta",                    CtauModel::Delta},
+  {"SymPwrGaussianResolution", CtauModel::SymPwrGaussianResolution},
+  {"DoubleGaussianExp",        CtauModel::DoubleGaussianExp}
 };
 
 typedef struct CtauPNP {
@@ -238,7 +241,7 @@ typedef struct CharmModel {
 } CharmModel;
 
 typedef struct OniaModel {
-  CharmModel  PbPb, PP;
+  CharmModel  PP;
 } OniaModel;
 
 
@@ -394,7 +397,7 @@ bool isFitAlreadyFound(RooArgSet *newpars, string FileName, string pdfName)
 };
 
 
-bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bool isPbPb, bool loadNumberOfEvents, bool updateN)
+bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bool loadNumberOfEvents, bool updateN)
 {
   cout << "Loading revious fit" << endl;
   if (gSystem->AccessPathName(FileName.c_str())) {
@@ -420,25 +423,14 @@ bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bo
   for (RooRealVar* it = (RooRealVar*)parIt->Next(); it!=NULL; it = (RooRealVar*)parIt->Next() ) {
     string name = it->GetName();
     if ( name=="invMass" || name=="ctau" || name=="ctauErr" || name=="ctauRes" || name=="ctauNRes" || name=="ctauN" ||
-         name=="ctauTrue" || name=="pt" || name=="cent" || 
+         name=="ctauTrue" || name=="pt" || name=="cent" || name=="chi21" || name=="chi22" ||
          name=="rap" || name=="One" ) continue;
     if ( !loadNumberOfEvents && name.find("N_")!=std::string::npos ) continue;
     if (myws.var(name.c_str())) {
       print = print + Form("  %s: %.5f->%.5f ", name.c_str(), myws.var(name.c_str())->getValV(), ws->var(name.c_str())->getValV()) ;
       myws.var(name.c_str())->setVal  ( ws->var(name.c_str())->getValV()  );
       myws.var(name.c_str())->setError( ws->var(name.c_str())->getError() );
-    } else {
-      if ( (name==Form("lambdaDSS_JpsiNoPR_%s", (isPbPb?"PbPb":"PP"))) && myws.var(Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP"))) ) {
-        print = print + Form("  %s: %.5f->%.5f", Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")), myws.var(Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")))->getValV(), ws->var(name.c_str())->getValV()) ;
-        myws.var(Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")))->setVal  ( ws->var(name.c_str())->getValV()  );
-        myws.var(Form("lambdaDSS_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")))->setError( ws->var(name.c_str())->getError() ); 
-      }
-      if ( (name==Form("sigmaMC_JpsiNoPR_%s", (isPbPb?"PbPb":"PP"))) && myws.var(Form("sigmaMC_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")))) {
-        print = print + Form("  %s: %.5f->%.5f  ", Form("sigmaMC_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")), myws.var(Form("sigmaMC_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")))->getValV(), ws->var(name.c_str())->getValV()) ;
-        myws.var(Form("sigmaMC_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")))->setVal  ( ws->var(name.c_str())->getValV()  );
-        myws.var(Form("sigmaMC_Psi2SNoPR_%s", (isPbPb?"PbPb":"PP")))->setError( ws->var(name.c_str())->getError() ); 
-      }
-    }
+    } 
   }
   cout << print << endl;
   RooArgSet listFun = ws->allFunctions();
@@ -447,7 +439,7 @@ bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bo
   for (RooRealVar* it = (RooRealVar*)parFunIt->Next(); it!=NULL; it = (RooRealVar*)parFunIt->Next() ) {
     string name = it->GetName();
     if ( name=="invMass" || name=="ctau" || name=="ctauErr" || name=="ctauRes" || name=="ctauNRes" || name=="ctauN" ||
-         name=="ctauTrue" || name=="pt" || name=="cent" || 
+         name=="ctauTrue" || name=="pt" || name=="cent" || name=="chi21" || name=="chi22" ||
          name=="rap" || name=="One" ) continue;
     if ( !loadNumberOfEvents && name.find("N_")!=std::string::npos ) continue;
     if (myws.var(name.c_str())) { 
@@ -460,9 +452,7 @@ bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bo
       boost::replace_all(reName, "Jpsi", "Psi2S");
       if (myws.var(reName.c_str())) {
         Double_t value = 0.0;
-        if ( (reName==Form("sigma1_Psi2S_%s", (isPbPb?"PbPb":"PP"))) ) { value = ws->var(name.c_str())->getValV() * MassRatio; }
-        else if ( (reName==Form("m_Psi2S_%s", (isPbPb?"PbPb":"PP"))) ) { value = ws->var(name.c_str())->getValV() * MassRatio; }
-        else { value = ws->var(name.c_str())->getValV(); }
+        value = ws->var(name.c_str())->getValV();
         printFun = printFun + Form("  %s: %.5f->%.5f  ", reName.c_str(), myws.var(reName.c_str())->getValV(), value) ;
         myws.var(reName.c_str())->setVal  ( value );
         myws.var(reName.c_str())->setError( 0.0 );
@@ -472,37 +462,37 @@ bool loadPreviousFitResult(RooWorkspace& myws, string FileName, string DSTAG, bo
   setFixedVarsToContantVars(myws);
   cout << printFun << endl;
 
-  if (updateN && myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))) {
-    string dsName = Form("dOS_%s_%s", DSTAG.c_str(), (isPbPb ?"PbPb":"PP"));
+  if (updateN && myws.pdf("pdfMASS_Tot_PP")) {
+    string dsName = Form("dOS_%s_PP", DSTAG.c_str());
     string dsNameCut = dsName+"_CTAUCUT"; if (!myws.data(dsNameCut.c_str())) dsNameCut = dsName;
     cout << "[INFO] Checking if local dataset " << dsNameCut << " is compatible with Mass fit dataset " << dsName << " !" << endl;
     if (myws.data(dsNameCut.c_str()) && ws->data(dsName.c_str()) && !isCompatibleDataset(*(RooDataSet*)myws.data(dsNameCut.c_str()), *(RooDataSet*)ws->data(dsName.c_str()), false)) {
       // Let's fit again the mass with only the N parameters free, to account for possible ctau or ctauErr cuts in the input datasets
-      myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kTRUE);
+      myws.pdf("pdfMASS_Tot_PP")->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kTRUE);
       std::vector< std::string > objs = {"Bkg", "Jpsi", "Psi2S"}; std::map< std::string , double > dN_Old , dN_New, dNErr_Old;
-      for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP"))))  setConstant( myws, Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")), false); }
+      for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str())))  setConstant( myws, Form("N_%s_PP", obj.c_str()), false); }
       std::cout << "[INFO] Fitting the mass distribution to update the number of events!" << std::endl;
-      for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) {
-          dN_Old[obj]    = myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))->getVal();
-          dNErr_Old[obj] = myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))->getError();
+      for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str()))) {
+          dN_Old[obj]    = myws.var(Form("N_%s_PP", obj.c_str()))->getVal();
+          dNErr_Old[obj] = myws.var(Form("N_%s_PP", obj.c_str()))->getError();
         }
       }
-      ((RooFitResult*)myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))->fitTo(*myws.data(dsNameCut.c_str()), Extended(kTRUE), Range("MassWindow"), NumCPU(32), PrintLevel(-1), Save()))->Print("v");
-      for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) { dN_New[obj]    = myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))->getVal(); } }
+      ((RooFitResult*)myws.pdf("pdfMASS_Tot_PP")->fitTo(*myws.data(dsNameCut.c_str()), Extended(kTRUE), Range("MassWindow"), NumCPU(32), PrintLevel(-1), Save()))->Print("v");
+      for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str()))) { dN_New[obj]    = myws.var(Form("N_%s_PP", obj.c_str()))->getVal(); } }
       bool update = true; for (auto obj : objs) {  if (dN_Old.count(obj)>0 && ((dN_New.at(obj) - dN_Old.at(obj))>dNErr_Old.at(obj))) { update = false; } }
       if (update) {
         for (auto obj : objs) {
-          if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) cout << "[INFO] Change in " << Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP"))
+          if (myws.var(Form("N_%s_PP", obj.c_str()))) cout << "[INFO] Change in " << Form("N_%s_PP", obj.c_str())
                                                                                  << " : " << dN_Old.at(obj) << " -> " << dN_New.at(obj) << endl;
         }
       }
       else {
-        for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) { myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))->setVal(dN_Old.at(obj)); } }
+        for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str()))) { myws.var(Form("N_%s_PP", obj.c_str()))->setVal(dN_Old.at(obj)); } }
         cout << "[WARNING] Number of Re-Fitted events is larger than in mass fits, setting the N parameter values to its results from mass fits!" << endl;
       }
       // Set the re-fitted N errors to their values from the mass fits
-      for (auto obj : objs) { if (myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))) { myws.var(Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP")))->setError(dNErr_Old.at(obj)); } }
-      myws.pdf(Form("pdfMASS_Tot_%s", (isPbPb?"PbPb":"PP")))->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kFALSE);
+      for (auto obj : objs) { if (myws.var(Form("N_%s_PP", obj.c_str()))) { myws.var(Form("N_%s_PP", obj.c_str()))->setError(dNErr_Old.at(obj)); } }
+      myws.pdf("pdfMASS_Tot_PP")->getParameters(RooArgSet(*myws.var("invMass")))->setAttribAll("Constant", kFALSE);
     }
   }
 
@@ -566,11 +556,10 @@ bool loadYields(RooWorkspace& myws, string FileName, string dsName, string pdfNa
   bool compDS = true;
   if (ws->data(dsName.c_str()) && myws.data(dsName.c_str())) {
     if (isCompatibleDataset(*(RooDataSet*)myws.data(dsName.c_str()), *(RooDataSet*)ws->data(dsName.c_str()))) {
-      bool isPbPb = true; if (FileName.find("_PP_")!=std::string::npos) isPbPb = false;
       const RooArgSet *params = ws->getSnapshot(Form("%s_parIni", pdfName.c_str()));
       std::vector< std::string > objs = {"Bkg", "Jpsi", "Psi2S"};
       for (auto obj : objs) {
-        string name = Form("N_%s_%s", obj.c_str(), (isPbPb?"PbPb":"PP"));
+        string name = Form("N_%s_PP", obj.c_str());
         if (params->find(name.c_str()))  {
           string par = Form("%s[ %.1f, %.1f, %.1f ]", name.c_str(), 
                             ((RooRealVar*)params->find(name.c_str()))->getVal(), 
@@ -634,6 +623,8 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
     indMuonMass =  indMuonMass + "&&" + "((2.0 < invMass && invMass < 2.8) || (3.3 < invMass && invMass < 3.5) || (3.9 < invMass && invMass < 5.0))";
   }
   string indMuonRap     = Form("(%.6f <= abs(rap) && abs(rap) < %.6f)",    cut.dMuon.AbsRap.Min,   cut.dMuon.AbsRap.Max);
+  string indMuonChi21     = Form("(%.6f <= chi21 && chi21 < %.6f)",    cut.dMuon.Chi2.Min,   cut.dMuon.Chi2.Max);
+  string indMuonChi22     = Form("(%.6f <= chi22 && chi22 < %.6f)",    cut.dMuon.Chi2.Min,   cut.dMuon.Chi2.Max);
   string indMuonPt      = Form("(%.6f <= pt && pt < %.6f)",                cut.dMuon.Pt.Min,       cut.dMuon.Pt.Max);
   string indMuonCtau    = Form("(%.6f < ctau && ctau <= %.6f)",            cut.dMuon.ctau.Min,     cut.dMuon.ctau.Max); 
   if(cut.dMuon.ctauCut!=""){ indMuonCtau = cut.dMuon.ctauCut; }
@@ -643,8 +634,7 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
   string indMuonCtauRes = Form("(%.12f < ctauRes && ctauRes < %.12f)",     cut.dMuon.ctauRes.Min,  cut.dMuon.ctauRes.Max);
   string indMuonCtauNRes = Form("(%.12f < ctauNRes && ctauNRes < %.12f)",  cut.dMuon.ctauNRes.Min, cut.dMuon.ctauNRes.Max);
   string indMuonCtauN   = Form("(%.12f < ctauN && ctauN < %.12f)",        cut.dMuon.ctauN.Min, cut.dMuon.ctauN.Max);
-  string strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt +"&&"+ indMuonCtau +"&&"+ indMuonCtauErr;
-  if (label.find("PbPb")!=std::string::npos){ strCut = strCut +"&&"+ inCentrality; }
+  string strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt +"&&"+ indMuonCtau +"&&"+ indMuonCtauErr + "&&" + indMuonChi21 + "&&" + indMuonChi22;
   if (label.find("MC")!=std::string::npos){ strCut = strCut +"&&"+ indMuonCtauTrue +"&&"+ indMuonCtauNRes +"&&"+ indMuonCtauRes;  }
   else { strCut = strCut +"&&"+ indMuonCtauN;  }
 
@@ -653,7 +643,7 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
     cout << "[ERROR] The dataset " <<  Form("dOS_%s", label.c_str()) << " was not found!" << endl;
     return -1;
   }
-  strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt;
+  strCut         = indMuonMass +"&&"+ indMuonRap +"&&"+ indMuonPt + "&&" + indMuonChi21 + "&&" + indMuonChi22;
   cout << "[INFO] Importing local RooDataSet with cuts: " << strCut << endl;
   RooDataSet* dataOS = (RooDataSet*)inputWS.data(Form("dOS_%s", label.c_str()))->reduce(strCut.c_str());
   if (dataOS->sumEntries()==0){ 
@@ -687,10 +677,6 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
   ((RooRealVar*)rowOS->find("ctau"))->setMax(cut.dMuon.ctau.Max);
   ((RooRealVar*)rowOS->find("ctauErr"))->setMin(cut.dMuon.ctauErr.Min);
   ((RooRealVar*)rowOS->find("ctauErr"))->setMax(cut.dMuon.ctauErr.Max);
-  if (label.find("PbPb")!=std::string::npos){
-    ((RooRealVar*)rowOS->find("cent"))->setMin(cut.Centrality.Start);      
-    ((RooRealVar*)rowOS->find("cent"))->setMax(cut.Centrality.End);
-  }
   if (label.find("MC")!=std::string::npos){
     ((RooRealVar*)rowOS->find("ctauTrue"))->setMin(cut.dMuon.ctauTrue.Min);      
     ((RooRealVar*)rowOS->find("ctauTrue"))->setMax(cut.dMuon.ctauTrue.Max);
@@ -717,10 +703,6 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
       ((RooRealVar*)rowOS->find("ctau"))->setMax(cut.dMuon.ctau.Max);
       ((RooRealVar*)rowOS->find("ctauErr"))->setMin(cut.dMuon.ctauErr.Min);
       ((RooRealVar*)rowOS->find("ctauErr"))->setMax(cut.dMuon.ctauErr.Max);
-      if (label.find("PbPb")!=std::string::npos){
-        ((RooRealVar*)rowOS->find("cent"))->setMin(cut.Centrality.Start);      
-        ((RooRealVar*)rowOS->find("cent"))->setMax(cut.Centrality.End);
-      }
       if (label.find("MC")!=std::string::npos){
         ((RooRealVar*)rowOS->find("ctauTrue"))->setMin(cut.dMuon.ctauTrue.Min);      
         ((RooRealVar*)rowOS->find("ctauTrue"))->setMax(cut.dMuon.ctauTrue.Max);
@@ -752,14 +734,14 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
   myws.var("pt")->setMax(cut.dMuon.Pt.Max);
   myws.var("rap")->setMin(cut.dMuon.AbsRap.Min);       
   myws.var("rap")->setMax(cut.dMuon.AbsRap.Max);
+  myws.var("chi21")->setMin(cut.dMuon.Chi2.Min);       
+  myws.var("chi21")->setMax(cut.dMuon.Chi2.Max);
+  myws.var("chi22")->setMin(cut.dMuon.Chi2.Min);       
+  myws.var("chi22")->setMax(cut.dMuon.Chi2.Max);
   myws.var("ctau")->setMin(cut.dMuon.ctau.Min);        
   myws.var("ctau")->setMax(cut.dMuon.ctau.Max);
   myws.var("ctauErr")->setMin(cut.dMuon.ctauErr.Min);  
   myws.var("ctauErr")->setMax(cut.dMuon.ctauErr.Max);
-  if (label.find("PbPb")!=std::string::npos){
-    myws.var("cent")->setMin(cut.Centrality.Start);      
-    myws.var("cent")->setMax(cut.Centrality.End);
-  }
   if (label.find("MC")!=std::string::npos){
     myws.var("ctauTrue")->setMin(cut.dMuon.ctauTrue.Min);      
     myws.var("ctauTrue")->setMax(cut.dMuon.ctauTrue.Max);
@@ -773,13 +755,15 @@ int importDataset(RooWorkspace& myws, const RooWorkspace& inputWS, struct KinCut
     myws.var("ctauN")->setMax(cut.dMuon.ctauN.Max);
   }
   cout << "[INFO] Analyzing bin: " << Form(
-                                           "%.3f < pt < %.3f, %.3f < rap < %.3f, %d < cent < %d", 
+                                           "%.3f < pt < %.3f, %.3f < rap < %.3f, %d < cent < %d, %.3f < chi2 < %.3f", 
                                            cut.dMuon.Pt.Min,
                                            cut.dMuon.Pt.Max,
                                            cut.dMuon.AbsRap.Min,
                                            cut.dMuon.AbsRap.Max,
                                            cut.Centrality.Start,
-                                           cut.Centrality.End
+                                           cut.Centrality.End,
+                                           cut.dMuon.Chi2.Min,
+                                           cut.dMuon.Chi2.Max
                                            ) << endl;
 
   return 1;

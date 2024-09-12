@@ -328,8 +328,20 @@ TBranch        *b_Gen_mu_4mom;   //!
    Float_t         fVt2;
 
    UInt_t           fMcDecision;
+   Int_t 	   fIsAmbig1;
+   Int_t 	   fIsAmbig2;
 
+   UShort_t 	   fNumContrib;
 
+   Float_t	   fFwdDcaX1;
+   Float_t	   fFwdDcaY1;
+   Float_t	   fFwdDcaX2;
+   Float_t	   fFwdDcaY2;
+
+   Float_t	   fChi21;
+   Float_t	   fChi22;
+
+   Float_t	   fChi2pca;
 
    TBranch        *b_fMass;   //!
    TBranch        *b_fPt;   //!
@@ -383,6 +395,20 @@ TBranch        *b_Gen_mu_4mom;   //!
 
    TBranch        *b_fMcDecision;   //!
 
+   TBranch	  *b_fIsAmbig1;
+   TBranch	  *b_fIsAmbig2;
+
+   TBranch	  *b_fNumContrib;
+
+   TBranch	  *b_fFwdDcaX1;
+   TBranch	  *b_fFwdDcaX2;
+   TBranch	  *b_fFwdDcaY1;
+   TBranch	  *b_fFwdDcaY2;
+
+   TBranch	  *b_fChi21;
+   TBranch	  *b_fChi22;
+
+   TBranch	  *b_fChi2pca;
 
 
 
@@ -471,7 +497,20 @@ void initOniaTree(TChain *tree, string TreeName)
 
  if (fChain->GetBranch("fMcDecision"))   fChain->SetBranchAddress("fMcDecision", &fMcDecision, &b_fMcDecision);
 
+ if (fChain->GetBranch("fIsAmbig1"))   fChain->SetBranchAddress("fIsAmbig1", &fIsAmbig1, &b_fIsAmbig1);
+ if (fChain->GetBranch("fIsAmbig2"))   fChain->SetBranchAddress("fIsAmbig2", &fIsAmbig2, &b_fIsAmbig2);
 
+ if (fChain->GetBranch("fNumContrib"))   fChain->SetBranchAddress("fNumContrib", &fNumContrib, &b_fNumContrib);
+
+ if (fChain->GetBranch("fFwdDcaX1"))   fChain->SetBranchAddress("fFwdDcaX1", &fFwdDcaX1, &b_fFwdDcaX1);
+ if (fChain->GetBranch("fFwdDcaX2"))   fChain->SetBranchAddress("fFwdDcaX2", &fFwdDcaX2, &b_fFwdDcaX2);
+ if (fChain->GetBranch("fFwdDcaY1"))   fChain->SetBranchAddress("fFwdDcaY1", &fFwdDcaX1, &b_fFwdDcaY1);
+ if (fChain->GetBranch("fFwdDcaY2"))   fChain->SetBranchAddress("fFwdDcaY2", &fFwdDcaX2, &b_fFwdDcaY2);
+
+ if (fChain->GetBranch("fChi21"))   fChain->SetBranchAddress("fChi21", &fChi21, &b_fChi21);
+ if (fChain->GetBranch("fChi22"))   fChain->SetBranchAddress("fChi22", &fChi22, &b_fChi22);
+
+ if (fChain->GetBranch("fChi2pca"))   fChain->SetBranchAddress("fChi2pca", &fChi2pca, &b_fChi2pca);
 
 
 /*   if (fChain->GetBranch("eventNb")) fChain->SetBranchAddress("eventNb", &eventNb, &b_eventNb);

@@ -5,11 +5,44 @@
 #include "buildCharmoniaMassModel.C"
 #include "drawMassPlot.C"
 
-void setCtauCuts(struct KinCuts& cut, bool isPbPb);
-bool setMassModel( struct OniaModel& model, map<string, string>&  parIni, bool isPbPb, bool incJpsi, bool incBkg );
-void setMassFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool isPbPb, bool cutSideBand=false) ;
+void setCtauCuts(struct KinCuts& cut);
+bool setMassModel( struct OniaModel& model, map<string, string>&  parIni, bool incJpsi, bool incBkg );
+void setMassFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool cutSideBand=false) ;
 void setMassGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni, struct KinCuts& cut, bool incJpsi, bool incBkg, bool wantPureSMC=false);
 void setMassCutParameters(struct KinCuts& cut, bool incJpsi, bool isMC=false, bool useForCtauFits=false);
+
+bool isFitAlreadyFound2(RooArgSet *newpars, string FileName, string pdfName)
+{
+	cout << "In ufnction" << endl;
+  if (gSystem->AccessPathName(FileName.c_str())) {
+    cout << "[INFO] FileName: " << FileName << " was not found" << endl;
+    return false; // File was not found
+  }
+  TFile *file = new TFile(FileName.c_str());
+  if (!file) return false;
+	cout << "getting ws from file " << FileName.c_str() << endl;
+  RooWorkspace *ws2 = (RooWorkspace*) file->Get("workspace");
+	cout << "ws created" << endl;
+  if (!ws2) {
+    cout << "[INFO] Workspace was not found" << endl;
+    file->Close(); delete file;
+    return false;
+  }
+  string snapShotName = Form("%s_parIni", pdfName.c_str());
+  const RooArgSet *params = ws2->getSnapshot(snapShotName.c_str());
+  if (!params) {
+    cout << "[INFO] Snapshot parIni was not found" << endl;
+    delete ws2;
+    file->Close(); delete file;
+    return false;
+  }
+  bool result = compareSnapshots(newpars, params);
+  delete ws2;
+  file->Close(); delete file;
+
+  return result;
+};
+
 
 
 bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
@@ -20,7 +53,6 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
                             string outputDir,              // Path to output directory
                             // Select the type of datasets to fit
                             string DSTAG,                  // Specifies the type of datasets: i.e, DATA, MCJPSINP, ...
-                            bool isPbPb      = false,      // isPbPb = false for pp, true for PbPb
                             bool importDS    = true,       // Select if the dataset is imported in the local workspace
                             // Select the type of object to fit
                             bool incJpsi     = true,       // Includes Jpsi model
@@ -58,16 +90,15 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
   parIni["invMassNorm"] = Form("RooFormulaVar::%s('( -1.0 + 2.0*( @0 - @1 )/( @2 - @1) )', {%s, mMin[%.6f], mMax[%.6f]})", "invMassNorm", "invMass", cut.dMuon.M.Min, cut.dMuon.M.Max );
   cout << "[INFO] RooFormula defined" << endl;
   // Apply the ctau cuts to reject non-prompt charmonia
-  if (cutCtau) { setCtauCuts(cut, isPbPb); }
+//  if (cutCtau) { setCtauCuts(cut); }
   
-  string COLL = (isPbPb ? "PbPb" : "PP" );
-  string plotLabelPbPb,  plotLabelPP;
+  string COLL = "PP";
+  string plotLabelPP;
 
-  if (!isPbPb) {
     // Set models based on initial parameters
     cout << "[INFO] fit pp" << endl;
     struct OniaModel model;
-    if (!setMassModel(model, parIni, false, incJpsi, incBkg)) { 
+    if (!setMassModel(model, parIni, incJpsi, incBkg)) { 
 	cout << "Setting mass model failed" << endl;
 	return false; }
 
@@ -96,7 +127,7 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
     setMassGlobalParameterRange(myws, parIni, cut, incJpsi, incBkg, wantPureSMC);
 
     // Build the Fit Model
-    if (!buildCharmoniaMassModel(myws, model.PP, parIni, false, doConstrFit, incBkg, incJpsi, numEntries))  {
+    if (!buildCharmoniaMassModel(myws, model.PP, parIni, doConstrFit, incBkg, incJpsi, numEntries))  {
 
 	cout << "Building mass model failed" << endl;
 	 return false; }
@@ -106,68 +137,67 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
     if (incBkg)   { plotLabelPP += Form("_Bkg_%s", parIni["Model_Bkg_PP"].c_str());     }
     if (wantPureSMC) plotLabelPP +="_NoBkg";
     if (applyWeight_Corr) plotLabelPP +=Form("_%s",applyCorr);
-  }
 
-  if (isPbPb) {
-    cout << "[INFO] fit PbPb" << endl;
-    // Set models based on initial parameters
-    struct OniaModel model;
-    if (!setMassModel(model, parIni, true, incJpsi, incBkg)) { return false; }
-
-    // Import the local datasets
-    double numEntries = 1000000;
-    string label = ((DSTAG.find("PbPb")!=std::string::npos) ? DSTAG.c_str() : Form("%s_%s", DSTAG.c_str(), "PbPb"));
-    if (wantPureSMC) label += "_NoBkg";
-    if (applyWeight_Corr) label += Form("_%s",applyCorr);
-    string dsName = Form("dOS_%s", label.c_str());
-    if (importDS) {
-      if ( !(myws.data(dsName.c_str())) ) {
-        int importID = importDataset(myws, inputWorkspace, cut, label, cutSideBand);
-        if (importID<0) { return false; }
-        else if (importID==0) { doFit = false; }
-      }
-      numEntries = myws.data(dsName.c_str())->sumEntries(); if (numEntries<=0) { doFit = false; }
-    }
-    else if (doFit && !(myws.data(dsName.c_str()))) { cout << "[ERROR] No local dataset was found to perform the fit!" << endl; return false; }
-    if (myws.data(dsName.c_str())) numEntries = myws.data(dsName.c_str())->sumEntries();
-      
-    // Set global parameters
-    setMassGlobalParameterRange(myws, parIni, cut, incJpsi, incBkg, wantPureSMC);
-
-    // Build the Fit Model
-    if (!buildCharmoniaMassModel(myws, model.PbPb, parIni, true, doConstrFit, incBkg, incJpsi, numEntries))  { return false; }
-
-    // Define plot names
-    if (incJpsi)  { plotLabelPbPb += Form("_Jpsi_%s", parIni["Model_Jpsi_PbPb"].c_str());   } 
-    if (incBkg)   { plotLabelPbPb += Form("_Bkg_%s", parIni["Model_Bkg_PbPb"].c_str());     }
-    if (wantPureSMC) plotLabelPbPb += "_NoBkg";
-    if (applyWeight_Corr) plotLabelPbPb += Form("_%s",applyCorr);
-  }
 
     // Define pdf and plot names
-    cout << "[INFO] no simul fit" << endl;
     string pdfName = Form("pdfMASS_Tot_%s", COLL.c_str());
-    string plotLabel = (isPbPb ? plotLabelPbPb : plotLabelPP);
+    string plotLabel = plotLabelPP;
 
-    // Import the local datasets
-    string label = ((DSTAG.find(COLL.c_str())!=std::string::npos) ? DSTAG.c_str() : Form("%s_%s", DSTAG.c_str(), COLL.c_str()));
     if (wantPureSMC) label += "_NoBkg";
     if (applyWeight_Corr) label += Form("_%s",applyCorr);
-    string dsName = Form("dOS_%s", label.c_str());
       
     // check if we have already done this fit. If yes, do nothing and return true.
     string FileName = "";
-    setMassFileName(FileName, (inputFitDir=="" ? outputDir : inputFitDir), DSTAG, plotLabel, cut, isPbPb, cutSideBand);
+    setMassFileName(FileName, (inputFitDir=="" ? outputDir : inputFitDir), DSTAG, plotLabel, cut, cutSideBand);
     if (gSystem->AccessPathName(FileName.c_str()) && inputFitDir!="") {
       cout << "[WARNING] User Input File : " << FileName << " was not found!" << endl;
       if (loadFitResult) return false;
-      setMassFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb, cutSideBand);
+      setMassFileName(FileName, outputDir, DSTAG, plotLabel, cut, cutSideBand);
     }
     bool found =  true; bool skipFit = !doFit;
     RooArgSet *newpars = myws.pdf(pdfName.c_str())->getParameters(*(myws.var("invMass")));
-    found = found && isFitAlreadyFound(newpars, FileName, pdfName.c_str());
+	cout << "parameters got" << endl;
+    found = found && isFitAlreadyFound2(newpars, FileName, pdfName.c_str());
+	cout << "fit found" << endl;
+    bool cont = true;
+//__________________________________________________________________________
+  if (gSystem->AccessPathName(FileName.c_str())) {
+    cout << "[INFO] FileName: " << FileName << " was not found" << endl;
+    found=false; // File was not found
+  }
+if(found){
+  TFile *file = new TFile(FileName.c_str());
+  if (!file)  {found=false;
+  }else{
+  RooWorkspace *ws = (RooWorkspace*) file->Get("workspace");
+	cout << "MAss : ws created" << endl;
+  if (!ws) {
+    cout << "[INFO] Workspace was not found" << endl;
+    file->Close(); delete file;
+    found= false;
+  }else{
+  string snapShotName = Form("%s_parIni", pdfName.c_str());
+  const RooArgSet *params = ws->getSnapshot(snapShotName.c_str());
+  if (!params) {
+    cout << "[INFO] Snapshot parIni was not found" << endl;
+    delete ws;
+    file->Close(); delete file;
+    found=false;
+  }else{
+  bool result = compareSnapshots(newpars, params);
+  delete ws;
+  file->Close(); delete file; 
+  found=result;
+}
+}
+}
+}
+//__________________________________________________________________________
+	cout << "fit found" << endl;
+//    found = false;
     if (loadFitResult) {
-      if ( loadPreviousFitResult(myws, FileName, DSTAG, isPbPb, (!isMC && !cutSideBand && loadFitResult==1), loadFitResult==1) ) { skipFit = true; } else { skipFit = false; } 
+      if ( loadPreviousFitResult(myws, FileName, DSTAG, (!isMC && !cutSideBand && loadFitResult==1), loadFitResult==1) ) { skipFit = true; } else { skipFit = false; } 
+//      skipFit = false;
       if (skipFit) { cout << "[INFO] This mass fit was already done, so I'll load the fit results." << endl; }
       myws.saveSnapshot(Form("%s_parLoad", pdfName.c_str()), *newpars, kTRUE);
     } else if (found) {
@@ -182,15 +212,8 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
       if (doConstrFit)
       {
         cout << "[INFO] Performing constrained fit" << endl;
-        
-        if (isPbPb) {
-          cout << "[INFO] Constrained variables: alpha, n, ratio of sigmas" << endl;
-          fitResult = myws.pdf(pdfName.c_str())->fitTo(*myws.data(dsName.c_str()), Extended(kTRUE), SumW2Error(isWeighted), Range(cutSideBand ? parIni["BkgMassRange_FULL_Label"].c_str() : "MassWindow"), ExternalConstraints(RooArgSet(*(myws.pdf("sigmaAlphaConstr")),*(myws.pdf("sigmaNConstr")),*(myws.pdf("sigmaRSigmaConstr")))), NumCPU(numCores), Save());
-        }
-        else {
           cout << "[INFO] Constrained variables: alpha, n, ratio of sigmas" << endl;
           fitResult = myws.pdf(pdfName.c_str())->fitTo(*myws.data(dsName.c_str()), Extended(kTRUE), SumW2Error(isWeighted), Range(cutSideBand ? parIni["BkgMassRange_FULL_Label"].c_str() : "MassWindow"), ExternalConstraints(RooArgSet(*(myws.pdf("sigmaAlphaConstr")),*(myws.pdf("sigmaNConstr")))), NumCPU(numCores), Save());
-        }
       }
       else
       {
@@ -201,9 +224,9 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
       myws.import(*fitResult, Form("fitResult_%s", pdfName.c_str())); 
       // Create the output files
       int nBins = min(int( round((cut.dMuon.M.Max - cut.dMuon.M.Min)/binWidth) ), 1000);
-      drawMassPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, isPbPb, incJpsi, incBkg, cutCtau, wantPureSMC, setLogScale, incSS, nBins, getMeanPT);
+      drawMassPlot(myws, outputDir, opt, cut, parIni, plotLabel, DSTAG, incJpsi, incBkg, cutCtau, wantPureSMC, setLogScale, incSS, nBins, getMeanPT);
       // Save the results
-      string FileName = ""; setMassFileName(FileName, outputDir, DSTAG, plotLabel, cut, isPbPb, cutSideBand);
+      string FileName = ""; setMassFileName(FileName, outputDir, DSTAG, plotLabel, cut, cutSideBand);
       myws.saveSnapshot(Form("%s_parFit", pdfName.c_str()), *newpars, kTRUE);
       saveWorkSpace(myws, Form("%smass%s/%s/result", outputDir.c_str(), (cutSideBand?"SB":""), DSTAG.c_str()), FileName);
     }
@@ -212,7 +235,7 @@ bool fitCharmoniaMassModel( RooWorkspace& myws,            // Local Workspace
 };
 
 
-void setCtauCuts(struct KinCuts& cut, bool isPbPb) 
+void setCtauCuts(struct KinCuts& cut) 
 {
   if (cut.dMuon.AbsRap.Max<=1.6) {
     cut.dMuon.ctauCut = "( ctau < (0.012 + (0.23/pt)) )";
@@ -225,7 +248,7 @@ void setCtauCuts(struct KinCuts& cut, bool isPbPb)
 };
 
 
-bool setMassModel( struct OniaModel& model, map<string, string>&  parIni, bool isPbPb, bool incJpsi, bool incBkg)
+bool setMassModel( struct OniaModel& model, map<string, string>&  parIni, bool incJpsi, bool incBkg)
 {
 
 map< string , MassModel > MassModelDictionary = {
@@ -250,35 +273,14 @@ map< string , MassModel > MassModelDictionary = {
   {"ExpChebychev5",           MassModel::ExpChebychev5},
   {"ExpChebychev6",           MassModel::ExpChebychev6},
   {"Exponential",             MassModel::Exponential},
-  {"NA60",             MassModel::NA60}
+  {"NA60",             MassModel::NA60},
+  {"VWG",             MassModel::VWG}
 };
 
 
-  if (isPbPb && incBkg) {
-    if (parIni.count("Model_Bkg_PbPb")>0) {
-      model.PbPb.Bkg.Mass = MassModelDictionary[parIni["Model_Bkg_PbPb"]];
-      if (model.PbPb.Bkg.Mass==MassModel(0)) {
-        cout << "[ERROR] The background model: " << parIni["Model_Bkg_PbPb"] << " is invalid" << endl; return false;
-      }
-    } else { 
-      cout << "[ERROR] Background mass model for PbPb was not found in the initial parameters!" << endl; return false;
-    }
-  }
-  if (isPbPb && incJpsi) {
-    if (parIni.count("Model_Jpsi_PbPb")>0) {
-      model.PbPb.Jpsi.Mass = MassModelDictionary[parIni["Model_Jpsi_PbPb"]];
-      if (model.PbPb.Jpsi.Mass==MassModel(0)) {
-        cout << "[ERROR] The Jpsi model: " << parIni["Model_Jpsi_PbPb"] << " is invalid" << endl; return false;
-      }
-    } else { 
-      cout << "[ERROR] Jpsi mass model for PbPb was not found in the initial parameters!" << endl; return false;
-    }
-  }
-  if (!isPbPb && incBkg) {
+  if (incBkg) {
     if (parIni.count("Model_Bkg_PP")>0) {
       model.PP.Bkg.Mass = MassModelDictionary[parIni["Model_Bkg_PP"]];
-//      model.PP.Bkg.Mass = MassModel::Chebychev2;
-cout << "Mass model set" << endl;
       if (model.PP.Bkg.Mass==MassModel(0)) {
         cout << "[ERROR] The background model: " << parIni["Model_Bkg_PP"] << " is invalid" << endl; return false;
       }
@@ -286,12 +288,12 @@ cout << "Mass model set" << endl;
       cout << "[ERROR] Background mass model for PP was not found in the initial parameters!" << endl; return false;
     }
   }
-  if (!isPbPb && incJpsi) {
+  if (incJpsi) {
     if (parIni.count("Model_Jpsi_PP")>0) {
       model.PP.Jpsi.Mass = MassModelDictionary[parIni["Model_Jpsi_PP"]];
-//      model.PP.Jpsi.Mass = MassModel::DoubleCrystalBall;
+	cout << "Mass model set to " << parIni["Model_Jpsi_PP"] << " " << endl;
       if (model.PP.Jpsi.Mass==MassModel(0)) {
-        cout << "[ERROR] The Jpsi model: " << parIni["Model_Jpsi_PbPb"] << " is invalid" << endl; return false;
+        cout << "[ERROR] The Jpsi model: " << parIni["Model_Jpsi_PP"] << " is invalid" << endl; return false;
       }
     } else { 
       cout << "[ERROR] Jpsi mass model for PP was not found in the initial parameters!" << endl; return false;
@@ -330,10 +332,8 @@ void setMassGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni
     if (incBkg) {
       myws.var("invMass")->setRange("SideBandMID_FULL",  ((cut.dMuon.M.Min<3.3)?3.3:cut.dMuon.M.Min), ((cut.dMuon.M.Max>3.5)?3.5:cut.dMuon.M.Max));
       myws.var("invMass")->setRange("SideBandMID_JPSI",  ((cut.dMuon.M.Min<3.3)?3.3:cut.dMuon.M.Min), ((cut.dMuon.M.Max>3.5)?3.5:cut.dMuon.M.Max));
-      myws.var("invMass")->setRange("SideBandMID_PSI2S", ((cut.dMuon.M.Min<3.4)?3.4:cut.dMuon.M.Min), ((cut.dMuon.M.Max>3.5)?3.5:cut.dMuon.M.Max));
       parIni["BkgMassRange_FULL_Label"]  = "SideBandMID_FULL";
       parIni["BkgMassRange_JPSI_Label"]  = "SideBandMID_JPSI";
-      parIni["BkgMassRange_PSI2S_Label"] = "SideBandMID_PSI2S";
       if (cut.dMuon.M.Min < 2.8) {
         myws.var("invMass")->setRange("SideBandBOT_FULL", cut.dMuon.M.Min, 2.8);
         myws.var("invMass")->setRange("SideBandBOT_JPSI", ((cut.dMuon.M.Min<2.0)?2.0:cut.dMuon.M.Min), 2.8);
@@ -344,25 +344,22 @@ void setMassGlobalParameterRange(RooWorkspace& myws, map<string, string>& parIni
         myws.var("invMass")->setRange("SideBandTOP_FULL", 3.9, cut.dMuon.M.Max);
         myws.var("invMass")->setRange("SideBandTOP_PSI2S", 3.9, ((cut.dMuon.M.Max>4.2)?4.2:cut.dMuon.M.Max));
         parIni["BkgMassRange_FULL_Label"] = parIni["BkgMassRange_FULL_Label"] + "," + "SideBandTOP_FULL";
-        parIni["BkgMassRange_PSI2S_Label"] = parIni["BkgMassRange_PSI2S_Label"] + "," + "SideBandTOP_PSI2S";
       }
       parIni["BkgMassRange_FULL_Cut"]  = Form("(%.6f < invMass && invMass < %.6f)",       cut.dMuon.M.Min,       cut.dMuon.M.Max);
       parIni["BkgMassRange_FULL_Cut"]  = parIni["BkgMassRange_FULL_Cut"]  + "&&" + "((2.0 < invMass && invMass < 2.8) || (3.3 < invMass && invMass < 3.5) || (3.9 < invMass && invMass < 5.0))";
       parIni["BkgMassRange_JPSI_Cut"]  = parIni["BkgMassRange_FULL_Cut"]  + "&&" + "(2.0 < invMass && invMass < 3.5)";
-      parIni["BkgMassRange_PSI2S_Cut"] = parIni["BkgMassRange_FULL_Cut"] + "&&" + "(3.4 < invMass && invMass < 5.0)";
       parIni["BkgMassRange_FULL_Cut"]  = "("+parIni["BkgMassRange_FULL_Cut"]+")";
       parIni["BkgMassRange_JPSI_Cut"]  = "("+parIni["BkgMassRange_JPSI_Cut"]+")";
-      parIni["BkgMassRange_PSI2S_Cut"] = "("+parIni["BkgMassRange_PSI2S_Cut"]+")";
     }
   }
 
   return;
 };
 
-void setMassFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool isPbPb, bool cutSideBand) 
+void setMassFileName(string& FileName, string outputDir, string TAG, string plotLabel, struct KinCuts cut, bool cutSideBand) 
 {
   if (TAG.find("_")!=std::string::npos) TAG.erase(TAG.find("_"));
-  FileName = Form("%smass%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d.root", outputDir.c_str(), (cutSideBand?"SB":""), TAG.c_str(), "MASS", TAG.c_str(), (isPbPb?"PbPb":"PP"), plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End);
+  FileName = Form("%smass%s/%s/result/FIT_%s_%s_%s%s_pt%.0f%.0f_rap%.0f%.0f_cent%d%d_chi2%.0f%.0f.root", outputDir.c_str(), (cutSideBand?"SB":""), TAG.c_str(), "MASS", TAG.c_str(), "PP", plotLabel.c_str(), (cut.dMuon.Pt.Min*10.0), (cut.dMuon.Pt.Max*10.0), (cut.dMuon.AbsRap.Min*10.0), (cut.dMuon.AbsRap.Max*10.0), cut.Centrality.Start, cut.Centrality.End, (cut.dMuon.Chi2.Min*10.0), (cut.dMuon.Chi2.Max*10.0));
 };
 
 
